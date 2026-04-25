@@ -22,37 +22,62 @@ const SyncStatus = {
 };
 
 /**
- * 元数据文件结构
- * @typedef {Object} MetaData
- * @property {string} folderName - 文件夹名称
- * @property {string} lastSyncTime - 上次同步时间 ISO 字符串
- * @property {Array<BookmarkMeta>} bookmarks - 书签列表
- * @property {SyncInfo} syncInfo - 同步信息
+ * 检查值是否为有效字符串
+ * @param {any} value - 要检查的值
+ * @returns {boolean}
  */
+function isValidString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
 
 /**
- * 书签元数据
- * @typedef {Object} BookmarkMeta
- * @property {string} title - 书签标题
- * @property {string} url - 书签 URL
- * @property {string} iconFileName - 图标文件名
- * @property {string} urlStatus - URL 检测状态
- * @property {string|null} lastVisited - 上次访问时间
- * @property {boolean} isInvalid - 是否失效
- * @property {string} syncStatus - 同步状态
- * @property {string|null} lastSyncTime - 上次同步时间
+ * 确保路径是有效字符串
+ * @param {any} pathValue - 路径值
+ * @param {string} defaultValue - 默认值
+ * @returns {string}
  */
+function ensureValidPath(pathValue, defaultValue) {
+  if (isValidString(pathValue)) {
+    return pathValue;
+  }
+  if (isValidString(defaultValue)) {
+    return defaultValue;
+  }
+  return process.cwd();
+}
 
 /**
- * 同步信息
- * @typedef {Object} SyncInfo
- * @property {string} syncId - 同步 ID
- * @property {string} startTime - 开始时间
- * @property {string|null} endTime - 结束时间
- * @property {number} totalBookmarks - 总书签数
- * @property {number} completedBookmarks - 已完成书签数
- * @property {number} failedBookmarks - 失败书签数
+ * 安全的 path.join，处理空值
+ * @param {...string} paths - 路径片段
+ * @returns {string|null} - 如果有无效参数返回 null
  */
+function safePathJoin(...paths) {
+  try {
+    const validPaths = paths.filter(p => isValidString(p));
+    if (validPaths.length === 0) {
+      return null;
+    }
+    return path.join(...validPaths);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 安全的 fs.existsSync，处理空值
+ * @param {string|null} pathValue - 路径
+ * @returns {boolean}
+ */
+function safeExistsSync(pathValue) {
+  if (!isValidString(pathValue)) {
+    return false;
+  }
+  try {
+    return fs.existsSync(pathValue);
+  } catch {
+    return false;
+  }
+}
 
 /**
  * 清理文件名中的非法字符
@@ -61,7 +86,8 @@ const SyncStatus = {
  */
 function sanitizeFileName(name) {
   if (!name) return 'untitled';
-  return name.replace(/[<>:"/\\|?*]/g, '_').trim();
+  const nameStr = String(name);
+  return nameStr.replace(/[<>:"/\\|?*]/g, '_').trim();
 }
 
 /**
@@ -72,11 +98,21 @@ function sanitizeFileName(name) {
  * @returns {string} - 唯一的文件名
  */
 function generateUniqueFileName(baseName, extension, directory) {
+  if (!isValidString(directory)) {
+    const sanitizedBase = sanitizeFileName(baseName);
+    return `${sanitizedBase}${extension}`;
+  }
+
   const sanitizedBase = sanitizeFileName(baseName);
   let fileName = `${sanitizedBase}${extension}`;
   let counter = 1;
 
-  while (fs.existsSync(path.join(directory, fileName))) {
+  const fullPath = safePathJoin(directory, fileName);
+  if (!fullPath) {
+    return fileName;
+  }
+
+  while (safeExistsSync(fullPath)) {
     fileName = `${sanitizedBase}_${counter}${extension}`;
     counter++;
   }
@@ -90,6 +126,9 @@ function generateUniqueFileName(baseName, extension, directory) {
  * @returns {boolean}
  */
 function fileExistsAndNonEmpty(filePath) {
+  if (!isValidString(filePath)) {
+    return false;
+  }
   try {
     const stats = fs.statSync(filePath);
     return stats.isFile() && stats.size > 0;
@@ -104,6 +143,9 @@ function fileExistsAndNonEmpty(filePath) {
  * @returns {string|null} - 域名，失败返回 null
  */
 function getDomainForFavicon(url) {
+  if (!isValidString(url)) {
+    return null;
+  }
   try {
     const urlObj = new URL(url);
     return urlObj.hostname;
@@ -121,50 +163,77 @@ function getDomainForFavicon(url) {
  */
 function downloadFile(url, destPath, timeout = 10000) {
   return new Promise((resolve) => {
-    const isHttps = url.startsWith('https:');
+    if (!isValidString(url) || !isValidString(destPath)) {
+      resolve(false);
+      return;
+    }
+
+    let isHttps = false;
+    try {
+      isHttps = url.startsWith('https:');
+    } catch {
+      resolve(false);
+      return;
+    }
+
     const client = isHttps ? https : http;
 
-    const req = client.request(url, { method: 'GET', timeout }, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        res.resume();
-        resolve(false);
-        return;
-      }
+    let req;
+    try {
+      req = client.request(url, { method: 'GET', timeout }, (res) => {
+        try {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            res.resume();
+            resolve(false);
+            return;
+          }
 
-      if (res.statusCode !== 200) {
-        res.resume();
-        resolve(false);
-        return;
-      }
+          if (res.statusCode !== 200) {
+            res.resume();
+            resolve(false);
+            return;
+          }
 
-      const fileStream = fs.createWriteStream(destPath);
-      res.pipe(fileStream);
+          const fileStream = fs.createWriteStream(destPath);
+          res.pipe(fileStream);
 
-      fileStream.on('finish', () => {
-        fileStream.close();
-        resolve(true);
+          fileStream.on('finish', () => {
+            try {
+              fileStream.close();
+              resolve(true);
+            } catch {
+              resolve(false);
+            }
+          });
+
+          fileStream.on('error', () => {
+            try {
+              if (fs.existsSync(destPath)) {
+                fs.unlinkSync(destPath);
+              }
+            } catch {}
+            resolve(false);
+          });
+        } catch {
+          resolve(false);
+        }
       });
 
-      fileStream.on('error', () => {
+      req.on('timeout', () => {
         try {
-          if (fs.existsSync(destPath)) {
-            fs.unlinkSync(destPath);
-          }
+          req.destroy();
         } catch {}
         resolve(false);
       });
-    });
 
-    req.on('timeout', () => {
-      req.destroy();
+      req.on('error', () => {
+        resolve(false);
+      });
+
+      req.end();
+    } catch {
       resolve(false);
-    });
-
-    req.on('error', () => {
-      resolve(false);
-    });
-
-    req.end();
+    }
   });
 }
 
@@ -182,30 +251,51 @@ function downloadFile(url, destPath, timeout = 10000) {
  * @returns {Promise<string|null>} - 成功返回文件名，失败返回 null
  */
 async function downloadFavicon(url, destDir, baseName, timeout = 10000) {
+  if (!isValidString(destDir)) {
+    return null;
+  }
+
   const domain = getDomainForFavicon(url);
   if (!domain) {
     return null;
   }
 
   const sanitizedBase = sanitizeFileName(baseName);
-  const tempPath = path.join(destDir, `${sanitizedBase}_temp.ico`);
+  const tempPath = safePathJoin(destDir, `${sanitizedBase}_temp.ico`);
+  
+  if (!tempPath) {
+    return null;
+  }
 
-  const faviconSources = [
-    `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`,
-    `https://${domain}/favicon.ico`,
-    `https://icons.duckduckgo.com/ip3/${domain}.ico`
-  ];
+  const faviconSources = [];
+  try {
+    faviconSources.push(
+      `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`,
+      `https://${domain}/favicon.ico`,
+      `https://icons.duckduckgo.com/ip3/${domain}.ico`
+    );
+  } catch {
+    return null;
+  }
 
   for (const faviconUrl of faviconSources) {
     try {
       const success = await downloadFile(faviconUrl, tempPath, timeout);
       if (success && fileExistsAndNonEmpty(tempPath)) {
         const finalFileName = generateUniqueFileName(sanitizedBase, '.ico', destDir);
-        const finalPath = path.join(destDir, finalFileName);
-        fs.renameSync(tempPath, finalPath);
-        return finalFileName;
+        const finalPath = safePathJoin(destDir, finalFileName);
+        if (finalPath) {
+          try {
+            fs.renameSync(tempPath, finalPath);
+            return finalFileName;
+          } catch {
+            // 重命名失败，继续尝试
+          }
+        }
       }
-    } catch {}
+    } catch {
+      // 继续尝试下一个源
+    }
   }
 
   try {
@@ -223,6 +313,9 @@ async function downloadFavicon(url, destDir, baseName, timeout = 10000) {
  * @returns {MetaData|null} - 元数据对象，不存在或解析失败返回 null
  */
 function readExistingMeta(metaPath) {
+  if (!isValidString(metaPath)) {
+    return null;
+  }
   try {
     if (!fs.existsSync(metaPath)) {
       return null;
@@ -238,10 +331,19 @@ function readExistingMeta(metaPath) {
  * 写入元数据文件
  * @param {string} metaPath - 元数据文件路径
  * @param {MetaData} metaData - 元数据对象
+ * @returns {boolean} - 是否写入成功
  */
 function writeMeta(metaPath, metaData) {
-  const content = JSON.stringify(metaData, null, 2);
-  fs.writeFileSync(metaPath, content, 'utf-8');
+  if (!isValidString(metaPath)) {
+    return false;
+  }
+  try {
+    const content = JSON.stringify(metaData, null, 2);
+    fs.writeFileSync(metaPath, content, 'utf-8');
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -251,6 +353,8 @@ function writeMeta(metaPath, metaData) {
  * @returns {Object} - 同步状态分析结果
  */
 function analyzeSyncStatus(items, baseDir) {
+  const safeBaseDir = ensureValidPath(baseDir, process.cwd());
+
   const result = {
     totalFolders: 0,
     totalBookmarks: 0,
@@ -261,99 +365,133 @@ function analyzeSyncStatus(items, baseDir) {
   };
 
   function traverse(itemsList, currentDir) {
+    if (!Array.isArray(itemsList)) {
+      return;
+    }
+
+    const safeCurrentDir = ensureValidPath(currentDir, safeBaseDir);
+
     for (const item of itemsList) {
-      if (item.type === 'folder') {
-        result.totalFolders++;
-        const folderName = sanitizeFileName(item.name);
-        const folderPath = path.join(currentDir, folderName);
-        const metaPath = path.join(folderPath, '.meta.json');
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
 
-        if (!fs.existsSync(folderPath)) {
-          result.foldersToCreate.push({
-            name: item.name,
-            path: folderPath,
-            sanitizedName: folderName
-          });
-        }
-
-        const existingMeta = readExistingMeta(metaPath);
-        const existingBookmarks = new Map();
-        
-        if (existingMeta && existingMeta.bookmarks) {
-          for (const bm of existingMeta.bookmarks) {
-            existingBookmarks.set(bm.url, bm);
-          }
-        }
-
-        if (item.children) {
-          traverse(item.children, folderPath);
-        }
-      } else if (item.type === 'link') {
-        result.totalBookmarks++;
-        const bookmarkTitle = sanitizeFileName(item.title);
-        const expectedIconPath = path.join(currentDir, `${bookmarkTitle}.ico`);
-        const metaPath = path.join(currentDir, '.meta.json');
-        
-        const existingMeta = readExistingMeta(metaPath);
-        let existingBookmark = null;
-        
-        if (existingMeta && existingMeta.bookmarks) {
-          existingBookmark = existingMeta.bookmarks.find(bm => bm.url === item.url);
-        }
-
-        const hasIcon = fileExistsAndNonEmpty(expectedIconPath) || 
-          (existingBookmark && fileExistsAndNonEmpty(path.join(currentDir, existingBookmark.iconFileName)));
-
-        const hasMetaEntry = existingBookmark != null;
-
-        if (hasIcon && hasMetaEntry && existingBookmark.syncStatus === SyncStatus.COMPLETED) {
-          result.bookmarksAlreadySynced.push({
-            ...item,
-            folderPath: currentDir,
-            existingMeta: existingBookmark
-          });
-        } else {
-          const titlePattern = new RegExp(`^${sanitizeFileName(item.title)}(_\\d+)?\\.ico$`);
-          const conflictingIcons = [];
+      try {
+        if (item.type === 'folder') {
+          result.totalFolders++;
           
-          try {
-            if (fs.existsSync(currentDir)) {
-              const files = fs.readdirSync(currentDir);
-              for (const file of files) {
-                if (titlePattern.test(file)) {
-                  const iconMeta = existingMeta?.bookmarks?.find(bm => bm.iconFileName === file);
-                  if (iconMeta && iconMeta.url !== item.url) {
-                    conflictingIcons.push({
-                      fileName: file,
-                      url: iconMeta.url,
-                      title: iconMeta.title
-                    });
+          const folderName = sanitizeFileName(item.name);
+          const folderPath = safePathJoin(safeCurrentDir, folderName);
+          
+          if (folderPath && !safeExistsSync(folderPath)) {
+            result.foldersToCreate.push({
+              name: item.name || folderName,
+              path: folderPath,
+              sanitizedName: folderName
+            });
+          }
+
+          const metaPath = folderPath ? safePathJoin(folderPath, '.meta.json') : null;
+          const existingMeta = readExistingMeta(metaPath);
+          
+          if (existingMeta && Array.isArray(existingMeta.bookmarks)) {
+            // 文件夹元数据已存在，继续处理子项
+          }
+
+          if (item.children && Array.isArray(item.children)) {
+            traverse(item.children, folderPath || safeCurrentDir);
+          }
+        } else if (item.type === 'link') {
+          result.totalBookmarks++;
+          
+          const bookmarkTitle = sanitizeFileName(item.title);
+          const expectedIconPath = safePathJoin(safeCurrentDir, `${bookmarkTitle}.ico`);
+          const metaPath = safePathJoin(safeCurrentDir, '.meta.json');
+          
+          const existingMeta = readExistingMeta(metaPath);
+          let existingBookmark = null;
+          
+          if (existingMeta && Array.isArray(existingMeta.bookmarks) && isValidString(item.url)) {
+            existingBookmark = existingMeta.bookmarks.find(bm => bm.url === item.url);
+          }
+
+          let hasIcon = false;
+          if (expectedIconPath) {
+            hasIcon = fileExistsAndNonEmpty(expectedIconPath);
+          }
+          
+          if (!hasIcon && existingBookmark && existingBookmark.iconFileName) {
+            const existingIconPath = safePathJoin(safeCurrentDir, existingBookmark.iconFileName);
+            if (existingIconPath) {
+              hasIcon = fileExistsAndNonEmpty(existingIconPath);
+            }
+          }
+
+          const hasMetaEntry = existingBookmark != null;
+          const isCompleted = hasMetaEntry && existingBookmark.syncStatus === SyncStatus.COMPLETED;
+
+          if (hasIcon && isCompleted) {
+            result.bookmarksAlreadySynced.push({
+              ...item,
+              folderPath: safeCurrentDir,
+              existingMeta: existingBookmark
+            });
+          } else {
+            const conflictingIcons = [];
+            
+            try {
+              const titleBase = sanitizeFileName(item.title);
+              const titlePattern = new RegExp(`^${titleBase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(_\\d+)?\\.ico$`);
+              
+              if (safeExistsSync(safeCurrentDir)) {
+                const files = fs.readdirSync(safeCurrentDir);
+                for (const file of files) {
+                  if (titlePattern.test(file)) {
+                    const iconMeta = existingMeta?.bookmarks?.find(bm => bm.iconFileName === file);
+                    if (iconMeta && iconMeta.url !== item.url) {
+                      conflictingIcons.push({
+                        fileName: file,
+                        url: iconMeta.url,
+                        title: iconMeta.title
+                      });
+                    }
                   }
                 }
               }
+            } catch {
+              // 忽略冲突检测错误
             }
-          } catch {}
 
-          const bookmarkInfo = {
-            ...item,
-            folderPath: currentDir,
-            hasIcon,
-            hasMetaEntry,
-            existingMeta: existingBookmark,
-            conflicts: conflictingIcons
-          };
+            const bookmarkInfo = {
+              ...item,
+              folderPath: safeCurrentDir,
+              hasIcon,
+              hasMetaEntry,
+              existingMeta: existingBookmark,
+              conflicts: conflictingIcons
+            };
 
-          if (conflictingIcons.length > 0) {
-            result.bookmarksWithConflicts.push(bookmarkInfo);
-          } else {
-            result.bookmarksToSync.push(bookmarkInfo);
+            if (conflictingIcons.length > 0) {
+              result.bookmarksWithConflicts.push(bookmarkInfo);
+            } else {
+              result.bookmarksToSync.push(bookmarkInfo);
+            }
           }
         }
+      } catch (error) {
+        // 单个书签处理失败，继续处理其他书签
+        console.warn(`处理书签时发生错误，已跳过: ${error.message}`);
+        continue;
       }
     }
   }
 
-  traverse(items, baseDir);
+  try {
+    traverse(items, safeBaseDir);
+  } catch (error) {
+    console.error(`分析同步状态时发生错误: ${error.message}`);
+  }
+
   return result;
 }
 
@@ -362,9 +500,20 @@ function analyzeSyncStatus(items, baseDir) {
  * @param {Array} foldersToCreate - 要创建的文件夹列表
  */
 function createFolderStructure(foldersToCreate) {
+  if (!Array.isArray(foldersToCreate)) {
+    return;
+  }
+
   for (const folder of foldersToCreate) {
-    if (!fs.existsSync(folder.path)) {
-      fs.mkdirSync(folder.path, { recursive: true });
+    if (!folder || !isValidString(folder.path)) {
+      continue;
+    }
+    try {
+      if (!fs.existsSync(folder.path)) {
+        fs.mkdirSync(folder.path, { recursive: true });
+      }
+    } catch (error) {
+      console.warn(`创建文件夹失败 ${folder.path}: ${error.message}`);
     }
   }
 }
@@ -377,41 +526,60 @@ function createFolderStructure(foldersToCreate) {
  * @param {Object} syncInfo - 同步信息
  */
 function updateFolderMeta(folderPath, folderName, bookmarksInFolder, syncInfo) {
-  const metaPath = path.join(folderPath, '.meta.json');
+  if (!isValidString(folderPath)) {
+    return;
+  }
+
+  const metaPath = safePathJoin(folderPath, '.meta.json');
+  if (!metaPath) {
+    return;
+  }
+
   const existingMeta = readExistingMeta(metaPath);
 
+  const safeFolderName = isValidString(folderName) ? folderName : path.basename(folderPath);
+  const safeBookmarks = Array.isArray(bookmarksInFolder) ? bookmarksInFolder : [];
+
   const metaData = {
-    folderName: folderName,
+    folderName: safeFolderName,
     lastSyncTime: new Date().toISOString(),
-    bookmarks: bookmarksInFolder.map(bm => ({
-      title: bm.title,
-      url: bm.url,
-      iconFileName: bm.iconFileName || null,
-      urlStatus: bm.urlStatus || 'unknown',
-      lastVisited: bm.lastVisited || null,
-      isInvalid: bm.isInvalid || false,
-      syncStatus: bm.syncStatus || SyncStatus.PENDING,
-      lastSyncTime: bm.lastSyncTime || null
-    })),
+    bookmarks: safeBookmarks.map(bm => {
+      if (!bm || typeof bm !== 'object') {
+        return null;
+      }
+      return {
+        title: bm.title || 'untitled',
+        url: bm.url || '',
+        iconFileName: bm.iconFileName || null,
+        urlStatus: bm.urlStatus || 'unknown',
+        lastVisited: bm.lastVisited || null,
+        isInvalid: bm.isInvalid || false,
+        syncStatus: bm.syncStatus || SyncStatus.PENDING,
+        lastSyncTime: bm.lastSyncTime || null
+      };
+    }).filter(Boolean),
     syncInfo: {
-      syncId: syncInfo.syncId,
-      startTime: syncInfo.startTime,
+      syncId: syncInfo?.syncId || `sync_${Date.now()}`,
+      startTime: syncInfo?.startTime || new Date().toISOString(),
       endTime: new Date().toISOString(),
-      totalBookmarks: bookmarksInFolder.length,
-      completedBookmarks: bookmarksInFolder.filter(bm => bm.syncStatus === SyncStatus.COMPLETED).length,
-      failedBookmarks: bookmarksInFolder.filter(bm => bm.syncStatus === SyncStatus.FAILED).length
+      totalBookmarks: safeBookmarks.length,
+      completedBookmarks: safeBookmarks.filter(bm => bm?.syncStatus === SyncStatus.COMPLETED).length,
+      failedBookmarks: safeBookmarks.filter(bm => bm?.syncStatus === SyncStatus.FAILED).length
     }
   };
 
-  if (existingMeta) {
+  if (existingMeta && Array.isArray(existingMeta.bookmarks)) {
     const existingBookmarks = new Map();
-    if (existingMeta.bookmarks) {
-      for (const bm of existingMeta.bookmarks) {
+    for (const bm of existingMeta.bookmarks) {
+      if (bm && isValidString(bm.url)) {
         existingBookmarks.set(bm.url, bm);
       }
     }
 
     metaData.bookmarks = metaData.bookmarks.map(bm => {
+      if (!bm || !isValidString(bm.url)) {
+        return bm;
+      }
       const existing = existingBookmarks.get(bm.url);
       if (existing) {
         return {
@@ -434,11 +602,23 @@ function updateFolderMeta(folderPath, folderName, bookmarksInFolder, syncInfo) {
  * @returns {Promise<Object>} - 同步结果
  */
 async function syncSingleBookmark(bookmark, options) {
+  const defaultResult = {
+    syncStatus: SyncStatus.FAILED,
+    iconFileName: null,
+    lastSyncTime: null
+  };
+
+  if (!bookmark || typeof bookmark !== 'object') {
+    return defaultResult;
+  }
+
   const { 
     timeout = 10000, 
     skipIconDownload = false,
     forceUpdate = false
-  } = options;
+  } = options || {};
+
+  const folderPath = ensureValidPath(bookmark.folderPath, process.cwd());
 
   const result = {
     ...bookmark,
@@ -447,40 +627,54 @@ async function syncSingleBookmark(bookmark, options) {
     lastSyncTime: bookmark.existingMeta?.lastSyncTime || null
   };
 
-  let baseFileName = sanitizeFileName(bookmark.title);
-  
-  if (bookmark.conflicts && bookmark.conflicts.length > 0) {
-    let counter = 1;
-    let newBaseName = `${baseFileName}_${counter}`;
-    while (fs.existsSync(path.join(bookmark.folderPath, `${newBaseName}.ico`))) {
-      counter++;
-      newBaseName = `${baseFileName}_${counter}`;
+  try {
+    let baseFileName = sanitizeFileName(bookmark.title);
+    
+    if (bookmark.conflicts && Array.isArray(bookmark.conflicts) && bookmark.conflicts.length > 0) {
+      let counter = 1;
+      let newBaseName = `${baseFileName}_${counter}`;
+      
+      while (true) {
+        const checkPath = safePathJoin(folderPath, `${newBaseName}.ico`);
+        if (!checkPath || !safeExistsSync(checkPath)) {
+          break;
+        }
+        counter++;
+        newBaseName = `${baseFileName}_${counter}`;
+      }
+      baseFileName = newBaseName;
     }
-    baseFileName = newBaseName;
-  }
 
-  const iconPath = path.join(bookmark.folderPath, `${baseFileName}.ico`);
-  const iconAlreadyExists = fileExistsAndNonEmpty(iconPath);
+    const iconPath = safePathJoin(folderPath, `${baseFileName}.ico`);
+    const iconAlreadyExists = iconPath ? fileExistsAndNonEmpty(iconPath) : false;
 
-  if (!skipIconDownload && (!iconAlreadyExists || forceUpdate)) {
-    const downloadedFileName = await downloadFavicon(
-      bookmark.url, 
-      bookmark.folderPath, 
-      baseFileName, 
-      timeout
-    );
+    if (!skipIconDownload && (!iconAlreadyExists || forceUpdate)) {
+      if (!isValidString(bookmark.url)) {
+        result.syncStatus = SyncStatus.FAILED;
+      } else {
+        const downloadedFileName = await downloadFavicon(
+          bookmark.url, 
+          folderPath, 
+          baseFileName, 
+          timeout
+        );
 
-    if (downloadedFileName) {
-      result.iconFileName = downloadedFileName;
-      result.syncStatus = SyncStatus.COMPLETED;
+        if (downloadedFileName) {
+          result.iconFileName = downloadedFileName;
+          result.syncStatus = SyncStatus.COMPLETED;
+        } else {
+          result.syncStatus = SyncStatus.FAILED;
+        }
+      }
     } else {
-      result.syncStatus = SyncStatus.FAILED;
+      if (iconAlreadyExists && iconPath) {
+        result.iconFileName = path.basename(iconPath);
+      }
+      result.syncStatus = SyncStatus.COMPLETED;
     }
-  } else {
-    if (iconAlreadyExists) {
-      result.iconFileName = `${baseFileName}.ico`;
-    }
-    result.syncStatus = SyncStatus.COMPLETED;
+  } catch (error) {
+    console.warn(`同步书签 "${bookmark.title || 'unknown'}" 时发生错误: ${error.message}`);
+    result.syncStatus = SyncStatus.FAILED;
   }
 
   result.lastSyncTime = new Date().toISOString();
@@ -495,8 +689,17 @@ async function syncSingleBookmark(bookmark, options) {
 function groupBookmarksByFolder(bookmarks) {
   const groups = new Map();
   
+  if (!Array.isArray(bookmarks)) {
+    return groups;
+  }
+  
   for (const bookmark of bookmarks) {
-    const folderPath = bookmark.folderPath;
+    if (!bookmark || typeof bookmark !== 'object') {
+      continue;
+    }
+    
+    const folderPath = ensureValidPath(bookmark.folderPath, process.cwd());
+    
     if (!groups.has(folderPath)) {
       groups.set(folderPath, []);
     }
@@ -515,21 +718,51 @@ function groupBookmarksByFolder(bookmarks) {
 function collectFolderInfo(items, baseDir) {
   const folderMap = new Map();
   
+  if (!Array.isArray(items)) {
+    return folderMap;
+  }
+
+  const safeBaseDir = ensureValidPath(baseDir, process.cwd());
+  
   function traverse(itemsList, currentDir) {
+    if (!Array.isArray(itemsList)) {
+      return;
+    }
+
+    const safeCurrentDir = ensureValidPath(currentDir, safeBaseDir);
+
     for (const item of itemsList) {
-      if (item.type === 'folder') {
-        const folderName = sanitizeFileName(item.name);
-        const folderPath = path.join(currentDir, folderName);
-        folderMap.set(folderPath, item.name);
-        
-        if (item.children) {
-          traverse(item.children, folderPath);
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+
+      try {
+        if (item.type === 'folder') {
+          const folderName = item.name || 'untitled';
+          const sanitizedName = sanitizeFileName(folderName);
+          const folderPath = safePathJoin(safeCurrentDir, sanitizedName);
+          
+          if (folderPath) {
+            folderMap.set(folderPath, folderName);
+          }
+          
+          if (item.children && Array.isArray(item.children)) {
+            traverse(item.children, folderPath || safeCurrentDir);
+          }
         }
+      } catch {
+        // 忽略单个文件夹处理错误
+        continue;
       }
     }
   }
   
-  traverse(items, baseDir);
+  try {
+    traverse(items, safeBaseDir);
+  } catch {
+    // 忽略遍历错误
+  }
+
   return folderMap;
 }
 
@@ -546,6 +779,8 @@ function collectFolderInfo(items, baseDir) {
  * @returns {Promise<Object>} - 同步结果
  */
 async function syncToLocalMirror(bookmarks, outputDir, options = {}) {
+  const safeOutputDir = ensureValidPath(outputDir, path.join(process.cwd(), 'bookmarks_mirror'));
+
   const {
     maxConcurrent = 5,
     timeout = 10000,
@@ -554,34 +789,55 @@ async function syncToLocalMirror(bookmarks, outputDir, options = {}) {
     onProgress = null
   } = options;
 
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  try {
+    if (!fs.existsSync(safeOutputDir)) {
+      fs.mkdirSync(safeOutputDir, { recursive: true });
+    }
+  } catch (error) {
+    throw new Error(`无法创建输出目录 ${safeOutputDir}: ${error.message}`);
   }
 
   const syncId = `sync_${Date.now()}`;
   const syncStartTime = new Date().toISOString();
 
-  if (onProgress) {
-    onProgress(0, 0, '正在分析同步状态...');
+  if (onProgress && typeof onProgress === 'function') {
+    try {
+      onProgress(0, 0, '正在分析同步状态...');
+    } catch {}
   }
 
-  const syncAnalysis = analyzeSyncStatus(bookmarks, outputDir);
-  const folderInfo = collectFolderInfo(bookmarks, outputDir);
+  let syncAnalysis;
+  let folderInfo;
+  
+  try {
+    syncAnalysis = analyzeSyncStatus(bookmarks, safeOutputDir);
+    folderInfo = collectFolderInfo(bookmarks, safeOutputDir);
+  } catch (error) {
+    throw new Error(`分析同步状态失败: ${error.message}`);
+  }
 
-  if (onProgress) {
-    onProgress(0, syncAnalysis.totalBookmarks, `分析完成：需要创建 ${syncAnalysis.foldersToCreate.length} 个文件夹，需要同步 ${syncAnalysis.bookmarksToSync.length} 个书签，已同步 ${syncAnalysis.bookmarksAlreadySynced.length} 个，存在冲突 ${syncAnalysis.bookmarksWithConflicts.length} 个`);
+  if (onProgress && typeof onProgress === 'function') {
+    try {
+      onProgress(0, syncAnalysis.totalBookmarks, 
+        `分析完成：需要创建 ${syncAnalysis.foldersToCreate.length} 个文件夹，` +
+        `需要同步 ${syncAnalysis.bookmarksToSync.length} 个书签，` +
+        `已同步 ${syncAnalysis.bookmarksAlreadySynced.length} 个，` +
+        `存在冲突 ${syncAnalysis.bookmarksWithConflicts.length} 个`);
+    } catch {}
   }
 
   if (syncAnalysis.foldersToCreate.length > 0) {
-    if (onProgress) {
-      onProgress(0, syncAnalysis.totalBookmarks, `正在创建文件夹结构...`);
+    if (onProgress && typeof onProgress === 'function') {
+      try {
+        onProgress(0, syncAnalysis.totalBookmarks, `正在创建文件夹结构...`);
+      } catch {}
     }
     createFolderStructure(syncAnalysis.foldersToCreate);
   }
 
   const bookmarksToProcess = [
-    ...syncAnalysis.bookmarksToSync,
-    ...syncAnalysis.bookmarksWithConflicts
+    ...(syncAnalysis.bookmarksToSync || []),
+    ...(syncAnalysis.bookmarksWithConflicts || [])
   ];
 
   const totalToProcess = bookmarksToProcess.length;
@@ -596,29 +852,46 @@ async function syncToLocalMirror(bookmarks, outputDir, options = {}) {
     const results = await Promise.all(
       bookmarksToProcess.map((bookmark) =>
         limiter.add(async () => {
-          const result = await syncSingleBookmark(bookmark, {
-            timeout,
-            skipIconDownload,
-            forceUpdate
-          });
+          try {
+            const result = await syncSingleBookmark(bookmark, {
+              timeout,
+              skipIconDownload,
+              forceUpdate
+            });
 
-          completedCount++;
-          if (onProgress) {
-            const message = result.syncStatus === SyncStatus.COMPLETED 
-              ? `已完成: ${result.title}` 
-              : `失败: ${result.title}`;
-            onProgress(completedCount + syncAnalysis.bookmarksAlreadySynced.length, 
-                       syncAnalysis.totalBookmarks, 
-                       message);
+            completedCount++;
+            if (onProgress && typeof onProgress === 'function') {
+              try {
+                const message = result.syncStatus === SyncStatus.COMPLETED 
+                  ? `已完成: ${result.title || 'unknown'}` 
+                  : `失败: ${result.title || 'unknown'}`;
+                onProgress(
+                  completedCount + (syncAnalysis.bookmarksAlreadySynced?.length || 0), 
+                  syncAnalysis.totalBookmarks, 
+                  message
+                );
+              } catch {}
+            }
+
+            return result;
+          } catch (error) {
+            completedCount++;
+            const title = bookmark?.title || 'unknown';
+            console.warn(`处理书签 "${title}" 时发生未预期的错误: ${error.message}`);
+            
+            return {
+              ...bookmark,
+              syncStatus: SyncStatus.FAILED,
+              iconFileName: null,
+              lastSyncTime: new Date().toISOString()
+            };
           }
-
-          return result;
         })
       )
     );
 
     for (const result of results) {
-      if (result.syncStatus === SyncStatus.COMPLETED) {
+      if (result && result.syncStatus === SyncStatus.COMPLETED) {
         syncedResults.push(result);
       } else {
         failedResults.push(result);
@@ -629,7 +902,7 @@ async function syncToLocalMirror(bookmarks, outputDir, options = {}) {
   const allBookmarks = [
     ...syncedResults,
     ...failedResults,
-    ...syncAnalysis.bookmarksAlreadySynced.map(bm => ({
+    ...(syncAnalysis.bookmarksAlreadySynced || []).map(bm => ({
       ...bm,
       syncStatus: SyncStatus.COMPLETED
     }))
@@ -637,32 +910,38 @@ async function syncToLocalMirror(bookmarks, outputDir, options = {}) {
 
   const groupedByFolder = groupBookmarksByFolder(allBookmarks);
 
-  if (onProgress) {
-    onProgress(syncAnalysis.totalBookmarks, syncAnalysis.totalBookmarks, '正在更新元数据文件...');
+  if (onProgress && typeof onProgress === 'function') {
+    try {
+      onProgress(syncAnalysis.totalBookmarks, syncAnalysis.totalBookmarks, '正在更新元数据文件...');
+    } catch {}
   }
 
   for (const [folderPath, folderBookmarks] of groupedByFolder) {
-    const folderName = folderInfo.get(folderPath) || path.basename(folderPath);
-    updateFolderMeta(folderPath, folderName, folderBookmarks, {
-      syncId,
-      startTime: syncStartTime
-    });
+    try {
+      const folderName = folderInfo.get(folderPath) || (isValidString(folderPath) ? path.basename(folderPath) : 'unknown');
+      updateFolderMeta(folderPath, folderName, folderBookmarks, {
+        syncId,
+        startTime: syncStartTime
+      });
+    } catch (error) {
+      console.warn(`更新文件夹元数据失败 ${folderPath}: ${error.message}`);
+    }
   }
 
   return {
     syncId,
     startTime: syncStartTime,
     endTime: new Date().toISOString(),
-    totalFolders: syncAnalysis.totalFolders,
-    totalBookmarks: syncAnalysis.totalBookmarks,
-    foldersCreated: syncAnalysis.foldersToCreate.length,
+    totalFolders: syncAnalysis.totalFolders || 0,
+    totalBookmarks: syncAnalysis.totalBookmarks || 0,
+    foldersCreated: syncAnalysis.foldersToCreate?.length || 0,
     bookmarksSynced: syncedResults.length,
-    bookmarksAlreadySynced: syncAnalysis.bookmarksAlreadySynced.length,
+    bookmarksAlreadySynced: syncAnalysis.bookmarksAlreadySynced?.length || 0,
     bookmarksFailed: failedResults.length,
-    bookmarksWithConflicts: syncAnalysis.bookmarksWithConflicts.length,
+    bookmarksWithConflicts: syncAnalysis.bookmarksWithConflicts?.length || 0,
     failedBookmarks: failedResults.map(bm => ({
-      title: bm.title,
-      url: bm.url
+      title: bm?.title || 'unknown',
+      url: bm?.url || ''
     }))
   };
 }
@@ -673,6 +952,8 @@ async function syncToLocalMirror(bookmarks, outputDir, options = {}) {
  * @returns {Object} - 同步状态摘要
  */
 function checkSyncStatus(outputDir) {
+  const safeOutputDir = ensureValidPath(outputDir, process.cwd());
+
   const result = {
     totalFolders: 0,
     totalBookmarks: 0,
@@ -683,17 +964,27 @@ function checkSyncStatus(outputDir) {
   };
 
   function scanDirectory(dir) {
+    if (!isValidString(dir)) {
+      return;
+    }
+
     try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      const metaPath = path.join(dir, '.meta.json');
+      let entries = [];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+
+      const metaPath = safePathJoin(dir, '.meta.json');
       const meta = readExistingMeta(metaPath);
 
-      if (meta && meta.bookmarks) {
+      if (meta && Array.isArray(meta.bookmarks)) {
         result.totalFolders++;
         const folderInfo = {
           path: dir,
-          name: meta.folderName,
-          lastSyncTime: meta.lastSyncTime,
+          name: meta.folderName || (isValidString(dir) ? path.basename(dir) : 'unknown'),
+          lastSyncTime: meta.lastSyncTime || null,
           totalBookmarks: meta.bookmarks.length,
           completedBookmarks: 0,
           pendingBookmarks: 0,
@@ -701,6 +992,10 @@ function checkSyncStatus(outputDir) {
         };
 
         for (const bookmark of meta.bookmarks) {
+          if (!bookmark || typeof bookmark !== 'object') {
+            continue;
+          }
+
           result.totalBookmarks++;
           switch (bookmark.syncStatus) {
             case SyncStatus.COMPLETED:
@@ -722,15 +1017,20 @@ function checkSyncStatus(outputDir) {
       }
 
       for (const entry of entries) {
-        if (entry.isDirectory()) {
-          scanDirectory(path.join(dir, entry.name));
+        if (entry && entry.isDirectory && entry.isDirectory()) {
+          const subDir = safePathJoin(dir, entry.name);
+          if (subDir) {
+            scanDirectory(subDir);
+          }
         }
       }
-    } catch {}
+    } catch (error) {
+      console.warn(`扫描目录时发生错误 ${dir}: ${error.message}`);
+    }
   }
 
-  if (fs.existsSync(outputDir)) {
-    scanDirectory(outputDir);
+  if (safeExistsSync(safeOutputDir)) {
+    scanDirectory(safeOutputDir);
   }
 
   return result;
@@ -748,5 +1048,9 @@ module.exports = {
   writeMeta,
   createFolderStructure,
   groupBookmarksByFolder,
-  collectFolderInfo
+  collectFolderInfo,
+  isValidString,
+  ensureValidPath,
+  safePathJoin,
+  safeExistsSync
 };
