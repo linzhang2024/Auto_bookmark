@@ -3,15 +3,39 @@
 
 import argparse
 import os
+from urllib.parse import urlparse
 from bs4 import BeautifulSoup
 
 
 def is_localhost_url(url):
-    """检查 URL 是否包含 localhost 或 127.0.0.1"""
+    """检查 URL 是否是本地开发环境链接（localhost 或 127.0.0.1）"""
     if not url:
         return False
-    url_lower = url.lower()
-    return 'localhost' in url_lower or '127.0.0.1' in url_lower
+    
+    try:
+        parsed = urlparse(url.lower())
+        hostname = parsed.hostname
+        
+        if hostname:
+            return hostname in ['localhost', '127.0.0.1']
+        
+        # 如果无法解析主机名，尝试简单的字符串匹配
+        url_lower = url.lower()
+        # 检查是否以 localhost:// 或 127.0.0.1:// 开头
+        if url_lower.startswith('localhost://') or url_lower.startswith('127.0.0.1://'):
+            return True
+        # 检查是否包含 ://localhost: 或 ://127.0.0.1:
+        if '://localhost:' in url_lower or '://127.0.0.1:' in url_lower:
+            return True
+        # 检查是否以 ://localhost 或 ://127.0.0.1 结尾（没有端口）
+        if url_lower.endswith('://localhost') or url_lower.endswith('://127.0.0.1'):
+            return True
+        
+        return False
+    except Exception:
+        # 如果解析失败，使用简单的字符串匹配
+        url_lower = url.lower()
+        return 'localhost' in url_lower or '127.0.0.1' in url_lower
 
 
 def find_html_files(directory=None):
@@ -81,6 +105,19 @@ def count_bookmarks(items):
             count += 1
         elif item['type'] == 'folder' and item['children']:
             count += count_bookmarks(item['children'])
+    return count
+
+
+def count_folders(items):
+    """
+    统计文件夹数量
+    """
+    count = 0
+    for item in items:
+        if item['type'] == 'folder':
+            count += 1
+            if item['children']:
+                count += count_folders(item['children'])
     return count
 
 
@@ -236,9 +273,10 @@ def main():
         html_content = f.read()
     
     bookmarks = parse_chrome_bookmarks(html_content)
-    bookmark_count = count_bookmarks(bookmarks)
+    folder_count = count_folders(bookmarks)
+    link_count = count_bookmarks(bookmarks)
     
-    if bookmark_count == 0:
+    if folder_count == 0 and link_count == 0:
         print("警告: 没有找到任何有效的书签")
         return
     
@@ -248,11 +286,15 @@ def main():
         output_file = args.output
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write(markdown_content)
-        print(f"成功转换！共转换了 {bookmark_count} 条书签")
+        print(f"成功转换！")
+        print(f"  文件夹数量: {folder_count}")
+        print(f"  链接数量: {link_count}")
         print(f"输出文件: {output_file}")
     else:
         print(markdown_content)
-        print(f"\n成功转换！共转换了 {bookmark_count} 条书签")
+        print(f"\n成功转换！")
+        print(f"  文件夹数量: {folder_count}")
+        print(f"  链接数量: {link_count}")
 
 
 if __name__ == '__main__':
