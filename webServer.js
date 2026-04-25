@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const net = require('net');
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -15,11 +16,23 @@ const {
   countFolders
 } = require('./bookmarkConverter');
 
+process.on('uncaughtException', (error) => {
+  console.error('未捕获的异常:', error.message);
+  if (error.code === 'EADDRINUSE') {
+    console.log('提示: 端口冲突，但动态端口探测应该已处理此情况');
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('未处理的 Promise 拒绝:', reason);
+});
+
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const PORT = process.env.PORT || 3000;
+const DEFAULT_START_PORT = 3000;
+const MAX_PORT_ATTEMPTS = 50;
 const DEFAULT_SYNC_DIR = path.join(__dirname, 'bookmarks_mirror');
 
 let currentSyncDir = DEFAULT_SYNC_DIR;
@@ -27,6 +40,96 @@ let isSyncing = false;
 let currentSyncTask = null;
 
 let connectedClients = new Set();
+
+function isPortAvailable(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    
+    server.once('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        resolve(false);
+      } else {
+        resolve(false);
+      }
+    });
+    
+    server.once('listening', () => {
+      server.close(() => {
+        resolve(true);
+      });
+    });
+    
+    server.listen(port, '127.0.0.1');
+  });
+}
+
+async function findAvailablePort(startPort = DEFAULT_START_PORT) {
+  let port = startPort;
+  let attempts = 0;
+  
+  while (attempts < MAX_PORT_ATTEMPTS) {
+    const available = await isPortAvailable(port);
+    if (available) {
+      return port;
+    }
+    console.log(`端口 ${port} 已被占用，尝试端口 ${port + 1}...`);
+    port++;
+    attempts++;
+  }
+  
+  throw new Error(`在尝试了 ${MAX_PORT_ATTEMPTS} 个端口后，未找到可用端口 (范围: ${startPort} - ${startPort + MAX_PORT_ATTEMPTS - 1})`);
+}
+
+async function startServer() {
+  let actualPort;
+  
+  try {
+    if (process.env.PORT) {
+      const envPort = parseInt(process.env.PORT, 10);
+      if (!isNaN(envPort) && envPort > 0 && envPort < 65536) {
+        const available = await isPortAvailable(envPort);
+        if (available) {
+          actualPort = envPort;
+        } else {
+          console.log(`环境变量指定的端口 ${envPort} 不可用，将自动查找可用端口...`);
+          actualPort = await findAvailablePort(DEFAULT_START_PORT);
+        }
+      } else {
+        actualPort = await findAvailablePort(DEFAULT_START_PORT);
+      }
+    } else {
+      actualPort = await findAvailablePort(DEFAULT_START_PORT);
+    }
+  } catch (error) {
+    console.error('查找可用端口失败:', error.message);
+    console.log('尝试使用动态端口模式 (端口 0)...');
+    actualPort = 0;
+  }
+
+  return new Promise((resolve, reject) => {
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        reject(new Error(`端口 ${actualPort} 仍然不可用`));
+      } else {
+        reject(error);
+      }
+    });
+
+    server.listen(actualPort, '127.0.0.1', () => {
+      const address = server.address();
+      const finalPort = address.port;
+      
+      console.log(`\n═══════════════════════════════════════════`);
+      console.log(`  本地镜像同步 - Web 管理后台已启动`);
+      console.log(`═══════════════════════════════════════════`);
+      console.log(`  服务器已在 http://localhost:${finalPort} 成功运行`);
+      console.log(`  默认同步目录: ${DEFAULT_SYNC_DIR}`);
+      console.log(`═══════════════════════════════════════════\n`);
+      
+      resolve(finalPort);
+    });
+  });
+}
 
 function broadcast(message) {
   const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
@@ -414,15 +517,6 @@ setInterval(() => {
   }
 }, 30000);
 
-server.listen(PORT, () => {
-  console.log(`\n═══════════════════════════════════════════`);
-  console.log(`  本地镜像同步 - Web 管理后台已启动`);
-  console.log(`═══════════════════════════════════════════`);
-  console.log(`  服务器地址: http://localhost:${PORT}`);
-  console.log(`  默认同步目录: ${DEFAULT_SYNC_DIR}`);
-  console.log(`═══════════════════════════════════════════\n`);
-});
-
 process.on('SIGINT', () => {
   console.log('\n正在关闭服务器...');
   wss.clients.forEach(client => {
@@ -437,4 +531,13 @@ process.on('SIGINT', () => {
   });
 });
 
-module.exports = { app, server, wss, broadcast };
+startServer().catch((error) => {
+  console.error('启动服务器失败:', error.message);
+  console.log('\n═══════════════════════════════════════════');
+  console.log('  错误: 无法启动服务器');
+  console.log('  原因:', error.message);
+  console.log('═══════════════════════════════════════════');
+  process.exit(1);
+});
+
+module.exports = { app, server, wss, broadcast, startServer };

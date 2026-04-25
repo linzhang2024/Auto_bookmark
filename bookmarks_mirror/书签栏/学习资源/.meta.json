@@ -1,0 +1,34 @@
+{
+  "folderName": "学习资源",
+  "lastSyncTime": "2026-04-25T15:40:05.431Z",
+  "bookmarks": [
+    {
+      "title": "Python",
+      "url": "https://www.python.org",
+      "iconFileName": "Python.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-04-25T15:40:01.960Z"
+    },
+    {
+      "title": "JavaScript 教程",
+      "url": "https://www.javascript.info",
+      "iconFileName": "JavaScript 教程.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-04-25T15:40:05.430Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777131601157",
+    "startTime": "2026-04-25T15:40:01.157Z",
+    "endTime": "2026-04-25T15:40:05.431Z",
+    "totalBookmarks": 2,
+    "completedBookmarks": 2,
+    "failedBookmarks": 0
+  }
+}
