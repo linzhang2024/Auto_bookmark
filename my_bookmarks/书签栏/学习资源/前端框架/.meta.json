@@ -1,0 +1,34 @@
+{
+  "folderName": "前端框架",
+  "lastSyncTime": "2026-04-25T13:57:38.336Z",
+  "bookmarks": [
+    {
+      "title": "React",
+      "url": "https://react.dev",
+      "iconFileName": "React.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-04-25T13:57:34.451Z"
+    },
+    {
+      "title": "Vue.js",
+      "url": "https://vuejs.org",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-04-25T13:57:35.184Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777125453126",
+    "startTime": "2026-04-25T13:57:33.126Z",
+    "endTime": "2026-04-25T13:57:38.336Z",
+    "totalBookmarks": 2,
+    "completedBookmarks": 1,
+    "failedBookmarks": 1
+  }
+}
