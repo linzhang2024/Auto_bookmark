@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>本地镜像同步 - 管理后台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .animate-pulse-slow {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+    .fade-in {
+      animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .icon-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .icon-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+          </div>
+          <span class="text-lg font-semibold text-gray-800">本地镜像同步</span>
+          <span id="connectionStatus" class="flex items-center text-sm text-green-600">
+            <span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse-slow"></span>
+            已连接
+          </span>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span id="lastUpdate" class="text-sm text-gray-500"></span>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white rounded-xl shadow-sm p-6 border">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-medium text-gray-500">总书签数</h3>
+          <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+          </div>
+        </div>
+        <p id="totalBookmarks" class="text-3xl font-bold text-gray-900">0</p>
+        <p class="text-sm text-gray-500 mt-1">共 <span id="totalFolders">0</span> 个文件夹</p>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm p-6 border">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-medium text-gray-500">同步成功率</h3>
+          <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+        <p id="successRate" class="text-3xl font-bold text-gray-900">0%</p>
+        <div class="mt-2 bg-gray-100 rounded-full h-2">
+          <div id="successRateBar" class="bg-green-500 h-2 rounded-full progress-bar" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm p-6 border">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-medium text-gray-500">同步状态</h3>
+          <div id="statusIcon" class="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+        <p id="syncStatus" class="text-3xl font-bold text-gray-900">待同步</p>
+        <div class="flex items-center space-x-4 mt-1 text-sm">
+          <span class="text-green-600"><span id="completedCount">0</span> 已完成</span>
+          <span class="text-yellow-600"><span id="pendingCount">0</span> 待处理</span>
+          <span class="text-red-600"><span id="failedCount">0</span> 失败</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="syncProgressSection" class="hidden mb-8 bg-white rounded-xl shadow-sm border">
+      <div class="p-6 border-b">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-800 flex items-center">
+            <svg class="w-5 h-5 mr-2 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            同步进行中
+          </h3>
+          <span id="syncProgressPercent" class="text-2xl font-bold text-blue-600">0%</span>
+        </div>
+      </div>
+      <div class="p-6">
+        <div class="bg-gray-100 rounded-full h-4 mb-4">
+          <div id="syncProgressBar" class="bg-blue-600 h-4 rounded-full progress-bar" style="width: 0%"></div>
+        </div>
+        <div class="flex justify-between text-sm text-gray-600 mb-4">
+          <span id="syncProgressText">准备中...</span>
+          <span><span id="syncCurrent">0</span> / <span id="syncTotal">0</span></span>
+        </div>
+        <div id="syncLog" class="bg-gray-50 rounded-lg p-4 max-h-40 overflow-y-auto text-sm text-gray-600 font-mono">
+          <p class="text-gray-400">等待同步开始...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="bg-white rounded-xl shadow-sm border">
+        <div class="p-6 border-b">
+          <h3 class="text-lg font-semibold text-gray-800">立即同步</h3>
+          <p class="text-sm text-gray-500 mt-1">选择书签 HTML 文件并触发同步任务</p>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">选择书签文件</label>
+            <select id="bookmarksSelect" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="">加载中...</option>
+            </select>
+            <p class="text-xs text-gray-500 mt-1">当前同步目录: <span id="currentSyncDir" class="font-mono"></span></p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">并发数</label>
+              <input type="number" id="concurrency" value="5" min="1" max="20" 
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">超时时间 (ms)</label>
+              <input type="number" id="timeout" value="10000" min="1000" max="60000" step="1000"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-6">
+            <label class="flex items-center">
+              <input type="checkbox" id="skipIcon" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+              <span class="ml-2 text-sm text-gray-700">跳过图标下载</span>
+            </label>
+            <label class="flex items-center">
+              <input type="checkbox" id="forceUpdate" class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500">
+              <span class="ml-2 text-sm text-gray-700">强制更新</span>
+            </label>
+          </div>
+
+          <button id="syncButton" 
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            开始同步
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border">
+        <div class="p-6 border-b">
+          <h3 class="text-lg font-semibold text-gray-800">过滤规则配置</h3>
+          <p class="text-sm text-gray-500 mt-1">配置需要排除的 URL 模式（如本地开发环境）</p>
+        </div>
+        <div class="p-6">
+          <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">现有过滤规则</label>
+            <div id="filterPatternsList" class="space-y-2 max-h-48 overflow-y-auto">
+              <p class="text-sm text-gray-400">加载中...</p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <label class="block text-sm font-medium text-gray-700 mb-2">添加新规则</label>
+            <div class="flex space-x-3">
+              <input type="text" id="newPattern" placeholder="例如: localhost, dev.test 等"
+                class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+              <button id="addPatternBtn" 
+                class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+                添加
+              </button>
+            </div>
+            <p class="text-xs text-gray-500">规则将匹配 URL 中的域名部分，支持简单字符串匹配</p>
+          </div>
+
+          <div class="mt-6 flex space-x-3">
+            <button id="saveConfigBtn" 
+              class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors">
+              保存配置
+            </button>
+            <button id="resetConfigBtn" 
+              class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors">
+              重置
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 bg-white rounded-xl shadow-sm border">
+      <div class="p-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-800">最近下载的图标</h3>
+        <p class="text-sm text-gray-500 mt-1">显示最近同步的书签 Favicon 预览</p>
+      </div>
+      <div id="recentIconsSection" class="p-6">
+        <div id="recentIcons" class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+          <p class="text-sm text-gray-400 col-span-full text-center py-8">加载中...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-8 bg-white rounded-xl shadow-sm border">
+      <div class="p-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-800">各文件夹详情</h3>
+        <p class="text-sm text-gray-500 mt-1">查看每个文件夹的同步进度</p>
+      </div>
+      <div id="foldersSection" class="p-6">
+        <div id="foldersList" class="space-y-3">
+          <p class="text-sm text-gray-400">加载中...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="notification" class="fixed top-4 right-4 z-50 hidden">
+    <div class="bg-white rounded-lg shadow-lg border px-6 py-4 flex items-center space-x-3">
+      <div id="notificationIcon"></div>
+      <span id="notificationText" class="text-sm font-medium"></span>
+      <button onclick="hideNotification()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProtocol}//${window.location.host}`);
+    let currentFilterPatterns = [];
+
+    function showNotification(message, type = 'success') {
+      const notification = document.getElementById('notification');
+      const icon = document.getElementById('notificationIcon');
+      const text = document.getElementById('notificationText');
+
+      text.textContent = message;
+      
+      if (type === 'success') {
+        icon.innerHTML = '<svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+      } else if (type === 'error') {
+        icon.innerHTML = '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+      } else {
+        icon.innerHTML = '<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+      }
+
+      notification.classList.remove('hidden');
+      notification.classList.add('fade-in');
+
+      setTimeout(hideNotification, 3000);
+    }
+
+    function hideNotification() {
+      document.getElementById('notification').classList.add('hidden');
+    }
+
+    function formatTime(timestamp) {
+      if (!timestamp) return '-';
+      const date = new Date(timestamp);
+      return date.toLocaleString('zh-CN');
+    }
+
+    function updateStatusUI(data) {
+      document.getElementById('totalBookmarks').textContent = data.totalBookmarks;
+      document.getElementById('totalFolders').textContent = data.totalFolders;
+      document.getElementById('completedCount').textContent = data.completedBookmarks;
+      document.getElementById('pendingCount').textContent = data.pendingBookmarks;
+      document.getElementById('failedCount').textContent = data.failedBookmarks;
+      document.getElementById('successRate').textContent = data.successRate + '%';
+      document.getElementById('successRateBar').style.width = data.successRate + '%';
+      document.getElementById('currentSyncDir').textContent = data.syncDir;
+
+      if (data.isSyncing) {
+        document.getElementById('syncStatus').textContent = '同步中';
+        document.getElementById('statusIcon').className = 'w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center';
+        document.getElementById('statusIcon').innerHTML = '<svg class="w-5 h-5 text-blue-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>';
+      } else if (data.failedBookmarks > 0) {
+        document.getElementById('syncStatus').textContent = '部分失败';
+        document.getElementById('statusIcon').className = 'w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center';
+        document.getElementById('statusIcon').innerHTML = '<svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
+      } else if (data.pendingBookmarks > 0) {
+        document.getElementById('syncStatus').textContent = '待处理';
+        document.getElementById('statusIcon').className = 'w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center';
+        document.getElementById('statusIcon').innerHTML = '<svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+      } else {
+        document.getElementById('syncStatus').textContent = '已完成';
+        document.getElementById('statusIcon').className = 'w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center';
+        document.getElementById('statusIcon').innerHTML = '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+      }
+
+      if (data.folders && data.folders.length > 0) {
+        const foldersHtml = data.folders.map(folder => {
+          const progress = folder.totalBookmarks > 0 
+            ? Math.round((folder.completedBookmarks / folder.totalBookmarks) * 100) 
+            : 0;
+          return `
+            <div class="border rounded-lg p-4">
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center space-x-2">
+                  <svg class="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
+                  </svg>
+                  <span class="font-medium text-gray-800">${folder.name}</span>
+                </div>
+                <span class="text-sm text-gray-500">${progress}%</span>
+              </div>
+              <div class="bg-gray-100 rounded-full h-2 mb-2">
+                <div class="bg-blue-500 h-2 rounded-full progress-bar" style="width: ${progress}%"></div>
+              </div>
+              <div class="flex items-center space-x-4 text-xs text-gray-500">
+                <span>共 ${folder.totalBookmarks} 个</span>
+                <span class="text-green-600">${folder.completedBookmarks} 已完成</span>
+                ${folder.failedBookmarks > 0 ? `<span class="text-red-600">${folder.failedBookmarks} 失败</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+        document.getElementById('foldersList').innerHTML = foldersHtml;
+      } else {
+        document.getElementById('foldersList').innerHTML = '<p class="text-sm text-gray-400 text-center py-4">暂无文件夹数据</p>';
+      }
+
+      if (data.lastUpdated) {
+        document.getElementById('lastUpdate').textContent = '最后更新: ' + formatTime(data.lastUpdated);
+      }
+    }
+
+    function updateRecentIcons(icons) {
+      const iconsContainer = document.getElementById('recentIcons');
+      
+      if (!icons || icons.length === 0) {
+        iconsContainer.innerHTML = '<p class="text-sm text-gray-400 col-span-full text-center py-8">暂无图标数据</p>';
+        return;
+      }
+
+      const iconsHtml = icons.map(icon => `
+        <div class="icon-card bg-gray-50 rounded-lg p-3 text-center border cursor-pointer" title="${icon.name}">
+          <div class="w-10 h-10 mx-auto mb-2 flex items-center justify-center">
+            <img src="${icon.path}" alt="${icon.name}" class="max-w-full max-h-full object-contain" 
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="hidden w-8 h-8 bg-gray-200 rounded items-center justify-center">
+              <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+              </svg>
+            </div>
+          </div>
+          <p class="text-xs text-gray-600 truncate">${icon.name.replace('.ico', '')}</p>
+          <p class="text-xs text-gray-400">${icon.folder}</p>
+        </div>
+      `).join('');
+
+      iconsContainer.innerHTML = iconsHtml;
+    }
+
+    function updateFilterPatterns(patterns) {
+      currentFilterPatterns = [...patterns];
+      const listContainer = document.getElementById('filterPatternsList');
+      
+      if (!patterns || patterns.length === 0) {
+        listContainer.innerHTML = '<p class="text-sm text-gray-400">暂无过滤规则</p>';
+        return;
+      }
+
+      const listHtml = patterns.map((pattern, index) => `
+        <div class="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+          <code class="text-sm text-gray-700">${pattern}</code>
+          <button onclick="removePattern(${index})" class="text-red-500 hover:text-red-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      `).join('');
+
+      listContainer.innerHTML = listHtml;
+    }
+
+    window.removePattern = function(index) {
+      currentFilterPatterns.splice(index, 1);
+      updateFilterPatterns(currentFilterPatterns);
+    };
+
+    async function loadBookmarkFiles() {
+      try {
+        const response = await fetch('/api/bookmark-files');
+        const data = await response.json();
+        
+        const select = document.getElementById('bookmarksSelect');
+        
+        if (data.files && data.files.length > 0) {
+          select.innerHTML = data.files.map(file => 
+            `<option value="${file.path}">${file.name} (${formatTime(file.mtime)})</option>`
+          ).join('');
+        } else {
+          select.innerHTML = '<option value="">未找到书签 HTML 文件</option>';
+        }
+      } catch (error) {
+        console.error('加载书签文件失败:', error);
+        showNotification('加载书签文件失败', 'error');
+      }
+    }
+
+    async function startSync() {
+      const bookmarksPath = document.getElementById('bookmarksSelect').value;
+      const concurrency = parseInt(document.getElementById('concurrency').value) || 5;
+      const timeout = parseInt(document.getElementById('timeout').value) || 10000;
+      const skipIcon = document.getElementById('skipIcon').checked;
+      const forceUpdate = document.getElementById('forceUpdate').checked;
+
+      if (!bookmarksPath) {
+        showNotification('请选择书签文件', 'error');
+        return;
+      }
+
+      const syncButton = document.getElementById('syncButton');
+      syncButton.disabled = true;
+      syncButton.innerHTML = '<svg class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>同步中...';
+
+      try {
+        const response = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookmarksPath,
+            concurrency,
+            timeout,
+            skipIcon,
+            force: forceUpdate
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showNotification('同步任务已启动', 'success');
+          document.getElementById('syncProgressSection').classList.remove('hidden');
+          document.getElementById('syncLog').innerHTML = '';
+          addSyncLog('同步任务已启动: ' + data.taskInfo.taskId);
+        } else {
+          showNotification(data.message || '启动同步失败', 'error');
+          syncButton.disabled = false;
+          syncButton.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>开始同步';
+        }
+      } catch (error) {
+        console.error('启动同步失败:', error);
+        showNotification('启动同步失败: ' + error.message, 'error');
+        syncButton.disabled = false;
+        syncButton.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>开始同步';
+      }
+    }
+
+    function addSyncLog(message) {
+      const logContainer = document.getElementById('syncLog');
+      const time = new Date().toLocaleTimeString('zh-CN');
+      const logEntry = document.createElement('p');
+      logEntry.className = 'text-gray-600';
+      logEntry.innerHTML = `<span class="text-gray-400">[${time}]</span> ${message}`;
+      logContainer.appendChild(logEntry);
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+
+    async function saveConfig() {
+      try {
+        const response = await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filterPatterns: currentFilterPatterns
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          showNotification('配置已保存并生效', 'success');
+        } else {
+          showNotification(data.error || '保存配置失败', 'error');
+        }
+      } catch (error) {
+        console.error('保存配置失败:', error);
+        showNotification('保存配置失败: ' + error.message, 'error');
+      }
+    }
+
+    ws.onopen = () => {
+      console.log('WebSocket 已连接');
+      document.getElementById('connectionStatus').innerHTML = 
+        '<span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse-slow"></span>已连接';
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket 已断开');
+      document.getElementById('connectionStatus').innerHTML = 
+        '<span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>已断开';
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket 错误:', error);
+      document.getElementById('connectionStatus').innerHTML = 
+        '<span class="w-2 h-2 bg-red-500 rounded-full mr-2"></span>连接错误';
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        switch (message.type) {
+          case 'status':
+            updateStatusUI(message.data);
+            break;
+            
+          case 'recent_icons':
+            updateRecentIcons(message.data.icons);
+            break;
+            
+          case 'config':
+            updateFilterPatterns(message.data.filterPatterns);
+            break;
+            
+          case 'sync_started':
+            document.getElementById('syncProgressSection').classList.remove('hidden');
+            addSyncLog('同步任务已开始');
+            break;
+            
+          case 'sync_progress':
+            const { current, total, message: progressMsg, phase } = message.data;
+            const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+            
+            document.getElementById('syncProgressPercent').textContent = percent + '%';
+            document.getElementById('syncProgressBar').style.width = percent + '%';
+            document.getElementById('syncProgressText').textContent = progressMsg;
+            document.getElementById('syncCurrent').textContent = current;
+            document.getElementById('syncTotal').textContent = total;
+            
+            if (progressMsg) {
+              addSyncLog(progressMsg);
+            }
+            break;
+            
+          case 'sync_completed':
+            const syncButton = document.getElementById('syncButton');
+            syncButton.disabled = false;
+            syncButton.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>开始同步';
+            
+            addSyncLog('同步完成！');
+            showNotification('同步完成！', 'success');
+            
+            fetch('/api/icons').then(r => r.json()).then(data => {
+              updateRecentIcons(data.icons);
+            });
+            break;
+            
+          case 'sync_failed':
+            const failedSyncButton = document.getElementById('syncButton');
+            failedSyncButton.disabled = false;
+            failedSyncButton.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>开始同步';
+            
+            addSyncLog('同步失败: ' + (message.data.error || '未知错误'));
+            showNotification('同步失败', 'error');
+            break;
+            
+          case 'notification':
+            showNotification(message.data.message, message.data.type);
+            break;
+            
+          case 'shutdown':
+            showNotification('服务器正在关闭', 'info');
+            break;
+        }
+      } catch (error) {
+        console.error('解析 WebSocket 消息失败:', error);
+      }
+    };
+
+    document.getElementById('syncButton').addEventListener('click', startSync);
+    document.getElementById('saveConfigBtn').addEventListener('click', saveConfig);
+    
+    document.getElementById('resetConfigBtn').addEventListener('click', () => {
+      fetch('/api/config')
+        .then(r => r.json())
+        .then(data => {
+          updateFilterPatterns(data.filterPatterns);
+          showNotification('已重置为原始配置', 'info');
+        });
+    });
+
+    document.getElementById('addPatternBtn').addEventListener('click', () => {
+      const input = document.getElementById('newPattern');
+      const value = input.value.trim();
+      
+      if (value) {
+        if (currentFilterPatterns.includes(value)) {
+          showNotification('该规则已存在', 'error');
+        } else {
+          currentFilterPatterns.push(value);
+          updateFilterPatterns(currentFilterPatterns);
+          input.value = '';
+          showNotification('规则已添加，请保存以生效', 'success');
+        }
+      } else {
+        showNotification('请输入有效的规则', 'error');
+      }
+    });
+
+    document.getElementById('newPattern').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('addPatternBtn').click();
+      }
+    });
+
+    loadBookmarkFiles();
+  </script>
+</body>
+</html>
