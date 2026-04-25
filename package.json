@@ -1,0 +1,26 @@
+{
+  "name": "auto-bookmark",
+  "version": "1.0.0",
+  "description": "Chrome 书签转换工具 - 将 HTML 书签转换为 Markdown",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "jest",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nock": "^14.0.13"
+  },
+  "keywords": [
+    "bookmark",
+    "chrome",
+    "markdown",
+    "converter"
+  ],
+  "author": "",
+  "license": "MIT"
+}
