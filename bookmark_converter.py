@@ -14,6 +14,76 @@ def is_localhost_url(url):
     return 'localhost' in url_lower or '127.0.0.1' in url_lower
 
 
+def find_html_files(directory=None):
+    """
+    搜索指定目录下的所有 .html 文件
+    如果没有指定目录，使用当前工作目录
+    返回文件路径列表
+    """
+    if directory is None:
+        directory = os.getcwd()
+    
+    html_files = []
+    for file in os.listdir(directory):
+        if file.lower().endswith('.html'):
+            html_files.append(os.path.join(directory, file))
+    
+    # 按修改时间排序，最新的在前
+    html_files.sort(key=lambda x: os.path.getmtime(x), reverse=True)
+    return html_files
+
+
+def select_html_file(html_files, default_name='bookmarks.html'):
+    """
+    从 HTML 文件列表中选择一个文件
+    优先选择名为 default_name 的文件
+    如果有多个文件，询问用户选择
+    """
+    if not html_files:
+        return None
+    
+    # 检查是否有默认名称的文件
+    default_files = [f for f in html_files if os.path.basename(f).lower() == default_name.lower()]
+    if default_files:
+        return default_files[0]
+    
+    # 如果只有一个文件，直接返回
+    if len(html_files) == 1:
+        return html_files[0]
+    
+    # 如果有多个文件，询问用户选择
+    print(f"找到 {len(html_files)} 个 HTML 文件，请选择要转换的文件：")
+    for i, file in enumerate(html_files, 1):
+        print(f"  {i}. {os.path.basename(file)}")
+    print(f"  {len(html_files) + 1}. 取消")
+    
+    while True:
+        try:
+            choice = input(f"请输入选择 (1-{len(html_files) + 1}): ").strip()
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(html_files):
+                return html_files[choice_num - 1]
+            elif choice_num == len(html_files) + 1:
+                return None
+            else:
+                print(f"请输入 1 到 {len(html_files) + 1} 之间的数字")
+        except ValueError:
+            print("请输入有效的数字")
+
+
+def count_bookmarks(items):
+    """
+    统计书签数量（只统计链接，不统计文件夹）
+    """
+    count = 0
+    for item in items:
+        if item['type'] == 'link':
+            count += 1
+        elif item['type'] == 'folder' and item['children']:
+            count += count_bookmarks(item['children'])
+    return count
+
+
 def parse_chrome_bookmarks(html_content):
     """
     解析 Chrome 导出的 HTML 书签文件
@@ -136,27 +206,53 @@ def main():
     parser = argparse.ArgumentParser(
         description='将 Chrome 导出的 HTML 书签转换为 Markdown 列表'
     )
-    parser.add_argument('input_file', help='输入的 HTML 书签文件路径')
+    parser.add_argument('input_file', nargs='?', help='输入的 HTML 书签文件路径（可选）')
     parser.add_argument('-o', '--output', help='输出的 Markdown 文件路径（可选）')
     
     args = parser.parse_args()
     
-    if not os.path.exists(args.input_file):
-        print(f"错误: 输入文件 '{args.input_file}' 不存在")
-        return
+    input_file = args.input_file
     
-    with open(args.input_file, 'r', encoding='utf-8') as f:
+    # 如果用户没有指定输入文件，或者文件不存在
+    if not input_file or not os.path.exists(input_file):
+        if input_file and not os.path.exists(input_file):
+            print(f"警告: 输入文件 '{input_file}' 不存在")
+        
+        print("正在搜索当前目录下的 HTML 文件...")
+        html_files = find_html_files()
+        
+        if not html_files:
+            print("错误: 当前目录下没有找到任何 HTML 文件")
+            return
+        
+        input_file = select_html_file(html_files)
+        if not input_file:
+            print("已取消操作")
+            return
+    
+    print(f"正在处理文件: {input_file}")
+    
+    with open(input_file, 'r', encoding='utf-8') as f:
         html_content = f.read()
     
     bookmarks = parse_chrome_bookmarks(html_content)
+    bookmark_count = count_bookmarks(bookmarks)
+    
+    if bookmark_count == 0:
+        print("警告: 没有找到任何有效的书签")
+        return
+    
     markdown_content = convert_to_markdown(bookmarks)
     
     if args.output:
-        with open(args.output, 'w', encoding='utf-8') as f:
+        output_file = args.output
+        with open(output_file, 'w', encoding='utf-8') as f:
             f.write(markdown_content)
-        print(f"成功转换！输出文件: {args.output}")
+        print(f"成功转换！共转换了 {bookmark_count} 条书签")
+        print(f"输出文件: {output_file}")
     else:
         print(markdown_content)
+        print(f"\n成功转换！共转换了 {bookmark_count} 条书签")
 
 
 if __name__ == '__main__':
