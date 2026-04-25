@@ -9,8 +9,52 @@ const {
   groupBookmarksByFolder,
   collectFolderInfo,
   analyzeSyncStatus,
-  checkSyncStatus
+  checkSyncStatus,
+  isValidString,
+  ensureValidPath,
+  safePathJoin,
+  safeExistsSync
 } = require('./localMirrorSync');
+
+describe('localMirrorSync.js - 辅助函数健壮性测试', () => {
+  test('isValidString 应该正确验证字符串', () => {
+    expect(isValidString('valid')).toBe(true);
+    expect(isValidString('  valid  ')).toBe(true);
+    expect(isValidString('')).toBe(false);
+    expect(isValidString('   ')).toBe(false);
+    expect(isValidString(null)).toBe(false);
+    expect(isValidString(undefined)).toBe(false);
+    expect(isValidString(123)).toBe(false);
+    expect(isValidString({})).toBe(false);
+    expect(isValidString([])).toBe(false);
+  });
+
+  test('ensureValidPath 应该确保返回有效路径', () => {
+    expect(ensureValidPath('/valid/path', '/default')).toBe('/valid/path');
+    expect(ensureValidPath(null, '/default')).toBe('/default');
+    expect(ensureValidPath(undefined, '/default')).toBe('/default');
+    expect(ensureValidPath('', '/default')).toBe('/default');
+    expect(ensureValidPath(null, null)).toBe(process.cwd());
+  });
+
+  test('safePathJoin 应该安全地处理路径连接', () => {
+    expect(safePathJoin('/base', 'folder', 'file.txt')).toBe(path.join('/base', 'folder', 'file.txt'));
+    expect(safePathJoin('/base', null, 'file.txt')).toBe(path.join('/base', 'file.txt'));
+    expect(safePathJoin(null, null, null)).toBeNull();
+    expect(safePathJoin(null, '/valid')).toBe('/valid');
+  });
+
+  test('safeExistsSync 应该安全地检查文件存在性', () => {
+    const existingPath = __dirname;
+    const nonExistentPath = '/non/existent/path/12345';
+    
+    expect(safeExistsSync(existingPath)).toBe(true);
+    expect(safeExistsSync(nonExistentPath)).toBe(false);
+    expect(safeExistsSync(null)).toBe(false);
+    expect(safeExistsSync(undefined)).toBe(false);
+    expect(safeExistsSync('')).toBe(false);
+  });
+});
 
 describe('localMirrorSync.js - 文件名处理测试', () => {
   test('sanitizeFileName 应该清理文件名中的非法字符', () => {
@@ -59,6 +103,11 @@ describe('localMirrorSync.js - 文件名处理测试', () => {
         fs.rmdirSync(testDir);
       }
     }
+  });
+
+  test('generateUniqueFileName 应该处理无效目录参数', () => {
+    expect(generateUniqueFileName('test', '.ico', null)).toBe('test.ico');
+    expect(generateUniqueFileName('test', '.ico', undefined)).toBe('test.ico');
   });
 });
 
@@ -128,6 +177,18 @@ describe('localMirrorSync.js - 元数据处理测试', () => {
     fs.writeFileSync(corruptedPath, '这不是有效的 JSON {{{', 'utf-8');
     expect(readExistingMeta(corruptedPath)).toBeNull();
   });
+
+  test('readExistingMeta 对于无效路径应该返回 null', () => {
+    expect(readExistingMeta(null)).toBeNull();
+    expect(readExistingMeta(undefined)).toBeNull();
+    expect(readExistingMeta('')).toBeNull();
+  });
+
+  test('writeMeta 对于无效路径应该返回 false', () => {
+    expect(writeMeta(null, {})).toBe(false);
+    expect(writeMeta(undefined, {})).toBe(false);
+    expect(writeMeta('', {})).toBe(false);
+  });
 });
 
 describe('localMirrorSync.js - 文件夹和书签分组测试', () => {
@@ -173,6 +234,16 @@ describe('localMirrorSync.js - 文件夹和书签分组测试', () => {
     expect(folderInfo.get(level2Path)).toBe('二级文件夹');
   });
 
+  test('collectFolderInfo 应该处理无效输入', () => {
+    const result1 = collectFolderInfo(null, '/test');
+    const result2 = collectFolderInfo(undefined, '/test');
+    const result3 = collectFolderInfo('not an array', '/test');
+
+    expect(result1.size).toBe(0);
+    expect(result2.size).toBe(0);
+    expect(result3.size).toBe(0);
+  });
+
   test('groupBookmarksByFolder 应该按文件夹路径分组书签', () => {
     const bookmarks = [
       {
@@ -197,6 +268,35 @@ describe('localMirrorSync.js - 文件夹和书签分组测试', () => {
     expect(groups.size).toBe(2);
     expect(groups.get('/folder1').length).toBe(2);
     expect(groups.get('/folder2').length).toBe(1);
+  });
+
+  test('groupBookmarksByFolder 应该处理无效输入', () => {
+    const result1 = groupBookmarksByFolder(null);
+    const result2 = groupBookmarksByFolder(undefined);
+    const result3 = groupBookmarksByFolder('not an array');
+
+    expect(result1.size).toBe(0);
+    expect(result2.size).toBe(0);
+    expect(result3.size).toBe(0);
+  });
+
+  test('groupBookmarksByFolder 应该处理无效书签对象', () => {
+    const bookmarks = [
+      null,
+      undefined,
+      'not an object',
+      123,
+      {},
+      {
+        title: '有效链接',
+        url: 'https://valid.com',
+        folderPath: '/folder1'
+      }
+    ];
+
+    const groups = groupBookmarksByFolder(bookmarks);
+
+    expect(groups.size).toBeGreaterThan(0);
   });
 });
 
@@ -438,6 +538,107 @@ describe('localMirrorSync.js - 同步状态分析测试', () => {
     expect(result.bookmarksWithConflicts.length).toBe(1);
     expect(result.bookmarksWithConflicts[0].conflicts.length).toBe(1);
     expect(result.bookmarksWithConflicts[0].conflicts[0].url).toBe('https://www.original-google.com');
+  });
+
+  test('analyzeSyncStatus 应该处理无效输入', () => {
+    const result1 = analyzeSyncStatus(null, testSyncDir);
+    const result2 = analyzeSyncStatus(undefined, testSyncDir);
+    const result3 = analyzeSyncStatus('not an array', testSyncDir);
+
+    expect(result1.totalFolders).toBe(0);
+    expect(result2.totalFolders).toBe(0);
+    expect(result3.totalFolders).toBe(0);
+  });
+
+  test('analyzeSyncStatus 应该处理无效书签对象', () => {
+    const bookmarks = [
+      null,
+      undefined,
+      'not an object',
+      123,
+      {},
+      {
+        type: 'folder',
+        name: '测试文件夹',
+        level: 0,
+        children: [
+          null,
+          undefined,
+          {
+            type: 'link',
+            title: 'Google',
+            url: 'https://www.google.com',
+            level: 1
+          }
+        ]
+      }
+    ];
+
+    const result = analyzeSyncStatus(bookmarks, testSyncDir);
+
+    expect(result.totalFolders).toBe(1);
+    expect(result.totalBookmarks).toBe(1);
+  });
+
+  test('checkSyncStatus 应该处理无效路径', () => {
+    const status1 = checkSyncStatus(null);
+    const status2 = checkSyncStatus(undefined);
+    const status3 = checkSyncStatus('');
+
+    expect(status1.totalFolders).toBe(0);
+    expect(status2.totalFolders).toBe(0);
+    expect(status3.totalFolders).toBe(0);
+  });
+
+  test('checkSyncStatus 应该处理元数据中的无效书签', () => {
+    const subFolder = path.join(testSyncDir, '测试文件夹');
+    fs.mkdirSync(subFolder);
+
+    const metaData = {
+      folderName: '测试文件夹',
+      lastSyncTime: new Date().toISOString(),
+      bookmarks: [
+        null,
+        undefined,
+        'not an object',
+        {
+          title: '有效书签',
+          url: 'https://valid.com',
+          iconFileName: '有效书签.ico',
+          urlStatus: 'success',
+          lastVisited: null,
+          isInvalid: false,
+          syncStatus: SyncStatus.COMPLETED,
+          lastSyncTime: new Date().toISOString()
+        },
+        {
+          title: '失败书签',
+          url: 'https://failed.com',
+          iconFileName: null,
+          urlStatus: 'timeout',
+          lastVisited: null,
+          isInvalid: true,
+          syncStatus: SyncStatus.FAILED,
+          lastSyncTime: new Date().toISOString()
+        }
+      ],
+      syncInfo: {
+        syncId: 'test_123',
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        totalBookmarks: 2,
+        completedBookmarks: 1,
+        failedBookmarks: 1
+      }
+    };
+
+    writeMeta(path.join(subFolder, '.meta.json'), metaData);
+
+    const status = checkSyncStatus(testSyncDir);
+
+    expect(status.totalBookmarks).toBe(2);
+    expect(status.completedBookmarks).toBe(1);
+    expect(status.failedBookmarks).toBe(1);
   });
 });
 
