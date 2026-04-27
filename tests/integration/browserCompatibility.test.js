@@ -235,6 +235,59 @@ describe('集成测试 - 多浏览器书签解析兼容性', () => {
       }
       checkIcon(bookmarks);
     });
+
+    test('应正确提取 ICON_URI 属性（Firefox 特定）', () => {
+      function findBookmarkWithIconUri(items) {
+        for (const item of items) {
+          if (item.type === 'link') {
+            if (item.iconUri || (item.meta && item.meta.iconUri)) {
+              return item;
+            }
+          }
+          if (item.children) {
+            const found = findBookmarkWithIconUri(item.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+      
+      const bookmark = findBookmarkWithIconUri(bookmarks);
+      
+      expect(bookmark).not.toBeNull();
+      expect(bookmark.iconUri).toBeDefined();
+      expect(bookmark.iconUri).not.toBeNull();
+      expect(bookmark.iconUri).toContain('favicon.ico');
+    });
+
+    test('应同时支持 ICON 和 ICON_URI 两种属性格式', () => {
+      const bookmarksWithIcon = [];
+      const bookmarksWithIconUri = [];
+      
+      function collect(items) {
+        for (const item of items) {
+          if (item.type === 'link') {
+            if (item.icon) {
+              bookmarksWithIcon.push(item);
+            }
+            if (item.iconUri) {
+              bookmarksWithIconUri.push(item);
+            }
+          }
+          if (item.children) {
+            collect(item.children);
+          }
+        }
+      }
+      
+      collect(bookmarks);
+      
+      expect(bookmarksWithIcon.length).toBeGreaterThan(0);
+      expect(bookmarksWithIconUri.length).toBeGreaterThan(0);
+      
+      expect(bookmarksWithIcon[0].icon).toContain('data:image');
+      expect(bookmarksWithIconUri[0].iconUri).toContain('https://');
+    });
   });
 
   describe('跨浏览器一致性测试', () => {
