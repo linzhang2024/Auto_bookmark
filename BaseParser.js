@@ -10,49 +10,108 @@ const BrowserType = {
 };
 
 const EPOCH_DIFF = 11644473600000000;
+const EPOCH_DIFF_BIGINT = BigInt(EPOCH_DIFF);
 const NANOSECONDS_100_TO_MILLISECONDS = 10000;
+const NANOSECONDS_100_TO_MILLISECONDS_BIGINT = BigInt(NANOSECONDS_100_TO_MILLISECONDS);
+const CHROME_THRESHOLD = 10000000000000000;
+const CHROME_THRESHOLD_BIGINT = BigInt(CHROME_THRESHOLD);
 
 function parseTimestamp(value, options = {}) {
   if (!value) {
     return null;
   }
   try {
-    const ts = parseInt(String(value), 10);
-    if (isNaN(ts) || ts <= 0) {
+    const strValue = String(value).trim();
+    if (!strValue) {
       return null;
     }
 
     const { browserType = BrowserType.UNKNOWN } = options;
+    const isLargeNumber = strValue.length > 15;
 
-    if (isChromeMicroseconds(ts, browserType)) {
-      return convertChromeTimestamp(ts);
+    if (isLargeNumber) {
+      try {
+        const tsBig = BigInt(strValue);
+        if (tsBig <= 0n) {
+          return null;
+        }
+        if (isChromeMicrosecondsBigInt(tsBig, browserType)) {
+          return convertChromeTimestampBigInt(tsBig);
+        }
+        return convertLargeTimestamp(tsBig);
+      } catch {
+        const ts = parseInt(strValue, 10);
+        if (isNaN(ts) || ts <= 0) {
+          return null;
+        }
+        return parseSmallTimestamp(ts, browserType);
+      }
     }
 
-    if (isSeconds(ts)) {
-      return new Date(ts * 1000);
+    const ts = parseInt(strValue, 10);
+    if (isNaN(ts) || ts <= 0) {
+      return null;
     }
 
-    if (isMilliseconds(ts)) {
-      return new Date(ts);
-    }
-
-    return new Date(ts * 1000);
+    return parseSmallTimestamp(ts, browserType);
   } catch {
     return null;
   }
+}
+
+function parseSmallTimestamp(ts, browserType) {
+  if (isChromeMicroseconds(ts, browserType)) {
+    return convertChromeTimestamp(ts);
+  }
+
+  if (isSeconds(ts)) {
+    return new Date(ts * 1000);
+  }
+
+  if (isMilliseconds(ts)) {
+    return new Date(ts);
+  }
+
+  return new Date(ts * 1000);
+}
+
+function convertLargeTimestamp(tsBig) {
+  const tsNum = Number(tsBig);
+  if (isSeconds(tsNum)) {
+    return new Date(tsNum * 1000);
+  }
+  if (isMilliseconds(tsNum)) {
+    return new Date(tsNum);
+  }
+  return new Date(tsNum * 1000);
 }
 
 function isChromeMicroseconds(ts, browserType) {
   if (browserType === BrowserType.CHROME || browserType === BrowserType.EDGE) {
     return ts >= EPOCH_DIFF;
   }
-  return ts >= 10000000000000000;
+  return ts >= CHROME_THRESHOLD;
+}
+
+function isChromeMicrosecondsBigInt(tsBig, browserType) {
+  if (browserType === BrowserType.CHROME || browserType === BrowserType.EDGE) {
+    return tsBig >= EPOCH_DIFF_BIGINT;
+  }
+  return tsBig >= CHROME_THRESHOLD_BIGINT;
 }
 
 function convertChromeTimestamp(ts) {
-  const tsNum = typeof ts === 'bigint' ? Number(ts) : Number(ts);
-  const milliseconds = (tsNum - EPOCH_DIFF) / NANOSECONDS_100_TO_MILLISECONDS;
+  if (typeof ts === 'bigint') {
+    const millisecondsBig = (ts - EPOCH_DIFF_BIGINT) / NANOSECONDS_100_TO_MILLISECONDS_BIGINT;
+    return new Date(Number(millisecondsBig));
+  }
+  const milliseconds = (ts - EPOCH_DIFF) / NANOSECONDS_100_TO_MILLISECONDS;
   return new Date(milliseconds);
+}
+
+function convertChromeTimestampBigInt(tsBig) {
+  const millisecondsBig = (tsBig - EPOCH_DIFF_BIGINT) / NANOSECONDS_100_TO_MILLISECONDS_BIGINT;
+  return new Date(Number(millisecondsBig));
 }
 
 function isSeconds(ts) {
