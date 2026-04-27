@@ -501,6 +501,242 @@ describe('BaseParser - 集成测试', () => {
   });
 });
 
+describe('BaseParser - 流式解析高级测试', () => {
+  const tempFiles = [];
+
+  afterEach(() => {
+    for (const file of tempFiles) {
+      try {
+        if (fs.existsSync(file)) {
+          fs.unlinkSync(file);
+        }
+      } catch (e) {
+        // 忽略错误
+      }
+    }
+    tempFiles.length = 0;
+  });
+
+  function createTempHtmlFile(htmlContent) {
+    const tempPath = path.join(__dirname, `temp_test_${Date.now()}.html`);
+    fs.writeFileSync(tempPath, htmlContent, 'utf-8');
+    tempFiles.push(tempPath);
+    return tempPath;
+  }
+
+  test('应该支持从 ReadStream 解析', async () => {
+    const html = `
+<DL><p>
+    <DT><H3>测试文件夹</H3>
+    <DL><p>
+        <DT><A HREF="https://link1.com">链接1</A>
+        <DT><A HREF="https://link2.com">链接2</A>
+    </DL><p>
+</DL><p>
+`;
+
+    const { Readable } = require('stream');
+    const readStream = Readable.from(html);
+    
+    const result = await BaseParser.parseFromStream(readStream);
+
+    expect(result.length).toBe(1);
+    expect(result[0].type).toBe('folder');
+    expect(result[0].name).toBe('测试文件夹');
+    expect(result[0].children.length).toBe(2);
+  });
+
+  test('应该支持从文件路径解析（使用 createReadStream）', async () => {
+    const html = `
+<!DOCTYPE NETSCAPE-Bookmark-file-1>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+<TITLE>Bookmarks</TITLE>
+<H1>Bookmarks</H1>
+<DL><p>
+    <DT><H3>工作文件夹</H3>
+    <DL><p>
+        <DT><A HREF="https://github.com" ADD_DATE="1600000000">GitHub</A>
+        <DT><A HREF="https://google.com">Google</A>
+    </DL><p>
+    <DT><A HREF="https://stackoverflow.com">Stack Overflow</A>
+</DL><p>
+`;
+
+    const tempPath = createTempHtmlFile(html);
+    const result = await BaseParser.parseFile(tempPath);
+
+    expect(result.length).toBe(2);
+
+    const folder = result.find(r => r.type === 'folder');
+    expect(folder.name).toBe('工作文件夹');
+    expect(folder.children.length).toBe(2);
+
+    const link = result.find(r => r.type === 'link');
+    expect(link.title).toBe('Stack Overflow');
+    expect(link.url).toBe('https://stackoverflow.com');
+  });
+
+  test('流式解析应该正确处理嵌套层级关系', async () => {
+    const html = `
+<DL><p>
+    <DT><H3>一级文件夹</H3>
+    <DL><p>
+        <DT><A HREF="https://link1.com">链接1</A>
+        <DT><H3>二级文件夹</H3>
+        <DL><p>
+            <DT><A HREF="https://link2.com">链接2</A>
+        </DL><p>
+    </DL><p>
+</DL><p>
+`;
+
+    const { Readable } = require('stream');
+    const readStream = Readable.from(html);
+    
+    const result = await BaseParser.parseFromStream(readStream);
+
+    expect(result.length).toBe(1);
+    expect(result[0].name).toBe('一级文件夹');
+    expect(result[0].folderPath).toEqual([]);
+
+    const level1Children = result[0].children;
+    const link1 = level1Children.find(c => c.type === 'link');
+    expect(link1.folderPath).toEqual(['一级文件夹']);
+
+    const level2Folder = level1Children.find(c => c.type === 'folder');
+    expect(level2Folder.name).toBe('二级文件夹');
+    expect(level2Folder.folderPath).toEqual(['一级文件夹']);
+    expect(level2Folder.children[0].folderPath).toEqual(['一级文件夹', '二级文件夹']);
+  });
+
+  test('流式解析应该支持事件驱动', async () => {
+    const html = `
+<DL><p>
+    <DT><H3>文件夹</H3>
+    <DL><p>
+        <DT><A HREF="https://link1.com">链接1</A>
+        <DT><A HREF="https://link2.com">链接2</A>
+    </DL><p>
+</DL><p>
+`;
+
+    const items = [];
+    const folders = [];
+    const links = [];
+
+    const parser = new BaseParser({
+      emitEvent: true,
+      onItem: (item) => items.push(item),
+      onFolder: (folder) => folders.push(folder),
+      onLink: (link) => links.push(link)
+    });
+
+    const { Readable } = require('stream');
+    const readStream = Readable.from(html);
+    
+    const result = await parser.parseFromStream(readStream);
+
+    expect(items.length).toBe(3);
+    expect(folders.length).toBe(1);
+    expect(links.length).toBe(2);
+  });
+
+  test('流式解析应该支持分批处理', async () => {
+    let html = '<DL><p>\n';
+    for (let i = 0; i < 25; i++) {
+      html += `<DT><A HREF="https://link-${i}.com">链接 ${i}</A>\n`;
+    }
+    html += '</DL><p>';
+
+    const batches = [];
+
+    const parser = new BaseParser({
+      emitEvent: true,
+      batchSize: 10,
+      onBatch: (batch) => batches.push([...batch])
+    });
+
+    const { Readable } = require('stream');
+    const readStream = Readable.from(html);
+    
+    const result = await parser.parseFromStream(readStream);
+
+    expect(result.length).toBe(25);
+    
+    let totalItems = 0;
+    for (const batch of batches) {
+      totalItems += batch.length;
+      expect(batch.length).toBeLessThanOrEqual(10);
+    }
+    expect(totalItems).toBe(25);
+  });
+
+  test('流式解析应该支持 flatten 选项', async () => {
+    const html = `
+<DL><p>
+    <DT><H3>一级文件夹</H3>
+    <DL><p>
+        <DT><A HREF="https://link1.com">链接1</A>
+        <DT><H3>二级文件夹</H3>
+        <DL><p>
+            <DT><A HREF="https://link2.com">链接2</A>
+        </DL><p>
+    </DL><p>
+</DL><p>
+`;
+
+    const { Readable } = require('stream');
+    const readStream = Readable.from(html);
+    
+    const result = await BaseParser.parseFromStream(readStream, { flatten: true });
+
+    expect(result.length).toBe(4);
+
+    const level1Folder = result.find(r => r.type === 'folder' && r.name === '一级文件夹');
+    const level2Folder = result.find(r => r.type === 'folder' && r.name === '二级文件夹');
+    const link1 = result.find(r => r.type === 'link' && r.title === '链接1');
+    const link2 = result.find(r => r.type === 'link' && r.title === '链接2');
+
+    expect(level1Folder.folderPath).toEqual([]);
+    expect(level2Folder.folderPath).toEqual(['一级文件夹']);
+    expect(link1.folderPath).toEqual(['一级文件夹']);
+    expect(link2.folderPath).toEqual(['一级文件夹', '二级文件夹']);
+  });
+
+  test('流式解析应该正确处理小分块数据', async () => {
+    const html = `
+<DL><p>
+    <DT><H3>测试文件夹</H3>
+    <DL><p>
+        <DT><A HREF="https://example.com">这是一个很长很长的书签标题，需要测试流式解析的正确性</A>
+    </DL><p>
+</DL><p>
+`;
+
+    const { PassThrough } = require('stream');
+    const passThrough = new PassThrough();
+    
+    const chunks = [];
+    const chunkSize = 20;
+    for (let i = 0; i < html.length; i += chunkSize) {
+      chunks.push(html.slice(i, i + chunkSize));
+    }
+
+    setTimeout(() => {
+      for (const chunk of chunks) {
+        passThrough.write(chunk);
+      }
+      passThrough.end();
+    }, 10);
+
+    const result = await BaseParser.parseFromStream(passThrough);
+
+    expect(result.length).toBe(1);
+    expect(result[0].name).toBe('测试文件夹');
+    expect(result[0].children[0].title).toContain('很长的书签标题');
+  });
+});
+
 describe('BaseParser - 大文件性能测试', () => {
   test('应该能够处理大量书签数据', () => {
     let html = '<DL><p>\n';
