@@ -9,7 +9,10 @@ const BrowserType = {
   UNKNOWN: 'unknown'
 };
 
-function parseTimestamp(value) {
+const EPOCH_DIFF = 11644473600000000;
+const NANOSECONDS_100_TO_MILLISECONDS = 10000;
+
+function parseTimestamp(value, options = {}) {
   if (!value) {
     return null;
   }
@@ -18,10 +21,60 @@ function parseTimestamp(value) {
     if (isNaN(ts) || ts <= 0) {
       return null;
     }
+
+    const { browserType = BrowserType.UNKNOWN } = options;
+
+    if (isChromeMicroseconds(ts, browserType)) {
+      return convertChromeTimestamp(ts);
+    }
+
+    if (isSeconds(ts)) {
+      return new Date(ts * 1000);
+    }
+
+    if (isMilliseconds(ts)) {
+      return new Date(ts);
+    }
+
     return new Date(ts * 1000);
   } catch {
     return null;
   }
+}
+
+function isChromeMicroseconds(ts, browserType) {
+  if (browserType === BrowserType.CHROME || browserType === BrowserType.EDGE) {
+    return ts >= EPOCH_DIFF;
+  }
+  return ts >= 10000000000000000;
+}
+
+function convertChromeTimestamp(ts) {
+  const tsNum = typeof ts === 'bigint' ? Number(ts) : Number(ts);
+  const milliseconds = (tsNum - EPOCH_DIFF) / NANOSECONDS_100_TO_MILLISECONDS;
+  return new Date(milliseconds);
+}
+
+function isSeconds(ts) {
+  const now = Date.now();
+  const nowSeconds = Math.floor(now / 1000);
+  return ts <= nowSeconds + 315360000 && ts >= 631152000;
+}
+
+function isMilliseconds(ts) {
+  const now = Date.now();
+  return ts <= now + 315360000000 && ts >= 631152000000;
+}
+
+function chromeTimestampToDate(ts) {
+  return convertChromeTimestamp(ts);
+}
+
+function dateToChromeTimestamp(date) {
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    return null;
+  }
+  return BigInt(date.getTime()) * BigInt(NANOSECONDS_100_TO_MILLISECONDS) + BigInt(EPOCH_DIFF);
 }
 
 function extractDomainFromUrl(url) {
@@ -328,9 +381,11 @@ class BaseParser {
     const isPersonalToolbar = attrs.personal_toolbar_folder === 'true';
     const isUnfiled = attrs.unfiled_bookmarks_folder === 'true';
 
+    const timestampOptions = { browserType: this.browserType };
+
     return {
-      addDate: parseTimestamp(addDateStr),
-      lastModified: parseTimestamp(lastModifiedStr),
+      addDate: parseTimestamp(addDateStr, timestampOptions),
+      lastModified: parseTimestamp(lastModifiedStr, timestampOptions),
       isPersonalToolbar,
       isUnfiled,
       addDateStr,
@@ -346,11 +401,13 @@ class BaseParser {
     const icon = attrs.icon || null;
     const iconUri = attrs.icon_uri || null;
 
+    const timestampOptions = { browserType: this.browserType };
+
     return {
       href,
-      addDate: parseTimestamp(addDateStr),
-      lastModified: parseTimestamp(lastModifiedStr),
-      lastVisit: parseTimestamp(lastVisitStr),
+      addDate: parseTimestamp(addDateStr, timestampOptions),
+      lastModified: parseTimestamp(lastModifiedStr, timestampOptions),
+      lastVisit: parseTimestamp(lastVisitStr, timestampOptions),
       icon,
       iconUri,
       addDateStr,
@@ -425,5 +482,8 @@ module.exports = {
   BaseParser,
   BrowserType,
   parseTimestamp,
-  extractDomainFromUrl
+  extractDomainFromUrl,
+  chromeTimestampToDate,
+  dateToChromeTimestamp,
+  convertChromeTimestamp
 };
