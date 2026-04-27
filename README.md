@@ -202,16 +202,79 @@ Auto_bookmark/
 └── my_bookmarks/         # 示例同步目录
 ```
 
-## 测试
+## 开发与测试
+
+### 开发依赖
+
+项目使用以下开发依赖：
+
+| 依赖 | 版本 | 说明 |
+|------|------|------|
+| jest | ^29.7.0 | JavaScript 测试框架 |
+| nock | ^14.0.13 | HTTP 请求 Mock 库 |
+
+### 安装开发依赖
+
+```bash
+npm install --save-dev jest nock
+```
+
+### 测试环境配置
+
+项目使用 Jest 作为测试框架，已配置好 `jest.config.js` 和 `jest.setup.js`。
+
+**测试环境特点：**
+- 支持 `.env.test` 测试专用配置文件（优先级高于 `.env`）
+- 缺少 `.env` 文件时自动使用默认配置，不会中断测试
+- 支持所有 Jest 内置全局变量（`describe`, `test`, `expect`, `beforeEach` 等）
+
+**测试配置文件：**
+
+| 文件 | 说明 |
+|------|------|
+| `jest.config.js` | Jest 主配置文件 |
+| `jest.setup.js` | 测试环境初始化脚本 |
+
+### 运行测试
 
 ```bash
 # 运行所有测试
 npm test
 
-# 运行特定测试
+# 运行所有测试并显示详细输出
+npm test -- --verbose
+
+# 运行特定测试文件
 npm test -- bookmarkConverter.test.js
 npm test -- localMirrorSync.test.js
+npm test -- tests/integration/browserCompatibility.test.js
+
+# 运行匹配特定模式的测试
+npm test -- --testNamePattern="Firefox"
+npm test -- --testPathPattern="integration"
 ```
+
+### 测试文件结构
+
+```
+Auto_bookmark/
+├── bookmarkConverter.test.js     # 核心转换逻辑单元测试
+├── localMirrorSync.test.js       # 本地镜像同步单元测试
+└── tests/
+    └── integration/
+        ├── browserCompatibility.test.js  # 多浏览器解析兼容性测试
+        ├── configLoading.test.js         # 环境变量加载和默认配置回退测试
+        └── portSwitching.test.js         # 动态端口切换逻辑测试
+```
+
+### 测试覆盖范围
+
+| 测试文件 | 覆盖内容 |
+|----------|----------|
+| `browserCompatibility.test.js` | Chrome/Edge/Firefox 浏览器类型检测、ICON/ICON_URI 属性解析、时间戳解析、边界情况处理 |
+| `configLoading.test.js` | 配置解析函数（parseNumber/parseBoolean/parseList/parsePath）、默认配置回退、shouldFilter 过滤逻辑 |
+| `portSwitching.test.js` | 端口可用性检测、动态端口查找、边界值验证 |
+| `localMirrorSync.test.js` | 文件名处理、元数据读写、同步状态分析 |
 
 ## 支持的浏览器
 
