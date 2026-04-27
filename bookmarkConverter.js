@@ -277,12 +277,132 @@ function extractDomainFromUrl(url) {
 }
 
 /**
- * 解析 Chrome 导出的 HTML 书签文件
+ * 浏览器类型枚举
+ * @readonly
+ * @enum {string}
+ */
+const BrowserType = {
+  CHROME: 'chrome',
+  EDGE: 'edge',
+  FIREFOX: 'firefox',
+  UNKNOWN: 'unknown'
+};
+
+/**
+ * 检测浏览器类型
+ * @param {cheerio.Cheerio} $ - cheerio 实例
+ * @returns {BrowserType} - 浏览器类型
+ */
+function detectBrowserType($) {
+  const h1Text = $('h1').first().text().trim();
+  const titleText = $('title').first().text().trim();
+
+  if (h1Text === '收藏夹' || titleText === '收藏夹') {
+    return BrowserType.EDGE;
+  }
+  if (h1Text === 'Bookmarks Menu' || h1Text.includes('Menu')) {
+    return BrowserType.FIREFOX;
+  }
+  if (h1Text === 'Bookmarks' || titleText === 'Bookmarks') {
+    return BrowserType.CHROME;
+  }
+
+  const metaTag = $('meta[http-equiv="Content-Type"]');
+  if (metaTag.length) {
+    const content = metaTag.attr('content') || '';
+    if (content.toLowerCase().includes('utf')) {
+      return BrowserType.CHROME;
+    }
+  }
+
+  return BrowserType.UNKNOWN;
+}
+
+/**
+ * 解析 Unix 时间戳（支持秒级）
+ * @param {string} value - 时间戳字符串
+ * @returns {Date|null} - Date 对象或 null
+ */
+function parseTimestamp(value) {
+  if (!value) {
+    return null;
+  }
+  try {
+    const ts = parseInt(String(value), 10);
+    if (isNaN(ts) || ts <= 0) {
+      return null;
+    }
+    return new Date(ts * 1000);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 提取文件夹元数据
+ * @param {cheerio.Cheerio} h3Tag - H3 标签
+ * @returns {Object} - 文件夹元数据
+ */
+function extractFolderMeta(h3Tag) {
+  const addDateStr = h3Tag.attr('add_date');
+  const lastModifiedStr = h3Tag.attr('last_modified');
+  const isPersonalToolbar = h3Tag.attr('personal_toolbar_folder') === 'true';
+  const isUnfiled = h3Tag.attr('unfiled_bookmarks_folder') === 'true';
+
+  return {
+    addDate: parseTimestamp(addDateStr),
+    lastModified: parseTimestamp(lastModifiedStr),
+    isPersonalToolbar,
+    isUnfiled,
+    addDateStr,
+    lastModifiedStr
+  };
+}
+
+/**
+ * 提取书签元数据
+ * @param {cheerio.Cheerio} aTag - A 标签
+ * @returns {Object} - 书签元数据
+ */
+function extractBookmarkMeta(aTag) {
+  const href = aTag.attr('href') || '';
+  const addDateStr = aTag.attr('add_date');
+  const lastModifiedStr = aTag.attr('last_modified');
+  const lastVisitStr = aTag.attr('last_visit');
+  const icon = aTag.attr('icon') || null;
+  const iconUri = aTag.attr('icon_uri') || null;
+
+  return {
+    href,
+    addDate: parseTimestamp(addDateStr),
+    lastModified: parseTimestamp(lastModifiedStr),
+    lastVisit: parseTimestamp(lastVisitStr),
+    icon,
+    iconUri,
+    addDateStr,
+    lastModifiedStr,
+    lastVisitStr
+  };
+}
+
+/**
+ * 解析 Chrome/Edge/Firefox 导出的 HTML 书签文件
  * @param {string} htmlContent - HTML 内容
  * @returns {Array} - 层级结构的书签列表
  */
 function parseChromeBookmarks(htmlContent) {
-  const $ = cheerio.load(htmlContent, { decodeEntities: false });
+  if (!htmlContent || typeof htmlContent !== 'string') {
+    return [];
+  }
+
+  const $ = cheerio.load(htmlContent, { 
+    decodeEntities: false,
+    xmlMode: false,
+    lowerCaseTags: true,
+    lowerCaseAttributeNames: true
+  });
+
+  const browserType = detectBrowserType($);
 
   const rootDl = $('dl').first();
   if (!rootDl.length) {
@@ -321,26 +441,29 @@ function parseChromeBookmarks(htmlContent) {
           return;
         }
 
+        const folderMeta = extractFolderMeta(h3Tag);
         const subDl = h3Tag.next('dl');
 
+        let children = [];
         if (subDl.length) {
-          const subItems = parseDlContent(subDl, level + 1);
-          items.push({
-            type: 'folder',
-            name: folderName,
-            level: level,
-            children: subItems
-          });
-        } else {
-          items.push({
-            type: 'folder',
-            name: folderName,
-            level: level,
-            children: []
-          });
+          children = parseDlContent(subDl, level + 1);
         }
+
+        items.push({
+          type: 'folder',
+          name: folderName,
+          level: level,
+          children: children,
+          addDate: folderMeta.addDate,
+          lastModified: folderMeta.lastModified,
+          isPersonalToolbar: folderMeta.isPersonalToolbar,
+          isUnfiled: folderMeta.isUnfiled,
+          meta: folderMeta,
+          browserType
+        });
       } else if (aTag.length) {
-        const url = aTag.attr('href') || '';
+        const bookmarkMeta = extractBookmarkMeta(aTag);
+        const url = bookmarkMeta.href;
 
         if (config.shouldFilter(url)) {
           return;
@@ -355,7 +478,14 @@ function parseChromeBookmarks(htmlContent) {
           type: 'link',
           title: title,
           url: url,
-          level: level
+          level: level,
+          addDate: bookmarkMeta.addDate,
+          lastModified: bookmarkMeta.lastModified,
+          lastVisit: bookmarkMeta.lastVisit,
+          icon: bookmarkMeta.icon,
+          iconUri: bookmarkMeta.iconUri,
+          meta: bookmarkMeta,
+          browserType
         });
       }
     });
@@ -364,6 +494,15 @@ function parseChromeBookmarks(htmlContent) {
   }
 
   return parseDlContent(rootDl);
+}
+
+/**
+ * 统一的书签解析函数，自动检测浏览器类型
+ * @param {string} htmlContent - HTML 内容
+ * @returns {Array} - 层级结构的书签列表
+ */
+function parseBookmarks(htmlContent) {
+  return parseChromeBookmarks(htmlContent);
 }
 
 /**
@@ -606,6 +745,7 @@ function countFolders(items) {
 
 module.exports = {
   parseChromeBookmarks,
+  parseBookmarks,
   convertToMarkdown,
   countBookmarks,
   countFolders,
@@ -616,5 +756,10 @@ module.exports = {
   checkUrl,
   fetchPageTitle,
   checkUrlsConcurrently,
-  ConcurrencyLimiter
+  ConcurrencyLimiter,
+  BrowserType,
+  detectBrowserType,
+  parseTimestamp,
+  extractFolderMeta,
+  extractBookmarkMeta
 };

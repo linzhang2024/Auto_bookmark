@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 
 /**
- * Chrome 书签转换工具入口文件
- * 支持：
- * 1. 将 HTML 格式的 Chrome 书签转换为 Markdown 格式
+ * 浏览器书签转换工具入口文件
+ * 支持 Chrome、Edge、Firefox 导出的 HTML 书签
+ * 功能：
+ * 1. 将 HTML 格式的书签转换为 Markdown 格式
  * 2. 本地镜像同步功能：将书签同步到本地文件系统，包含文件夹映射、元数据持久化、图标缓存
  */
 
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
+const config = require('./config');
 const {
   parseChromeBookmarks,
+  parseBookmarks,
   convertToMarkdown,
   countBookmarks,
   countFolders
@@ -171,7 +174,7 @@ async function executeMarkdownConversion(inputFile, outputFile) {
     process.exit(1);
   }
 
-  const bookmarks = parseChromeBookmarks(htmlContent);
+  const bookmarks = parseBookmarks(htmlContent);
   const folderCount = countFolders(bookmarks);
   const linkCount = countBookmarks(bookmarks);
 
@@ -226,7 +229,7 @@ async function executeLocalSync(inputFile, options) {
     process.exit(1);
   }
 
-  const bookmarks = parseChromeBookmarks(htmlContent);
+  const bookmarks = parseBookmarks(htmlContent);
   const folderCount = countFolders(bookmarks);
   const linkCount = countBookmarks(bookmarks);
 
@@ -355,15 +358,15 @@ function executeCheckStatus(syncDir) {
 async function main() {
   const args = process.argv.slice(2);
   
-  let inputFile = null;
+  let inputFile = config.inputBookmarksPath;
   let outputFile = null;
   let enableSync = false;
   let syncDir = null;
   let checkStatusDir = null;
   let skipIcon = false;
   let force = false;
-  let concurrency = 5;
-  let timeout = 10000;
+  let concurrency = config.maxConcurrency;
+  let timeout = config.iconTimeout;
   let showHelpFlag = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -437,7 +440,7 @@ async function main() {
   if (enableSync) {
     const resolvedSyncDir = syncDir 
       ? path.resolve(syncDir) 
-      : path.join(process.cwd(), 'bookmarks_mirror');
+      : config.syncDir;
     
     await executeLocalSync(inputFile, {
       syncDir: resolvedSyncDir,

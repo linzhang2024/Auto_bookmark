@@ -12,6 +12,7 @@ const {
 } = require('./localMirrorSync');
 const { 
   parseChromeBookmarks,
+  parseBookmarks,
   countBookmarks,
   countFolders
 } = require('./bookmarkConverter');
@@ -31,9 +32,9 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const DEFAULT_START_PORT = 3000;
-const MAX_PORT_ATTEMPTS = 50;
-const DEFAULT_SYNC_DIR = path.join(__dirname, 'bookmarks_mirror');
+const DEFAULT_START_PORT = config.startPort || 3000;
+const MAX_PORT_ATTEMPTS = config.maxPortAttempts || 50;
+const DEFAULT_SYNC_DIR = config.syncDir || path.join(__dirname, 'bookmarks_mirror');
 
 let currentSyncDir = DEFAULT_SYNC_DIR;
 let isSyncing = false;
@@ -344,9 +345,12 @@ app.post('/api/sync', async (req, res) => {
     syncDir,
     skipIcon = false,
     force = false,
-    concurrency = 5,
-    timeout = 10000
+    concurrency,
+    timeout
   } = req.body;
+
+  const actualConcurrency = concurrency !== undefined ? concurrency : config.maxConcurrency;
+  const actualTimeout = timeout !== undefined ? timeout : config.iconTimeout;
 
   if (!bookmarksPath || !fs.existsSync(bookmarksPath)) {
     return res.status(400).json({ 
@@ -381,7 +385,7 @@ app.post('/api/sync', async (req, res) => {
 
   try {
     const htmlContent = fs.readFileSync(bookmarksPath, 'utf-8');
-    const bookmarks = parseChromeBookmarks(htmlContent);
+    const bookmarks = parseBookmarks(htmlContent);
     const totalBookmarks = countBookmarks(bookmarks);
     const totalFolders = countFolders(bookmarks);
 
@@ -399,8 +403,8 @@ app.post('/api/sync', async (req, res) => {
     let lastProgressTime = Date.now();
 
     const result = await syncToLocalMirror(bookmarks, targetSyncDir, {
-      maxConcurrent: concurrency,
-      timeout,
+      maxConcurrent: actualConcurrency,
+      timeout: actualTimeout,
       skipIconDownload: skipIcon,
       forceUpdate: force,
       onProgress: (current, total, message) => {
@@ -540,4 +544,12 @@ startServer().catch((error) => {
   process.exit(1);
 });
 
-module.exports = { app, server, wss, broadcast, startServer };
+module.exports = { 
+  app, 
+  server, 
+  wss, 
+  broadcast, 
+  startServer, 
+  isPortAvailable, 
+  findAvailablePort 
+};
