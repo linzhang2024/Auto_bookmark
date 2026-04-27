@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { Parser } = require('htmlparser2');
 const config = require('./config');
 
@@ -41,7 +42,11 @@ class BaseParser {
     this.options = {
       emitEvent: options.emitEvent || false,
       onItem: options.onItem || null,
+      onBatch: options.onBatch || null,
+      onFolder: options.onFolder || null,
+      onLink: options.onLink || null,
       batchSize: options.batchSize || 100,
+      flatten: options.flatten || false,
       ...options
     };
     
@@ -50,6 +55,7 @@ class BaseParser {
 
   reset() {
     this.items = [];
+    this.flatItems = [];
     this.folderStack = [];
     this.currentLevel = -1;
     this.browserType = BrowserType.UNKNOWN;
@@ -63,16 +69,11 @@ class BaseParser {
     this.pendingFolder = null;
     this.itemCount = 0;
     this.batchItems = [];
+    this.isParsing = false;
   }
 
-  parse(htmlContent) {
-    if (!htmlContent || typeof htmlContent !== 'string') {
-      return [];
-    }
-
-    this.reset();
-
-    const parser = new Parser({
+  createHtmlParser() {
+    return new Parser({
       onopentag: (name, attrs) => {
         try {
           this.handleOpenTag(name.toLowerCase(), attrs);
@@ -103,6 +104,17 @@ class BaseParser {
       lowerCaseAttributeNames: true,
       recognizeSelfClosing: true
     });
+  }
+
+  parse(htmlContent) {
+    if (!htmlContent || typeof htmlContent !== 'string') {
+      return [];
+    }
+
+    this.reset();
+    this.isParsing = true;
+
+    const parser = this.createHtmlParser();
 
     try {
       parser.write(htmlContent);
@@ -112,7 +124,66 @@ class BaseParser {
       console.error('BaseParser: Fatal parse error:', error.message);
     }
 
-    return this.items;
+    this.isParsing = false;
+    return this.options.flatten ? this.flatItems : this.items;
+  }
+
+  async parseFromStream(readStream) {
+    return new Promise((resolve, reject) => {
+      this.reset();
+      this.isParsing = true;
+
+      const htmlParser = this.createHtmlParser();
+
+      readStream.on('data', (chunk) => {
+        try {
+          htmlParser.write(chunk.toString());
+        } catch (error) {
+          console.warn('BaseParser: Error processing chunk:', error.message);
+        }
+      });
+
+      readStream.on('end', () => {
+        try {
+          htmlParser.end();
+          this.flushBatch();
+          this.isParsing = false;
+          resolve(this.options.flatten ? this.flatItems : this.items);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      readStream.on('error', reject);
+    });
+  }
+
+  async parseFile(filePath, options = {}) {
+    return new Promise((resolve, reject) => {
+      const mergedOptions = { ...this.options, ...options };
+      
+      try {
+        const readStream = fs.createReadStream(filePath, {
+          encoding: 'utf-8',
+          highWaterMark: mergedOptions.chunkSize || 64 * 1024
+        });
+        
+        const tempOptions = this.options;
+        this.options = mergedOptions;
+        
+        this.parseFromStream(readStream)
+          .then((result) => {
+            this.options = tempOptions;
+            resolve(result);
+          })
+          .catch((error) => {
+            this.options = tempOptions;
+            reject(error);
+          });
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   handleOpenTag(name, attrs) {
@@ -297,13 +368,26 @@ class BaseParser {
       this.options.onItem(item);
     }
 
-    if (this.folderStack.length > 0) {
-      const parentFolder = this.folderStack[this.folderStack.length - 1];
-      if (parentFolder && parentFolder.children) {
-        parentFolder.children.push(item);
+    if (this.options.emitEvent) {
+      if (item.type === 'folder' && this.options.onFolder) {
+        this.options.onFolder(item);
       }
+      if (item.type === 'link' && this.options.onLink) {
+        this.options.onLink(item);
+      }
+    }
+
+    if (this.options.flatten) {
+      this.flatItems.push(item);
     } else {
-      this.items.push(item);
+      if (this.folderStack.length > 0) {
+        const parentFolder = this.folderStack[this.folderStack.length - 1];
+        if (parentFolder && parentFolder.children) {
+          parentFolder.children.push(item);
+        }
+      } else {
+        this.items.push(item);
+      }
     }
 
     this.itemCount++;
@@ -316,7 +400,7 @@ class BaseParser {
 
   flushBatch() {
     if (this.batchItems.length > 0 && this.options.emitEvent && this.options.onBatch) {
-      this.options.onBatch(this.batchItems);
+      this.options.onBatch([...this.batchItems]);
     }
     this.batchItems = [];
   }
@@ -326,45 +410,14 @@ class BaseParser {
     return parser.parse(htmlContent);
   }
 
-  static parseStream(readStream, options = {}) {
-    return new Promise((resolve, reject) => {
-      const parser = new BaseParser({
-        ...options,
-        emitEvent: true
-      });
+  static async parseFromStream(readStream, options = {}) {
+    const parser = new BaseParser(options);
+    return parser.parseFromStream(readStream);
+  }
 
-      const htmlParser = new Parser({
-        onopentag: (name, attrs) => parser.handleOpenTag(name.toLowerCase(), attrs),
-        onclosetag: (name) => parser.handleCloseTag(name.toLowerCase()),
-        ontext: (text) => parser.handleText(text),
-        onerror: (error) => console.warn('BaseParser: Stream parse error:', error.message)
-      }, {
-        decodeEntities: false,
-        lowerCaseTags: true,
-        lowerCaseAttributeNames: true,
-        recognizeSelfClosing: true
-      });
-
-      readStream.on('data', (chunk) => {
-        try {
-          htmlParser.write(chunk.toString());
-        } catch (error) {
-          console.warn('BaseParser: Error processing chunk:', error.message);
-        }
-      });
-
-      readStream.on('end', () => {
-        try {
-          htmlParser.end();
-          parser.flushBatch();
-          resolve(parser.items);
-        } catch (error) {
-          reject(error);
-        }
-      });
-
-      readStream.on('error', reject);
-    });
+  static async parseFile(filePath, options = {}) {
+    const parser = new BaseParser(options);
+    return parser.parseFile(filePath, options);
   }
 }
 
