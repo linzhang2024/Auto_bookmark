@@ -19,9 +19,80 @@ function logError(...args) {
 
 let db;
 
+function runAsync(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.run(sql, params, function(err) {
+      if (err) reject(err);
+      else resolve({ lastID: this.lastID, changes: this.changes });
+    });
+  });
+}
+
+function getAsync(sql, params = []) {
+  return new Promise((resolve, reject) => {
+    db.get(sql, params, (err, row) => {
+      if (err) reject(err);
+      else resolve(row);
+    });
+  });
+}
+
+async function columnExists(tableName, columnName) {
+  const row = await getAsync(
+    `PRAGMA table_info(${tableName})`,
+    []
+  );
+  const columns = await new Promise((resolve, reject) => {
+    db.all(`PRAGMA table_info(${tableName})`, [], (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows);
+    });
+  });
+  return columns.some(col => col.name === columnName);
+}
+
+async function seedRoles() {
+  const adminRole = await getAsync('SELECT * FROM roles WHERE name = ?', ['admin']);
+  if (!adminRole) {
+    await runAsync(
+      `INSERT INTO roles (name, description, permissions) VALUES (?, ?, ?)`,
+      ['admin', '系统管理员，拥有所有权限', JSON.stringify([
+        'user:create', 'user:read', 'user:update', 'user:delete',
+        'role:create', 'role:read', 'role:update', 'role:delete',
+        'bookmark:create', 'bookmark:read', 'bookmark:update', 'bookmark:delete',
+        'admin:access'
+      ])]
+    );
+    logInfo('已预置管理员角色');
+  }
+
+  const userRole = await getAsync('SELECT * FROM roles WHERE name = ?', ['user']);
+  if (!userRole) {
+    await runAsync(
+      `INSERT INTO roles (name, description, permissions) VALUES (?, ?, ?)`,
+      ['user', '普通用户，拥有基本权限', JSON.stringify([
+        'user:read', 'user:update',
+        'bookmark:create', 'bookmark:read', 'bookmark:update', 'bookmark:delete'
+      ])]
+    );
+    logInfo('已预置普通用户角色');
+  }
+
+  const guestRole = await getAsync('SELECT * FROM roles WHERE name = ?', ['guest']);
+  if (!guestRole) {
+    await runAsync(
+      `INSERT INTO roles (name, description, permissions) VALUES (?, ?, ?)`,
+      ['guest', '访客角色，仅有只读权限', JSON.stringify([
+        'bookmark:read'
+      ])]
+    );
+    logInfo('已预置访客角色');
+  }
+}
+
 function initDatabase() {
   return new Promise((resolve, reject) => {
-    db = new sqlite3.Database(DB_PATH, (err) => {
+    db = new sqlite3.Database(DB_PATH, async (err) => {
       if (err) {
         logError('数据库连接失败:', err.message);
         reject(err);
@@ -29,26 +100,48 @@ function initDatabase() {
       }
       
       logInfo('成功连接到 SQLite 数据库');
-      
-      db.run(`
-        CREATE TABLE IF NOT EXISTS users (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          username TEXT NOT NULL UNIQUE,
-          password TEXT NOT NULL,
-          email TEXT NOT NULL UNIQUE,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-      `, (err) => {
-        if (err) {
-          logError('创建 users 表失败:', err.message);
-          reject(err);
-          return;
+
+      try {
+        await runAsync(`
+          CREATE TABLE IF NOT EXISTS roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT DEFAULT '',
+            permissions TEXT DEFAULT '[]',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        logInfo('roles 表已就绪');
+
+        await runAsync(`
+          CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            email TEXT NOT NULL UNIQUE,
+            role_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (role_id) REFERENCES roles(id)
+          )
+        `);
+
+        const hasRoleId = await columnExists('users', 'role_id');
+        if (!hasRoleId) {
+          await runAsync('ALTER TABLE users ADD COLUMN role_id INTEGER REFERENCES roles(id)');
+          logInfo('已添加 role_id 列到 users 表');
         }
-        
+
         logInfo('users 表已就绪');
+
+        await seedRoles();
+
         resolve(db);
-      });
+      } catch (dbErr) {
+        logError('数据库初始化失败:', dbErr.message);
+        reject(dbErr);
+      }
     });
   });
 }
