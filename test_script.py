@@ -89,7 +89,7 @@ def create_complex_test_bookmarks():
     <DL><p>
         <DT><A HREF="https://www.wikipedia.org" ADD_DATE="1700000026">维基百科</A>
         <DT><A HREF="https://www.reddit.com" ADD_DATE="1700000027">Reddit</A>
-        <DT><A HREF="http://127.0.0.1:3000" ADD_DATE="1700000028">本地前端服务</A>
+        <DT><A HREF="http://127.0.0.1:4000" ADD_DATE="1700000028">本地前端服务</A>
         <DT><A HREF="https://www.test.com" ADD_DATE="1700000029"></A>
     </DL><p>
 </DL><p>
@@ -206,7 +206,7 @@ def test_complex_hierarchy():
     
     # 被过滤的链接：
     # - http://localhost:8000
-    # - http://127.0.0.1:3000
+    # - http://127.0.0.1:4000
     
     expected_links = [
         "Google",
@@ -276,7 +276,7 @@ def test_complex_hierarchy():
     print(f"\n【验证本地链接过滤】")
     localhost_urls = [
         "http://localhost:8000",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:4000"
     ]
     
     filtered_correctly = True
@@ -334,11 +334,11 @@ def test_edge_cases():
     print("\n【测试 is_localhost_url 函数】")
     test_urls = [
         ("https://www.google.com", False),
-        ("http://localhost:3000", True),
+        ("http://localhost:4000", True),
         ("http://127.0.0.1:8080", True),
         ("https://localhost.example.com", False),
         ("https://127.0.0.1.example.com", False),
-        ("http://LocalHost:3000", True),
+        ("http://LocalHost:4000", True),
         ("http://127.0.0.1:8080/api", True),
         ("", False),
         (None, False),
