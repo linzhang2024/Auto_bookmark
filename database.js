@@ -3,6 +3,19 @@ const path = require('path');
 const config = require('./config');
 
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'app.db');
+const isTestEnvironment = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
+
+function logInfo(...args) {
+  if (!isTestEnvironment) {
+    console.log(...args);
+  }
+}
+
+function logError(...args) {
+  if (!isTestEnvironment) {
+    console.error(...args);
+  }
+}
 
 let db;
 
@@ -10,12 +23,12 @@ function initDatabase() {
   return new Promise((resolve, reject) => {
     db = new sqlite3.Database(DB_PATH, (err) => {
       if (err) {
-        console.error('数据库连接失败:', err.message);
+        logError('数据库连接失败:', err.message);
         reject(err);
         return;
       }
       
-      console.log('成功连接到 SQLite 数据库');
+      logInfo('成功连接到 SQLite 数据库');
       
       db.run(`
         CREATE TABLE IF NOT EXISTS users (
@@ -28,12 +41,12 @@ function initDatabase() {
         )
       `, (err) => {
         if (err) {
-          console.error('创建 users 表失败:', err.message);
+          logError('创建 users 表失败:', err.message);
           reject(err);
           return;
         }
         
-        console.log('users 表已就绪');
+        logInfo('users 表已就绪');
         resolve(db);
       });
     });
@@ -48,15 +61,23 @@ function getDb() {
 }
 
 function closeDatabase() {
-  if (db) {
+  return new Promise((resolve, reject) => {
+    if (!db) {
+      resolve();
+      return;
+    }
+    
     db.close((err) => {
       if (err) {
-        console.error('关闭数据库失败:', err.message);
+        logError('关闭数据库失败:', err.message);
+        reject(err);
       } else {
-        console.log('数据库连接已关闭');
+        logInfo('数据库连接已关闭');
+        db = null;
+        resolve();
       }
     });
-  }
+  });
 }
 
 async function run(sql, params = []) {
