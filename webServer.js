@@ -16,6 +16,8 @@ const {
   countBookmarks,
   countFolders
 } = require('./bookmarkConverter');
+const User = require('./userModel');
+const { initDatabase } = require('./database');
 
 process.on('uncaughtException', (error) => {
   console.error('未捕获的异常:', error.message);
@@ -83,6 +85,15 @@ async function findAvailablePort(startPort = DEFAULT_START_PORT) {
 
 async function startServer() {
   let actualPort;
+  
+  try {
+    console.log('正在初始化数据库...');
+    await initDatabase();
+    console.log('数据库初始化完成');
+  } catch (error) {
+    console.error('数据库初始化失败:', error.message);
+    console.error('将继续启动服务器，但用户功能可能不可用');
+  }
   
   try {
     if (process.env.PORT) {
@@ -458,6 +469,129 @@ app.post('/api/cancel-sync', (req, res) => {
     res.json({ success: true, message: '已发送取消请求' });
   } else {
     res.json({ success: false, message: '当前没有正在进行的同步任务' });
+  }
+});
+
+app.post('/api/users/register', async (req, res) => {
+  try {
+    const { username, password, email } = req.body;
+    
+    if (!username || !password || !email) {
+      return res.status(400).json({
+        success: false,
+        message: '用户名、密码和邮箱都不能为空'
+      });
+    }
+
+    const user = await User.create(username, password, email);
+    res.status(201).json({
+      success: true,
+      message: '用户注册成功',
+      user: user.toJSON()
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/users/:id', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的用户 ID'
+      });
+    }
+
+    const user = await User.findById(userId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      user: user.toJSON()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.put('/api/users/:id', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { username, email, password } = req.body;
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的用户 ID'
+      });
+    }
+
+    const updates = {};
+    if (username !== undefined) updates.username = username;
+    if (email !== undefined) updates.email = email;
+    if (password !== undefined) updates.password = password;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '没有提供要更新的字段'
+      });
+    }
+
+    const updatedUser = await User.update(userId, updates);
+    
+    res.json({
+      success: true,
+      message: '用户信息更新成功',
+      user: updatedUser.toJSON()
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.delete('/api/users/:id', async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的用户 ID'
+      });
+    }
+
+    const result = await User.delete(userId);
+    
+    if (result) {
+      res.json({
+        success: true,
+        message: '用户注销成功'
+      });
+    }
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
   }
 });
 
