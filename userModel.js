@@ -1,16 +1,19 @@
 const bcrypt = require('bcryptjs');
 const db = require('./database');
+const Role = require('./roleModel');
 
 const SALT_ROUNDS = 10;
 
 class User {
-  constructor(id, username, password, email, created_at, updated_at) {
+  constructor(id, username, password, email, role_id, created_at, updated_at) {
     this.id = id;
     this.username = username;
     this.password = password;
     this.email = email;
+    this.role_id = role_id;
     this.created_at = created_at;
     this.updated_at = updated_at;
+    this._role = null;
   }
 
   static validateUsername(username) {
@@ -53,6 +56,20 @@ class User {
     return { valid: true };
   }
 
+  static async validateRoleId(role_id) {
+    if (role_id === null || role_id === undefined) {
+      return { valid: true };
+    }
+    if (typeof role_id !== 'number' || !Number.isInteger(role_id) || role_id <= 0) {
+      return { valid: false, message: '角色 ID 必须是正整数' };
+    }
+    const role = await Role.findById(role_id);
+    if (!role) {
+      return { valid: false, message: '角色不存在' };
+    }
+    return { valid: true };
+  }
+
   static async hashPassword(password) {
     return bcrypt.hash(password, SALT_ROUNDS);
   }
@@ -61,7 +78,19 @@ class User {
     return bcrypt.compare(password, hash);
   }
 
-  static async create(username, password, email) {
+  static fromRow(row) {
+    return new User(
+      row.id,
+      row.username,
+      row.password,
+      row.email,
+      row.role_id,
+      row.created_at,
+      row.updated_at
+    );
+  }
+
+  static async create(username, password, email, role_id = null) {
     const usernameValidation = User.validateUsername(username);
     if (!usernameValidation.valid) {
       throw new Error(usernameValidation.message);
@@ -77,6 +106,11 @@ class User {
       throw new Error(emailValidation.message);
     }
 
+    const roleValidation = await User.validateRoleId(role_id);
+    if (!roleValidation.valid) {
+      throw new Error(roleValidation.message);
+    }
+
     const existingUserByUsername = await User.findByUsername(username);
     if (existingUserByUsername) {
       throw new Error('用户名已存在');
@@ -89,8 +123,8 @@ class User {
 
     const hashedPassword = await User.hashPassword(password);
     const result = await db.run(
-      'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
-      [username, hashedPassword, email]
+      'INSERT INTO users (username, password, email, role_id) VALUES (?, ?, ?, ?)',
+      [username, hashedPassword, email, role_id]
     );
 
     return User.findById(result.lastID);
@@ -101,7 +135,34 @@ class User {
     if (!row) {
       return null;
     }
-    return new User(row.id, row.username, row.password, row.email, row.created_at, row.updated_at);
+    return User.fromRow(row);
+  }
+
+  static async findByIdWithRole(id) {
+    const row = await db.get(`
+      SELECT 
+        u.id, u.username, u.password, u.email, u.role_id, 
+        u.created_at, u.updated_at,
+        r.name as role_name, r.description as role_description, r.permissions as role_permissions
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id
+      WHERE u.id = ?
+    `, [id]);
+    if (!row) {
+      return null;
+    }
+    const user = User.fromRow(row);
+    if (row.role_id) {
+      user._role = new Role(
+        row.role_id,
+        row.role_name,
+        row.role_description,
+        Role.deserializePermissions(row.role_permissions),
+        null,
+        null
+      );
+    }
+    return user;
   }
 
   static async findByUsername(username) {
@@ -109,7 +170,34 @@ class User {
     if (!row) {
       return null;
     }
-    return new User(row.id, row.username, row.password, row.email, row.created_at, row.updated_at);
+    return User.fromRow(row);
+  }
+
+  static async findByUsernameWithRole(username) {
+    const row = await db.get(`
+      SELECT 
+        u.id, u.username, u.password, u.email, u.role_id, 
+        u.created_at, u.updated_at,
+        r.name as role_name, r.description as role_description, r.permissions as role_permissions
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id
+      WHERE u.username = ?
+    `, [username]);
+    if (!row) {
+      return null;
+    }
+    const user = User.fromRow(row);
+    if (row.role_id) {
+      user._role = new Role(
+        row.role_id,
+        row.role_name,
+        row.role_description,
+        Role.deserializePermissions(row.role_permissions),
+        null,
+        null
+      );
+    }
+    return user;
   }
 
   static async findByEmail(email) {
@@ -117,7 +205,34 @@ class User {
     if (!row) {
       return null;
     }
-    return new User(row.id, row.username, row.password, row.email, row.created_at, row.updated_at);
+    return User.fromRow(row);
+  }
+
+  static async findByEmailWithRole(email) {
+    const row = await db.get(`
+      SELECT 
+        u.id, u.username, u.password, u.email, u.role_id, 
+        u.created_at, u.updated_at,
+        r.name as role_name, r.description as role_description, r.permissions as role_permissions
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id
+      WHERE u.email = ?
+    `, [email]);
+    if (!row) {
+      return null;
+    }
+    const user = User.fromRow(row);
+    if (row.role_id) {
+      user._role = new Role(
+        row.role_id,
+        row.role_name,
+        row.role_description,
+        Role.deserializePermissions(row.role_permissions),
+        null,
+        null
+      );
+    }
+    return user;
   }
 
   static async update(id, updates) {
@@ -126,7 +241,7 @@ class User {
       throw new Error('用户不存在');
     }
 
-    const allowedUpdates = ['username', 'email', 'password'];
+    const allowedUpdates = ['username', 'email', 'password', 'role_id'];
     const validUpdates = {};
 
     for (const key in updates) {
@@ -157,6 +272,12 @@ class User {
             throw new Error(validation.message);
           }
           validUpdates.password = await User.hashPassword(updates[key]);
+        } else if (key === 'role_id') {
+          const validation = await User.validateRoleId(updates[key]);
+          if (!validation.valid) {
+            throw new Error(validation.message);
+          }
+          validUpdates.role_id = updates[key];
         }
       }
     }
@@ -190,17 +311,68 @@ class User {
 
   static async listAll() {
     const rows = await db.all('SELECT * FROM users ORDER BY created_at DESC');
-    return rows.map(row => new User(row.id, row.username, row.password, row.email, row.created_at, row.updated_at));
+    return rows.map(row => User.fromRow(row));
+  }
+
+  static async listAllWithRole() {
+    const rows = await db.all(`
+      SELECT 
+        u.id, u.username, u.password, u.email, u.role_id, 
+        u.created_at, u.updated_at,
+        r.name as role_name, r.description as role_description, r.permissions as role_permissions
+      FROM users u
+      LEFT JOIN roles r ON u.role_id = r.id
+      ORDER BY u.created_at DESC
+    `);
+    return rows.map(row => {
+      const user = User.fromRow(row);
+      if (row.role_id) {
+        user._role = new Role(
+          row.role_id,
+          row.role_name,
+          row.role_description,
+          Role.deserializePermissions(row.role_permissions),
+          null,
+          null
+        );
+      }
+      return user;
+    });
+  }
+
+  async getRole() {
+    if (this._role) {
+      return this._role;
+    }
+    if (!this.role_id) {
+      return null;
+    }
+    const role = await Role.findById(this.role_id);
+    this._role = role;
+    return role;
+  }
+
+  async hasPermission(permission) {
+    const role = await this.getRole();
+    if (!role) {
+      return false;
+    }
+    return role.hasPermission(permission);
   }
 
   toJSON() {
-    return {
+    const json = {
       id: this.id,
       username: this.username,
       email: this.email,
+      role_id: this.role_id,
       created_at: this.created_at,
       updated_at: this.updated_at
     };
+    if (this._role) {
+      json.role = this._role.toJSON();
+    }
+    return json;
   }
 }
 

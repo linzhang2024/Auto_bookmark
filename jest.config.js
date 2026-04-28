@@ -16,6 +16,7 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageProvider: 'v8',
   testTimeout: 30000,
+  maxWorkers: 1,
   setupFiles: [
     '<rootDir>/jest.setup.js'
   ]
