@@ -288,6 +288,118 @@ function detectBrowserType(htmlContent) {
   return BrowserType.UNKNOWN;
 }
 
+class FirefoxParser extends BaseParser {
+  constructor(options = {}) {
+    super(options);
+    this._defaultBrowserType = BrowserType.FIREFOX;
+    this.browserType = this._defaultBrowserType;
+  }
+
+  reset() {
+    super.reset();
+    this.browserType = this._defaultBrowserType;
+  }
+
+  handleOpenTag(name, attrs) {
+    if (name === 'a' && attrs) {
+      attrs = this.processFirefoxAttributes(attrs);
+    }
+    super.handleOpenTag(name, attrs);
+  }
+
+  processFirefoxAttributes(attrs) {
+    const processed = { ...attrs };
+
+    if (processed.icon_uri) {
+      processed.iconUri = processed.icon_uri;
+    }
+
+    if (typeof processed.tags !== 'undefined') {
+      processed.tags = this.parseTags(processed.tags);
+    }
+
+    if (processed.shortcuturl) {
+      processed.shortcutUrl = processed.shortcuturl;
+    }
+
+    return processed;
+  }
+
+  parseTags(tagsStr) {
+    if (tagsStr === null || tagsStr === undefined) {
+      return undefined;
+    }
+
+    if (typeof tagsStr !== 'string') {
+      return tagsStr;
+    }
+
+    const trimmed = tagsStr.trim();
+    if (!trimmed) {
+      return [];
+    }
+
+    return trimmed
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+  }
+
+  handleCloseTag(name) {
+    if (name === 'h1' || name === 'title') {
+      if (this.inH3) {
+        const text = this.currentH3Text.trim();
+        if (text === 'Bookmarks Menu' || text.includes('Menu')) {
+          this.browserType = BrowserType.FIREFOX;
+        }
+      }
+    }
+    super.handleCloseTag(name);
+  }
+
+  extractBookmarkMeta(attrs) {
+    const meta = super.extractBookmarkMeta(attrs);
+
+    if (typeof attrs.tags !== 'undefined') {
+      if (Array.isArray(attrs.tags)) {
+        meta.tags = attrs.tags;
+      } else {
+        const parsed = this.parseTags(attrs.tags);
+        if (parsed !== undefined) {
+          meta.tags = parsed;
+        }
+      }
+    }
+
+    if (attrs.shortcuturl) {
+      meta.shortcutUrl = attrs.shortcuturl;
+    } else if (attrs.shortcut_url) {
+      meta.shortcutUrl = attrs.shortcut_url;
+    }
+
+    if (attrs.icon_uri) {
+      meta.iconUri = attrs.icon_uri;
+    }
+
+    return meta;
+  }
+
+  static parse(htmlContent, options = {}) {
+    const parser = new FirefoxParser(options);
+    return parser.parse(htmlContent);
+  }
+
+  static async parseFromStream(readStream, options = {}) {
+    const parser = new FirefoxParser(options);
+    return parser.parseFromStream(readStream);
+  }
+
+  static async parseFile(filePath, options = {}) {
+    const parser = new FirefoxParser(options);
+    return parser.parseFile(filePath, options);
+  }
+}
+
 function autoParse(htmlContent, options = {}) {
   const browserType = detectBrowserType(htmlContent);
   
@@ -296,6 +408,8 @@ function autoParse(htmlContent, options = {}) {
       return ChromeParser.parse(htmlContent, options);
     case BrowserType.EDGE:
       return EdgeParser.parse(htmlContent, options);
+    case BrowserType.FIREFOX:
+      return FirefoxParser.parse(htmlContent, options);
     default:
       return BaseParser.parse(htmlContent, options);
   }
@@ -305,6 +419,7 @@ module.exports = {
   ChromiumParser,
   ChromeParser,
   EdgeParser,
+  FirefoxParser,
   detectBrowserType,
   autoParse,
   ICON_PATTERNS
