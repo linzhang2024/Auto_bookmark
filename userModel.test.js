@@ -444,3 +444,212 @@ describe('User Model - CRUD 操作测试', () => {
     });
   });
 });
+
+describe('User Model - 权限检查测试', () => {
+  const Role = require('./roleModel');
+  const { initDatabase, closeDatabase, run } = require('./database');
+  let db;
+
+  beforeAll(async () => {
+    process.env.DB_PATH = ':memory:';
+    db = await initDatabase();
+  });
+
+  afterAll(async () => {
+    await closeDatabase();
+  });
+
+  afterEach(async () => {
+    await run('DELETE FROM users');
+    await run('DELETE FROM roles WHERE name NOT IN (?, ?, ?)', ['admin', 'user', 'guest']);
+  });
+
+  describe('hasAllPermissions 方法', () => {
+    test('应该正确检查用户是否拥有所有指定权限', async () => {
+      const userRole = await Role.findByName('user');
+      
+      const user = await User.create(
+        'has_all_user',
+        'password123',
+        'hasall@example.com',
+        userRole.id
+      );
+
+      const hasAll = await user.hasAllPermissions(['user:read', 'bookmark:read']);
+      expect(hasAll).toBe(true);
+
+      const hasNotAll = await user.hasAllPermissions(['user:read', 'admin:access']);
+      expect(hasNotAll).toBe(false);
+    });
+
+    test('没有角色的用户应该返回 false', async () => {
+      const user = await User.create(
+        'no_role_user',
+        'password123',
+        'norole@example.com'
+      );
+
+      const result = await user.hasAllPermissions(['user:read']);
+      expect(result).toBe(false);
+    });
+
+    test('空权限数组应该返回 false', async () => {
+      const userRole = await Role.findByName('user');
+      
+      const user = await User.create(
+        'empty_perm_user',
+        'password123',
+        'emptyperm@example.com',
+        userRole.id
+      );
+
+      const result = await user.hasAllPermissions([]);
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('hasAnyPermission 方法', () => {
+    test('应该正确检查用户是否拥有任意指定权限', async () => {
+      const userRole = await Role.findByName('user');
+      
+      const user = await User.create(
+        'has_any_user',
+        'password123',
+        'hasany@example.com',
+        userRole.id
+      );
+
+      const hasAny = await user.hasAnyPermission(['user:read', 'nonexistent:perm']);
+      expect(hasAny).toBe(true);
+
+      const hasNotAny = await user.hasAnyPermission(['admin:access', 'nonexistent:perm']);
+      expect(hasNotAny).toBe(false);
+    });
+
+    test('没有角色的用户应该返回 false', async () => {
+      const user = await User.create(
+        'no_role_any',
+        'password123',
+        'noroleany@example.com'
+      );
+
+      const result = await user.hasAnyPermission(['user:read']);
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('checkPermission 方法', () => {
+    test('单个权限检查应该正确工作', async () => {
+      const userRole = await Role.findByName('user');
+      
+      const user = await User.create(
+        'check_single_user',
+        'password123',
+        'checksingle@example.com',
+        userRole.id
+      );
+
+      const hasRead = await user.checkPermission('user:read');
+      expect(hasRead).toBe(true);
+
+      const hasAdminAccess = await user.checkPermission('admin:access');
+      expect(hasAdminAccess).toBe(false);
+    });
+
+    test('多权限检查默认应该检查是否有任意权限', async () => {
+      const userRole = await Role.findByName('user');
+      
+      const user = await User.create(
+        'check_multi_user',
+        'password123',
+        'checkmulti@example.com',
+        userRole.id
+      );
+
+      const result = await user.checkPermission(['user:read', 'admin:access']);
+      expect(result).toBe(true);
+    });
+
+    test('多权限检查 requireAll=true 应该检查是否拥有所有权限', async () => {
+      const adminRole = await Role.findByName('admin');
+      
+      const user = await User.create(
+        'check_all_user',
+        'password123',
+        'checkall@example.com',
+        adminRole.id
+      );
+
+      const hasAll = await user.checkPermission(
+        ['user:read', 'admin:access'],
+        { requireAll: true }
+      );
+      expect(hasAll).toBe(true);
+
+      const hasNotAll = await user.checkPermission(
+        ['user:read', 'nonexistent:perm'],
+        { requireAll: true }
+      );
+      expect(hasNotAll).toBe(false);
+    });
+
+    test('没有角色的用户应该返回 false', async () => {
+      const user = await User.create(
+        'no_role_check',
+        'password123',
+        'norolecheck@example.com'
+      );
+
+      const result = await user.checkPermission('user:read');
+      expect(result).toBe(false);
+    });
+  });
+
+  describe('checkPermissionByUserId 静态方法', () => {
+    test('应该通过用户ID正确检查权限', async () => {
+      const userRole = await Role.findByName('user');
+      
+      const user = await User.create(
+        'static_check_user',
+        'password123',
+        'staticcheck@example.com',
+        userRole.id
+      );
+
+      const hasRead = await User.checkPermissionByUserId(user.id, 'user:read');
+      expect(hasRead).toBe(true);
+
+      const hasAdminAccess = await User.checkPermissionByUserId(user.id, 'admin:access');
+      expect(hasAdminAccess).toBe(false);
+    });
+
+    test('应该支持多权限检查', async () => {
+      const adminRole = await Role.findByName('admin');
+      
+      const user = await User.create(
+        'static_multi_user',
+        'password123',
+        'staticmulti@example.com',
+        adminRole.id
+      );
+
+      const hasAny = await User.checkPermissionByUserId(
+        user.id,
+        ['user:read', 'nonexistent:perm']
+      );
+      expect(hasAny).toBe(true);
+
+      const hasAll = await User.checkPermissionByUserId(
+        user.id,
+        ['user:read', 'admin:access'],
+        { requireAll: true }
+      );
+      expect(hasAll).toBe(true);
+    });
+
+    test('不存在的用户应该返回 false', async () => {
+      const result = await User.checkPermissionByUserId(999999, 'user:read');
+      expect(result).toBe(false);
+    });
+  });
+});

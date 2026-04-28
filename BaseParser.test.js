@@ -358,7 +358,7 @@ describe('BaseParser - 过滤规则测试', () => {
     const html = `
 <DL><p>
     <DT><A HREF="https://www.google.com">Google</A>
-    <DT><A HREF="http://localhost:3000">本地开发</A>
+    <DT><A HREF="http://localhost:4000">本地开发</A>
     <DT><A HREF="http://127.0.0.1:8080">本地服务器</A>
     <DT><A HREF="http://dev.test">测试环境</A>
     <DT><A HREF="https://github.com">GitHub</A>

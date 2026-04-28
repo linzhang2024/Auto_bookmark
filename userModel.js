@@ -360,6 +360,44 @@ class User {
     return role.hasPermission(permission);
   }
 
+  async hasAllPermissions(permissions) {
+    const role = await this.getRole();
+    if (!role) {
+      return false;
+    }
+    return role.hasAllPermissions(permissions);
+  }
+
+  async hasAnyPermission(permissions) {
+    const role = await this.getRole();
+    if (!role) {
+      return false;
+    }
+    return role.hasAnyPermission(permissions);
+  }
+
+  async checkPermission(permission, options = {}) {
+    const { requireAll = false } = options;
+    
+    if (Array.isArray(permission)) {
+      if (requireAll) {
+        return this.hasAllPermissions(permission);
+      } else {
+        return this.hasAnyPermission(permission);
+      }
+    }
+    
+    return this.hasPermission(permission);
+  }
+
+  static async checkPermissionByUserId(userId, permission, options = {}) {
+    const user = await User.findByIdWithRole(userId);
+    if (!user) {
+      return false;
+    }
+    return user.checkPermission(permission, options);
+  }
+
   toJSON() {
     const json = {
       id: this.id,

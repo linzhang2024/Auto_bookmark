@@ -39,8 +39,8 @@ cp .env.example .env
 | `INPUT_BOOKMARKS_PATH` | 书签 HTML 文件路径 | 无 |
 | `OUTPUT_DIR` | Markdown 转换输出目录 | `./output` |
 | `SYNC_DIR` | 本地镜像同步目录 | `./bookmarks_mirror` |
-| `PORT` | Web 服务器默认端口 | `3000` |
-| `START_PORT` | 端口查找起始端口 | `3000` |
+| `PORT` | Web 服务器默认端口 | `4000` |
+| `START_PORT` | 端口查找起始端口 | `4000` |
 | `MAX_PORT_ATTEMPTS` | 端口查找最大尝试次数 | `50` |
 | `MAX_CONCURRENCY` | 最大并发请求数 | `5` |
 | `URL_TIMEOUT` | URL 检测超时时间（毫秒） | `5000` |
@@ -72,7 +72,7 @@ npm run web
 node webServer.js
 ```
 
-启动后访问：`http://localhost:3000`
+启动后访问：`http://localhost:4000`
 
 ## 命令行参数说明
 
@@ -289,7 +289,7 @@ Auto_bookmark/
 
 1. **图标下载**：图标下载依赖网络连接，如果网络不稳定或目标网站不可达，图标可能下载失败。失败的书签会在元数据中标记为 `FAILED` 状态。
 
-2. **端口冲突**：Web 服务器默认使用端口 3000。如果端口被占用，程序会自动从 `START_PORT` 开始尝试后续端口，直到找到可用端口。
+2. **端口冲突**：Web 服务器默认使用端口 4000。如果端口被占用，程序会自动从 `START_PORT` 开始尝试后续端口，直到找到可用端口。
 
 3. **过滤规则**：默认会过滤 `localhost`、`127.0.0.1`、`dev.test` 等本地开发环境 URL。可通过 `FILTER_PATTERNS` 环境变量自定义过滤规则。
 

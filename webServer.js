@@ -34,7 +34,7 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-const DEFAULT_START_PORT = config.startPort || 3000;
+const DEFAULT_START_PORT = config.startPort || 4000;
 const MAX_PORT_ATTEMPTS = config.maxPortAttempts || 50;
 const DEFAULT_SYNC_DIR = config.syncDir || path.join(__dirname, 'bookmarks_mirror');
 

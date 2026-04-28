@@ -374,6 +374,238 @@ describe('Role Model - CRUD 操作测试', () => {
       const role = await Role.create('empty_perm_role', '空权限角色', []);
       expect(role.hasPermission('any:perm')).toBe(false);
     });
+
+    test('hasAllPermissions 应该正确检查是否拥有所有权限', async () => {
+      const roleData = {
+        name: 'has_all_perm_role',
+        description: '测试hasAllPermissions',
+        permissions: ['user:read', 'bookmark:read', 'bookmark:write']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      expect(role.hasAllPermissions(['user:read', 'bookmark:read'])).toBe(true);
+      expect(role.hasAllPermissions(['user:read', 'bookmark:write'])).toBe(true);
+      expect(role.hasAllPermissions(['user:read', 'user:delete'])).toBe(false);
+      expect(role.hasAllPermissions([])).toBe(false);
+      expect(role.hasAllPermissions(null)).toBe(false);
+    });
+
+    test('hasAnyPermission 应该正确检查是否拥有任意权限', async () => {
+      const roleData = {
+        name: 'has_any_perm_role',
+        description: '测试hasAnyPermission',
+        permissions: ['user:read', 'bookmark:read']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      expect(role.hasAnyPermission(['user:read', 'user:delete'])).toBe(true);
+      expect(role.hasAnyPermission(['bookmark:read', 'bookmark:write'])).toBe(true);
+      expect(role.hasAnyPermission(['user:delete', 'bookmark:delete'])).toBe(false);
+      expect(role.hasAnyPermission([])).toBe(false);
+      expect(role.hasAnyPermission(null)).toBe(false);
+    });
+  });
+
+  describe('细粒度权限管理', () => {
+    test('addPermission 应该成功添加单个权限', async () => {
+      const roleData = {
+        name: 'add_perm_role',
+        description: '测试添加权限',
+        permissions: ['user:read']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      expect(role.hasPermission('bookmark:read')).toBe(false);
+
+      const updatedRole = await Role.addPermission(role.id, 'bookmark:read');
+      
+      expect(updatedRole.hasPermission('bookmark:read')).toBe(true);
+      expect(updatedRole.permissions).toContain('user:read');
+      expect(updatedRole.permissions).toContain('bookmark:read');
+    });
+
+    test('addPermission 添加已存在的权限应该不做修改', async () => {
+      const roleData = {
+        name: 'add_existing_perm_role',
+        description: '测试添加已存在权限',
+        permissions: ['user:read', 'bookmark:read']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      const originalPermissions = [...role.permissions];
+      const updatedRole = await Role.addPermission(role.id, 'user:read');
+      
+      expect(updatedRole.permissions).toEqual(originalPermissions);
+    });
+
+    test('addPermission 对不存在的角色应该抛出错误', async () => {
+      await expect(
+        Role.addPermission(999999, 'new:perm')
+      ).rejects.toThrow('角色不存在');
+    });
+
+    test('addPermission 添加无效权限应该抛出错误', async () => {
+      const role = await Role.create('invalid_perm_role', '测试无效权限', ['user:read']);
+      
+      await expect(
+        Role.addPermission(role.id, '')
+      ).rejects.toThrow('权限标识必须是非空字符串');
+    });
+
+    test('addPermissions 应该成功添加多个权限', async () => {
+      const roleData = {
+        name: 'add_multi_perm_role',
+        description: '测试添加多个权限',
+        permissions: ['user:read']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      const newPermissions = ['bookmark:read', 'bookmark:write', 'user:update'];
+      const updatedRole = await Role.addPermissions(role.id, newPermissions);
+      
+      expect(updatedRole.hasPermission('user:read')).toBe(true);
+      expect(updatedRole.hasPermission('bookmark:read')).toBe(true);
+      expect(updatedRole.hasPermission('bookmark:write')).toBe(true);
+      expect(updatedRole.hasPermission('user:update')).toBe(true);
+    });
+
+    test('addPermissions 添加混合存在和不存在的权限', async () => {
+      const roleData = {
+        name: 'add_mixed_perm_role',
+        description: '测试添加混合权限',
+        permissions: ['user:read', 'bookmark:read']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      const mixedPermissions = ['bookmark:read', 'bookmark:write', 'user:update'];
+      const updatedRole = await Role.addPermissions(role.id, mixedPermissions);
+      
+      expect(updatedRole.permissions.length).toBe(4);
+      expect(updatedRole.permissions).toContain('user:read');
+      expect(updatedRole.permissions).toContain('bookmark:read');
+      expect(updatedRole.permissions).toContain('bookmark:write');
+      expect(updatedRole.permissions).toContain('user:update');
+    });
+
+    test('removePermission 应该成功移除单个权限', async () => {
+      const roleData = {
+        name: 'remove_perm_role',
+        description: '测试移除权限',
+        permissions: ['user:read', 'user:write', 'bookmark:read']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      expect(role.hasPermission('user:write')).toBe(true);
+
+      const updatedRole = await Role.removePermission(role.id, 'user:write');
+      
+      expect(updatedRole.hasPermission('user:write')).toBe(false);
+      expect(updatedRole.hasPermission('user:read')).toBe(true);
+      expect(updatedRole.hasPermission('bookmark:read')).toBe(true);
+    });
+
+    test('removePermission 移除不存在的权限应该不做修改', async () => {
+      const roleData = {
+        name: 'remove_nonexistent_role',
+        description: '测试移除不存在权限',
+        permissions: ['user:read']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      const originalPermissions = [...role.permissions];
+      const updatedRole = await Role.removePermission(role.id, 'nonexistent:perm');
+      
+      expect(updatedRole.permissions).toEqual(originalPermissions);
+    });
+
+    test('removePermission 对不存在的角色应该抛出错误', async () => {
+      await expect(
+        Role.removePermission(999999, 'some:perm')
+      ).rejects.toThrow('角色不存在');
+    });
+
+    test('removePermissions 应该成功移除多个权限', async () => {
+      const roleData = {
+        name: 'remove_multi_perm_role',
+        description: '测试移除多个权限',
+        permissions: ['user:read', 'user:write', 'user:delete', 'bookmark:read', 'bookmark:write']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      const permissionsToRemove = ['user:write', 'user:delete', 'bookmark:write'];
+      const updatedRole = await Role.removePermissions(role.id, permissionsToRemove);
+      
+      expect(updatedRole.hasPermission('user:read')).toBe(true);
+      expect(updatedRole.hasPermission('bookmark:read')).toBe(true);
+      expect(updatedRole.hasPermission('user:write')).toBe(false);
+      expect(updatedRole.hasPermission('user:delete')).toBe(false);
+      expect(updatedRole.hasPermission('bookmark:write')).toBe(false);
+    });
+
+    test('removePermissions 移除混合存在和不存在的权限', async () => {
+      const roleData = {
+        name: 'remove_mixed_perm_role',
+        description: '测试移除混合权限',
+        permissions: ['user:read', 'bookmark:read']
+      };
+
+      const role = await Role.create(
+        roleData.name,
+        roleData.description,
+        roleData.permissions
+      );
+
+      const mixedPermissions = ['user:read', 'nonexistent:perm', 'another:none'];
+      const updatedRole = await Role.removePermissions(role.id, mixedPermissions);
+      
+      expect(updatedRole.hasPermission('user:read')).toBe(false);
+      expect(updatedRole.hasPermission('bookmark:read')).toBe(true);
+    });
   });
 
   describe('预置角色测试', () => {

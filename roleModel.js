@@ -198,6 +198,85 @@ class Role {
     return this.permissions.includes(permission);
   }
 
+  hasAllPermissions(permissions) {
+    if (!permissions || !Array.isArray(permissions) || permissions.length === 0) {
+      return false;
+    }
+    return permissions.every(perm => this.hasPermission(perm));
+  }
+
+  hasAnyPermission(permissions) {
+    if (!permissions || !Array.isArray(permissions) || permissions.length === 0) {
+      return false;
+    }
+    return permissions.some(perm => this.hasPermission(perm));
+  }
+
+  static async addPermission(roleId, permission) {
+    const validation = Role.validatePermissions([permission]);
+    if (!validation.valid) {
+      throw new Error(validation.message);
+    }
+
+    const role = await Role.findById(roleId);
+    if (!role) {
+      throw new Error('角色不存在');
+    }
+
+    if (role.hasPermission(permission)) {
+      return role;
+    }
+
+    const newPermissions = [...role.permissions, permission];
+    return Role.update(roleId, { permissions: newPermissions });
+  }
+
+  static async addPermissions(roleId, permissions) {
+    const validation = Role.validatePermissions(permissions);
+    if (!validation.valid) {
+      throw new Error(validation.message);
+    }
+
+    const role = await Role.findById(roleId);
+    if (!role) {
+      throw new Error('角色不存在');
+    }
+
+    const newPermissions = [...role.permissions];
+    for (const perm of permissions) {
+      if (!newPermissions.includes(perm)) {
+        newPermissions.push(perm);
+      }
+    }
+
+    return Role.update(roleId, { permissions: newPermissions });
+  }
+
+  static async removePermission(roleId, permission) {
+    const role = await Role.findById(roleId);
+    if (!role) {
+      throw new Error('角色不存在');
+    }
+
+    if (!role.hasPermission(permission)) {
+      return role;
+    }
+
+    const newPermissions = role.permissions.filter(p => p !== permission);
+    return Role.update(roleId, { permissions: newPermissions });
+  }
+
+  static async removePermissions(roleId, permissions) {
+    const role = await Role.findById(roleId);
+    if (!role) {
+      throw new Error('角色不存在');
+    }
+
+    const permissionsToRemove = new Set(permissions);
+    const newPermissions = role.permissions.filter(p => !permissionsToRemove.has(p));
+    return Role.update(roleId, { permissions: newPermissions });
+  }
+
   toJSON() {
     return {
       id: this.id,
