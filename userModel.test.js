@@ -108,7 +108,7 @@ describe('User Model - CRUD 操作测试', () => {
   });
 
   afterAll(async () => {
-    closeDatabase();
+    await closeDatabase();
   });
 
   afterEach(async () => {
