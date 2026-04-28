@@ -161,6 +161,14 @@ class Role {
   }
 
   static async delete(id) {
+    if (id === null || id === undefined) {
+      throw new Error('角色不存在');
+    }
+    
+    if (typeof id !== 'number' || !Number.isInteger(id) || id <= 0) {
+      throw new Error('角色不存在');
+    }
+
     const role = await Role.findById(id);
     if (!role) {
       throw new Error('角色不存在');

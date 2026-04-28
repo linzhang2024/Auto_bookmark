@@ -1,5 +1,5 @@
 const Role = require('./roleModel');
-const { initDatabase, closeDatabase, getDb } = require('./database');
+const { initDatabase, closeDatabase, getDb, run } = require('./database');
 
 describe('Role Model - 输入验证测试', () => {
   describe('角色名称验证', () => {
@@ -81,8 +81,8 @@ describe('Role Model - CRUD 操作测试', () => {
   });
 
   afterEach(async () => {
-    await db.run('DELETE FROM users');
-    await db.run('DELETE FROM roles WHERE name NOT IN (?, ?, ?)', ['admin', 'user', 'guest']);
+    await run('DELETE FROM users');
+    await run('DELETE FROM roles WHERE name NOT IN (?, ?, ?)', ['admin', 'user', 'guest']);
   });
 
   describe('角色创建', () => {

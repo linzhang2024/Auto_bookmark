@@ -1,6 +1,6 @@
 const Role = require('./roleModel');
 const User = require('./userModel');
-const { initDatabase, closeDatabase, getDb } = require('./database');
+const { initDatabase, closeDatabase, getDb, run } = require('./database');
 
 describe('角色管理集成测试 - 完整业务链路', () => {
   let db;
@@ -15,8 +15,8 @@ describe('角色管理集成测试 - 完整业务链路', () => {
   });
 
   afterEach(async () => {
-    await db.run('DELETE FROM users');
-    await db.run('DELETE FROM roles WHERE name NOT IN (?, ?, ?)', ['admin', 'user', 'guest']);
+    await run('DELETE FROM users');
+    await run('DELETE FROM roles WHERE name NOT IN (?, ?, ?)', ['admin', 'user', 'guest']);
   });
 
   describe('场景1: 角色创建与用户关联', () => {
