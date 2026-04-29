@@ -30,6 +30,7 @@ const DEFAULT_CONFIG = {
   urlTimeout: 5000,
   iconTimeout: 10000,
   filterPatterns: [
+    // 本地开发环境
     'localhost',
     '127.0.0.1',
     'dev.test',

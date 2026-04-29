@@ -1,22 +1,22 @@
 {
   "folderName": "开发工具",
-  "lastSyncTime": "2026-04-25T15:40:05.431Z",
+  "lastSyncTime": "2026-04-29T07:21:15.453Z",
   "bookmarks": [
     {
       "title": "Stack Overflow",
       "url": "https://www.stackoverflow.com",
-      "iconFileName": "Stack Overflow.ico",
+      "iconFileName": null,
       "urlStatus": "unknown",
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "completed",
-      "lastSyncTime": "2026-04-25T15:40:02.582Z"
+      "lastSyncTime": null
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777131601157",
-    "startTime": "2026-04-25T15:40:01.157Z",
-    "endTime": "2026-04-25T15:40:05.431Z",
+    "syncId": "sync_1777447275449",
+    "startTime": "2026-04-29T07:21:15.449Z",
+    "endTime": "2026-04-29T07:21:15.453Z",
     "totalBookmarks": 1,
     "completedBookmarks": 1,
     "failedBookmarks": 0
