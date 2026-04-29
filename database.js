@@ -51,16 +51,23 @@ async function columnExists(tableName, columnName) {
   return columns.some(col => col.name === columnName);
 }
 
+const DocumentStatus = {
+  PENDING: 'pending',
+  READY: 'ready',
+  FAILED: 'failed'
+};
+
 async function seedRoles() {
   const adminRole = await getAsync('SELECT * FROM roles WHERE name = ?', ['admin']);
   if (!adminRole) {
     await runAsync(
       `INSERT INTO roles (name, description, permissions) VALUES (?, ?, ?)`,
       ['admin', '系统管理员，拥有所有权限', JSON.stringify([
-        'user:create', 'user:read', 'user:update', 'user:delete',
+        'user:create', 'user:read', 'user:update', 'user:delete', 'user:list',
         'role:create', 'role:read', 'role:update', 'role:delete',
         'bookmark:create', 'bookmark:read', 'bookmark:update', 'bookmark:delete',
-        'admin:access'
+        'doc:create', 'doc:read', 'doc:update', 'doc:delete', 'doc:write',
+        'admin:access', 'admin:stats'
       ])]
     );
     logInfo('已预置管理员角色');
@@ -72,7 +79,8 @@ async function seedRoles() {
       `INSERT INTO roles (name, description, permissions) VALUES (?, ?, ?)`,
       ['user', '普通用户，拥有基本权限', JSON.stringify([
         'user:read', 'user:update',
-        'bookmark:create', 'bookmark:read', 'bookmark:update', 'bookmark:delete'
+        'bookmark:create', 'bookmark:read', 'bookmark:update', 'bookmark:delete',
+        'doc:create', 'doc:read', 'doc:write'
       ])]
     );
     logInfo('已预置普通用户角色');
@@ -83,7 +91,8 @@ async function seedRoles() {
     await runAsync(
       `INSERT INTO roles (name, description, permissions) VALUES (?, ?, ?)`,
       ['guest', '访客角色，仅有只读权限', JSON.stringify([
-        'bookmark:read'
+        'bookmark:read',
+        'doc:read'
       ])]
     );
     logInfo('已预置访客角色');
@@ -134,6 +143,38 @@ function initDatabase() {
         }
 
         logInfo('users 表已就绪');
+
+        await runAsync(`
+          CREATE TABLE IF NOT EXISTS documents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            filename TEXT NOT NULL,
+            storage_path TEXT NOT NULL,
+            file_size INTEGER DEFAULT 0,
+            mime_type TEXT DEFAULT '',
+            uploader_id INTEGER,
+            owner_id INTEGER,
+            status TEXT DEFAULT 'pending',
+            metadata TEXT DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (uploader_id) REFERENCES users(id),
+            FOREIGN KEY (owner_id) REFERENCES users(id)
+          )
+        `);
+        
+        const hasStatus = await columnExists('documents', 'status');
+        if (!hasStatus) {
+          await runAsync(`ALTER TABLE documents ADD COLUMN status TEXT DEFAULT 'pending'`);
+          logInfo('已添加 status 列到 documents 表');
+        }
+        
+        const hasOwnerId = await columnExists('documents', 'owner_id');
+        if (!hasOwnerId) {
+          await runAsync(`ALTER TABLE documents ADD COLUMN owner_id INTEGER REFERENCES users(id)`);
+          logInfo('已添加 owner_id 列到 documents 表');
+        }
+        
+        logInfo('documents 表已就绪');
 
         await seedRoles();
 
@@ -215,5 +256,6 @@ module.exports = {
   closeDatabase,
   run,
   get,
-  all
+  all,
+  DocumentStatus
 };

@@ -1,17 +1,7 @@
 {
   "folderName": "前端框架",
-  "lastSyncTime": "2026-04-25T15:40:05.431Z",
+  "lastSyncTime": "2026-04-29T07:21:15.452Z",
   "bookmarks": [
-    {
-      "title": "React",
-      "url": "https://react.dev",
-      "iconFileName": "React.ico",
-      "urlStatus": "unknown",
-      "lastVisited": null,
-      "isInvalid": false,
-      "syncStatus": "completed",
-      "lastSyncTime": "2026-04-25T15:40:02.266Z"
-    },
     {
       "title": "Vue.js",
       "url": "https://vuejs.org",
@@ -19,16 +9,26 @@
       "urlStatus": "unknown",
       "lastVisited": null,
       "isInvalid": false,
-      "syncStatus": "failed",
-      "lastSyncTime": "2026-04-25T15:40:02.739Z"
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-04-29T07:21:15.451Z"
+    },
+    {
+      "title": "React",
+      "url": "https://react.dev",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777131601157",
-    "startTime": "2026-04-25T15:40:01.157Z",
-    "endTime": "2026-04-25T15:40:05.431Z",
+    "syncId": "sync_1777447275449",
+    "startTime": "2026-04-29T07:21:15.449Z",
+    "endTime": "2026-04-29T07:21:15.452Z",
     "totalBookmarks": 2,
-    "completedBookmarks": 1,
-    "failedBookmarks": 1
+    "completedBookmarks": 2,
+    "failedBookmarks": 0
   }
 }

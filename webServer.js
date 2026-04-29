@@ -17,7 +17,14 @@ const {
   countFolders
 } = require('./bookmarkConverter');
 const User = require('./userModel');
-const { initDatabase } = require('./database');
+const Document = require('./documentModel');
+const { 
+  AuthMiddleware, 
+  DOC_WRITE_PERMISSION, 
+  ADMIN_STATS_PERMISSION,
+  USER_LIST_PERMISSION 
+} = require('./authMiddleware');
+const { initDatabase, DocumentStatus } = require('./database');
 
 process.on('uncaughtException', (error) => {
   console.error('未捕获的异常:', error.message);
@@ -37,6 +44,7 @@ const wss = new WebSocket.Server({ server });
 const DEFAULT_START_PORT = config.startPort || 4000;
 const MAX_PORT_ATTEMPTS = config.maxPortAttempts || 50;
 const DEFAULT_SYNC_DIR = config.syncDir || path.join(__dirname, 'bookmarks_mirror');
+const DEFAULT_UPLOAD_DIR = path.join(__dirname, 'uploads');
 
 let currentSyncDir = DEFAULT_SYNC_DIR;
 let isSyncing = false;
@@ -589,6 +597,443 @@ app.delete('/api/users/:id', async (req, res) => {
     }
   } catch (error) {
     res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.post('/api/documents/upload', async (req, res) => {
+  try {
+    const { filename, file_content, file_base64, uploader_id, owner_id, metadata } = req.body;
+
+    if (!uploader_id) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少上传者 ID'
+      });
+    }
+
+    const hasDocWritePermission = await AuthMiddleware.hasDocWritePermission(uploader_id);
+    if (!hasDocWritePermission) {
+      return res.status(403).json({
+        success: false,
+        message: '禁止访问：缺少 doc:write 权限'
+      });
+    }
+
+    if (!filename) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少文件名'
+      });
+    }
+
+    let fileBuffer;
+    if (file_base64) {
+      fileBuffer = Buffer.from(file_base64, 'base64');
+    } else if (file_content) {
+      if (Buffer.isBuffer(file_content)) {
+        fileBuffer = file_content;
+      } else if (typeof file_content === 'string') {
+        fileBuffer = Buffer.from(file_content);
+      } else if (Array.isArray(file_content)) {
+        fileBuffer = Buffer.from(file_content);
+      }
+    }
+
+    if (!fileBuffer) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少文件内容（file_base64 或 file_content）'
+      });
+    }
+
+    const result = await Document.atomicUpload({
+      filename,
+      fileBuffer,
+      storageDir: DEFAULT_UPLOAD_DIR,
+      uploader_id,
+      owner_id: owner_id || uploader_id,
+      metadata: metadata || {}
+    });
+
+    res.status(201).json({
+      success: true,
+      message: '文档上传成功',
+      document: result.document.toJSON()
+    });
+
+  } catch (error) {
+    console.error('文档上传失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/documents', async (req, res) => {
+  try {
+    const { status, uploader_id, owner_id } = req.query;
+    let documents;
+
+    if (status) {
+      documents = await Document.findByStatus(status);
+    } else if (uploader_id) {
+      documents = await Document.findByUploaderId(parseInt(uploader_id, 10));
+    } else if (owner_id) {
+      documents = await Document.findByOwnerId(parseInt(owner_id, 10));
+    } else {
+      documents = await Document.listAll();
+    }
+
+    res.json({
+      success: true,
+      documents: documents.map(d => d.toJSON())
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/documents/:id', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    const document = await Document.findByIdWithUploader(docId);
+    
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: '文档不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      document: document.toJSON()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.put('/api/documents/:id', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    const { user_id, filename, storage_path, metadata, status } = req.body;
+
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        message: '未授权：缺少用户信息'
+      });
+    }
+
+    const canModify = await AuthMiddleware.canModifyDocumentById(user_id, docId);
+    if (!canModify) {
+      return res.status(403).json({
+        success: false,
+        message: '禁止访问：仅文档所有者或管理员可以执行此操作'
+      });
+    }
+
+    const updates = {};
+    if (filename !== undefined) updates.filename = filename;
+    if (storage_path !== undefined) updates.storage_path = storage_path;
+    if (metadata !== undefined) updates.metadata = metadata;
+    if (status !== undefined) updates.status = status;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '没有提供要更新的字段'
+      });
+    }
+
+    const updatedDoc = await Document.update(docId, updates);
+
+    res.json({
+      success: true,
+      message: '文档更新成功',
+      document: updatedDoc.toJSON()
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.delete('/api/documents/:id', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    const { user_id } = req.body;
+
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    if (!user_id) {
+      return res.status(401).json({
+        success: false,
+        message: '未授权：缺少用户信息'
+      });
+    }
+
+    const canModify = await AuthMiddleware.canModifyDocumentById(user_id, docId);
+    if (!canModify) {
+      return res.status(403).json({
+        success: false,
+        message: '禁止访问：仅文档所有者或管理员可以执行此操作'
+      });
+    }
+
+    await Document.safeDelete(docId);
+
+    res.json({
+      success: true,
+      message: '文档删除成功'
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.post('/api/documents/upload-with-transaction', async (req, res) => {
+  try {
+    const { filename, file_base64, uploader_id, owner_id, metadata } = req.body;
+
+    if (!uploader_id) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少上传者 ID'
+      });
+    }
+
+    const hasDocWritePermission = await AuthMiddleware.hasDocWritePermission(uploader_id);
+    if (!hasDocWritePermission) {
+      return res.status(403).json({
+        success: false,
+        message: '禁止访问：缺少 doc:write 权限'
+      });
+    }
+
+    if (!filename) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少文件名'
+      });
+    }
+
+    if (!file_base64) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少文件内容（file_base64）'
+      });
+    }
+
+    const fileBuffer = Buffer.from(file_base64, 'base64');
+
+    const result = await Document.atomicUploadWithTransaction({
+      filename,
+      fileBuffer,
+      storageDir: DEFAULT_UPLOAD_DIR,
+      uploader_id,
+      owner_id: owner_id || uploader_id,
+      metadata: metadata || {}
+    });
+
+    res.status(201).json({
+      success: true,
+      message: '文档上传成功（事务模式）',
+      document: result.document.toJSON()
+    });
+
+  } catch (error) {
+    console.error('文档上传失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const userId = req.query?.user_id || req.body?.user_id || req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '未授权：缺少用户信息'
+      });
+    }
+
+    const hasPermission = await AuthMiddleware.hasPermission(userId, ADMIN_STATS_PERMISSION);
+    if (!hasPermission) {
+      return res.status(403).json({
+        success: false,
+        message: `禁止访问：缺少 ${ADMIN_STATS_PERMISSION} 权限`
+      });
+    }
+
+    const stats = await User.getStats();
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    console.error('获取统计数据失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/users', async (req, res) => {
+  try {
+    const userId = req.query?.user_id || req.body?.user_id || req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '未授权：缺少用户信息'
+      });
+    }
+
+    const hasPermission = await AuthMiddleware.hasPermission(userId, USER_LIST_PERMISSION);
+    if (!hasPermission) {
+      return res.status(403).json({
+        success: false,
+        message: `禁止访问：缺少 ${USER_LIST_PERMISSION} 权限`
+      });
+    }
+
+    const users = await User.listAllWithRole();
+    res.json({
+      success: true,
+      users: users.map(u => u.toJSON())
+    });
+  } catch (error) {
+    console.error('获取用户列表失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/users/:id/permissions', async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.id, 10);
+    const requesterId = req.query?.user_id || req.body?.user_id || req.user?.id;
+    
+    if (!requesterId) {
+      return res.status(401).json({
+        success: false,
+        message: '未授权：缺少用户信息'
+      });
+    }
+
+    const user = await User.findByIdWithRole(targetUserId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    const requesterUser = await User.findByIdWithRole(parseInt(requesterId, 10));
+    const canEdit = requesterUser ? await requesterUser.hasPermission('user:update') : false;
+    const canDelete = requesterUser ? await requesterUser.hasPermission('user:delete') : false;
+
+    res.json({
+      success: true,
+      permissions: {
+        can_edit: canEdit,
+        can_delete: canDelete,
+        user_role: user._role ? user._role.name : null,
+        user_permissions: user._role ? user._role.permissions : []
+      }
+    });
+  } catch (error) {
+    console.error('获取用户权限失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/current-user/permissions', async (req, res) => {
+  try {
+    const userId = req.query?.user_id || req.body?.user_id || req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: '未授权：缺少用户信息'
+      });
+    }
+
+    const user = await User.findByIdWithRole(parseInt(userId, 10));
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    const canViewStats = await user.hasPermission('admin:stats');
+    const canListUsers = await user.hasPermission('user:list');
+    const canEditUsers = await user.hasPermission('user:update');
+    const canDeleteUsers = await user.hasPermission('user:delete');
+
+    res.json({
+      success: true,
+      permissions: {
+        can_view_stats: canViewStats,
+        can_list_users: canListUsers,
+        can_edit_users: canEditUsers,
+        can_delete_users: canDeleteUsers,
+        is_admin: await user.hasPermission('admin:access'),
+        user_role: user._role ? user._role.name : null,
+        user_permissions: user._role ? user._role.permissions : []
+      }
+    });
+  } catch (error) {
+    console.error('获取当前用户权限失败:', error);
+    res.status(500).json({
       success: false,
       message: error.message
     });

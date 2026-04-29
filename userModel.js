@@ -398,6 +398,40 @@ class User {
     return user.checkPermission(permission, options);
   }
 
+  static async countUsers() {
+    const row = await db.get('SELECT COUNT(*) as count FROM users');
+    return row ? row.count : 0;
+  }
+
+  static async countUsersByRole() {
+    const rows = await db.all(`
+      SELECT 
+        r.id as role_id,
+        r.name as role_name,
+        COUNT(u.id) as user_count
+      FROM roles r
+      LEFT JOIN users u ON r.id = u.role_id
+      GROUP BY r.id, r.name
+      ORDER BY user_count DESC
+    `);
+    return rows.map(row => ({
+      role_id: row.role_id,
+      role_name: row.role_name,
+      user_count: row.user_count
+    }));
+  }
+
+  static async getStats() {
+    const totalUsers = await User.countUsers();
+    const roleDistribution = await User.countUsersByRole();
+    
+    return {
+      total_users: totalUsers,
+      role_distribution: roleDistribution,
+      generated_at: new Date().toISOString()
+    };
+  }
+
   toJSON() {
     const json = {
       id: this.id,

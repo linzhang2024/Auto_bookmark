@@ -1,27 +1,7 @@
 {
   "folderName": "bookmarks_mirror",
-  "lastSyncTime": "2026-04-25T15:40:05.432Z",
+  "lastSyncTime": "2026-04-29T07:21:15.453Z",
   "bookmarks": [
-    {
-      "title": "www.test.com",
-      "url": "https://www.test.com",
-      "iconFileName": "www.test.com.ico",
-      "urlStatus": "unknown",
-      "lastVisited": null,
-      "isInvalid": false,
-      "syncStatus": "completed",
-      "lastSyncTime": "2026-04-25T15:40:04.115Z"
-    },
-    {
-      "title": "百度",
-      "url": "https://www.baidu.com",
-      "iconFileName": "百度.ico",
-      "urlStatus": "unknown",
-      "lastVisited": null,
-      "isInvalid": false,
-      "syncStatus": "completed",
-      "lastSyncTime": "2026-04-25T15:40:04.002Z"
-    },
     {
       "title": "Example",
       "url": "https://www.example.com",
@@ -29,16 +9,36 @@
       "urlStatus": "unknown",
       "lastVisited": null,
       "isInvalid": false,
-      "syncStatus": "failed",
-      "lastSyncTime": "2026-04-25T15:40:04.003Z"
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-04-29T07:21:15.452Z"
+    },
+    {
+      "title": "www.test.com",
+      "url": "https://www.test.com",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "百度",
+      "url": "https://www.baidu.com",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777131601157",
-    "startTime": "2026-04-25T15:40:01.157Z",
-    "endTime": "2026-04-25T15:40:05.432Z",
+    "syncId": "sync_1777447275449",
+    "startTime": "2026-04-29T07:21:15.449Z",
+    "endTime": "2026-04-29T07:21:15.453Z",
     "totalBookmarks": 3,
-    "completedBookmarks": 2,
-    "failedBookmarks": 1
+    "completedBookmarks": 3,
+    "failedBookmarks": 0
   }
 }

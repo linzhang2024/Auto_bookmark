@@ -1,32 +1,32 @@
 {
   "folderName": "其他书签",
-  "lastSyncTime": "2026-04-25T15:40:05.432Z",
+  "lastSyncTime": "2026-04-29T07:21:15.454Z",
   "bookmarks": [
     {
       "title": "维基百科",
       "url": "https://www.wikipedia.org",
-      "iconFileName": "维基百科.ico",
+      "iconFileName": null,
       "urlStatus": "unknown",
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "completed",
-      "lastSyncTime": "2026-04-25T15:40:05.320Z"
+      "lastSyncTime": null
     },
     {
       "title": "Reddit",
       "url": "https://www.reddit.com",
-      "iconFileName": "Reddit.ico",
+      "iconFileName": null,
       "urlStatus": "unknown",
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "completed",
-      "lastSyncTime": "2026-04-25T15:40:04.696Z"
+      "lastSyncTime": null
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777131601157",
-    "startTime": "2026-04-25T15:40:01.157Z",
-    "endTime": "2026-04-25T15:40:05.432Z",
+    "syncId": "sync_1777447275449",
+    "startTime": "2026-04-29T07:21:15.449Z",
+    "endTime": "2026-04-29T07:21:15.454Z",
     "totalBookmarks": 2,
     "completedBookmarks": 2,
     "failedBookmarks": 0
