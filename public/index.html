@@ -360,8 +360,8 @@
           <div class="stat-card bg-white rounded-xl shadow-sm border p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-sm font-medium text-gray-500">处理中</h3>
-              <div class="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
-                <svg class="w-5 h-5 text-yellow-600 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div id="docProcessingIcon" class="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
               </div>
@@ -637,7 +637,104 @@
 
   <script>
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${wsProtocol}//${window.location.host}`);
+    let ws = null;
+    let wsReconnectAttempts = 0;
+    const MAX_RECONNECT_ATTEMPTS = 10;
+    const RECONNECT_INTERVAL = 2000;
+
+    function initWebSocket() {
+      ws = new WebSocket(`${wsProtocol}//${window.location.host}`);
+      wsReconnectAttempts = 0;
+
+      ws.onopen = () => {
+        console.log('WebSocket 连接已建立');
+        wsReconnectAttempts = 0;
+        loadDocuments();
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'status') {
+          updateStatusUI(data.data);
+        } else if (data.type === 'sync_progress') {
+          document.getElementById('syncProgressPercent').textContent = Math.round((data.data.current / data.data.total) * 100) + '%';
+          document.getElementById('syncProgressBar').style.width = Math.round((data.data.current / data.data.total) * 100) + '%';
+          document.getElementById('syncProgressText').textContent = data.data.message;
+          document.getElementById('syncCurrent').textContent = data.data.current;
+          document.getElementById('syncTotal').textContent = data.data.total;
+          addSyncLog(data.data.message);
+        } else if (data.type === 'sync_completed') {
+          document.getElementById('syncButton').disabled = false;
+          document.getElementById('syncButton').innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.003 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 0 01-15.357-2m15.357 2H15"/></svg>开始同步';
+          addSyncLog('同步任务完成');
+          showNotification('同步任务已完成', 'success');
+        } else if (data.type === 'sync_failed') {
+          document.getElementById('syncButton').disabled = false;
+          document.getElementById('syncButton').innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.003 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 0 01-15.357-2m15.357 2H15"/></svg>开始同步';
+          addSyncLog('同步任务失败: ' + (data.data?.error || '未知错误'));
+          showNotification('同步任务失败', 'error');
+        } else if (data.type === 'recent_icons') {
+          updateRecentIcons(data.data.icons);
+        } else if (data.type === 'parse_started') {
+          const docId = data.data.documentId;
+          showNotification(`文档 ${docId} 开始解析`, 'info');
+          updateDocumentRow(docId, {
+            status: 'processing',
+            metadata: { parse_progress: 0, parse_phase: 'initializing' }
+          });
+        } else if (data.type === 'parse_progress') {
+          const docId = data.data.documentId;
+          const doc = currentDocuments.find(d => d.id === docId);
+          if (doc) {
+            doc.status = 'processing';
+            doc.metadata = {
+              ...doc.metadata,
+              parse_progress: data.data.progress,
+              parse_phase: data.data.phase,
+              parse_message: data.data.message
+            };
+            renderDocumentsTable(currentDocuments);
+          }
+        } else if (data.type === 'parse_completed') {
+          const docId = data.data.documentId;
+          showNotification(`文档 ${docId} 解析完成`, 'success');
+          if (data.data.document) {
+            const docIndex = currentDocuments.findIndex(d => d.id === docId);
+            if (docIndex !== -1) {
+              currentDocuments[docIndex] = data.data.document;
+              renderDocumentsTable(currentDocuments);
+            }
+          }
+        } else if (data.type === 'parse_failed') {
+          const docId = data.data.documentId;
+          showNotification(`文档 ${docId} 解析失败: ${data.data.error}`, 'error');
+          updateDocumentRow(docId, {
+            status: 'failed',
+            metadata: { error: data.data.error }
+          });
+        }
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket 连接已关闭');
+        if (wsReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+          wsReconnectAttempts++;
+          console.log(`尝试重新连接 (${wsReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+          setTimeout(initWebSocket, RECONNECT_INTERVAL);
+        } else {
+          console.error('WebSocket 重连失败，已达到最大尝试次数');
+          showNotification('连接已断开，请刷新页面重试', 'error');
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error('WebSocket 错误:', error);
+      };
+    }
+
+    initWebSocket();
+
     let currentFilterPatterns = [];
     let currentUserId = null;
     let currentPermissions = null;
@@ -813,6 +910,18 @@
           document.getElementById('docProcessingCount').textContent = processing;
           document.getElementById('docReadyCount').textContent = ready;
           document.getElementById('docFailedCount').textContent = failed;
+
+          const processingIcon = document.getElementById('docProcessingIcon');
+          if (processingIcon) {
+            const svg = processingIcon.querySelector('svg');
+            if (svg) {
+              if (processing > 0) {
+                svg.classList.add('animate-spin');
+              } else {
+                svg.classList.remove('animate-spin');
+              }
+            }
+          }
 
           renderDocumentsTable(currentDocuments);
         }
@@ -1484,10 +1593,6 @@
       }
     }
 
-    ws.onopen = () => {
-      console.log('WebSocket 连接已建立');
-    };
-
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
       
@@ -1550,10 +1655,6 @@
           metadata: { error: data.data.error }
         });
       }
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket 连接已关闭');
     };
 
     document.getElementById('syncButton').addEventListener('click', startSync);
