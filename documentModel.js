@@ -6,6 +6,7 @@ const { DocumentStatus } = require('./database');
 
 const VALID_STATUSES = new Set([
   DocumentStatus.PENDING,
+  DocumentStatus.PROCESSING,
   DocumentStatus.READY,
   DocumentStatus.FAILED
 ]);

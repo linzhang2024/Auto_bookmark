@@ -4,6 +4,8 @@ const Document = require('./documentModel');
 const ADMIN_PERMISSION = 'admin:access';
 const ADMIN_STATS_PERMISSION = 'admin:stats';
 const USER_LIST_PERMISSION = 'user:list';
+const USER_UPDATE_PERMISSION = 'user:update';
+const USER_DELETE_PERMISSION = 'user:delete';
 const DOC_WRITE_PERMISSION = 'doc:write';
 const DOC_READ_PERMISSION = 'doc:read';
 const DOC_CREATE_PERMISSION = 'doc:create';
@@ -182,6 +184,8 @@ module.exports = {
   ADMIN_PERMISSION,
   ADMIN_STATS_PERMISSION,
   USER_LIST_PERMISSION,
+  USER_UPDATE_PERMISSION,
+  USER_DELETE_PERMISSION,
   DOC_WRITE_PERMISSION,
   DOC_READ_PERMISSION,
   DOC_CREATE_PERMISSION,

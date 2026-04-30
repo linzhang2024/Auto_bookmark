@@ -53,6 +53,7 @@ async function columnExists(tableName, columnName) {
 
 const DocumentStatus = {
   PENDING: 'pending',
+  PROCESSING: 'processing',
   READY: 'ready',
   FAILED: 'failed'
 };
