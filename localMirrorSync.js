@@ -988,7 +988,8 @@ function checkSyncStatus(outputDir) {
           totalBookmarks: meta.bookmarks.length,
           completedBookmarks: 0,
           pendingBookmarks: 0,
-          failedBookmarks: 0
+          failedBookmarks: 0,
+          bookmarks: meta.bookmarks
         };
 
         for (const bookmark of meta.bookmarks) {
