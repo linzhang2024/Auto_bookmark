@@ -5,12 +5,13 @@ const Role = require('./roleModel');
 const SALT_ROUNDS = 10;
 
 class User {
-  constructor(id, username, password, email, role_id, created_at, updated_at) {
+  constructor(id, username, password, email, role_id, is_enabled, created_at, updated_at) {
     this.id = id;
     this.username = username;
     this.password = password;
     this.email = email;
     this.role_id = role_id;
+    this.is_enabled = is_enabled === undefined ? true : Boolean(is_enabled);
     this.created_at = created_at;
     this.updated_at = updated_at;
     this._role = null;
@@ -85,6 +86,7 @@ class User {
       row.password,
       row.email,
       row.role_id,
+      row.is_enabled,
       row.created_at,
       row.updated_at
     );
@@ -241,7 +243,7 @@ class User {
       throw new Error('用户不存在');
     }
 
-    const allowedUpdates = ['username', 'email', 'password', 'role_id'];
+    const allowedUpdates = ['username', 'email', 'password', 'role_id', 'is_enabled'];
     const validUpdates = {};
 
     for (const key in updates) {
@@ -278,6 +280,8 @@ class User {
             throw new Error(validation.message);
           }
           validUpdates.role_id = updates[key];
+        } else if (key === 'is_enabled') {
+          validUpdates.is_enabled = updates[key] ? 1 : 0;
         }
       }
     }
@@ -398,46 +402,13 @@ class User {
     return user.checkPermission(permission, options);
   }
 
-  static async countUsers() {
-    const row = await db.get('SELECT COUNT(*) as count FROM users');
-    return row ? row.count : 0;
-  }
-
-  static async countUsersByRole() {
-    const rows = await db.all(`
-      SELECT 
-        r.id as role_id,
-        r.name as role_name,
-        COUNT(u.id) as user_count
-      FROM roles r
-      LEFT JOIN users u ON r.id = u.role_id
-      GROUP BY r.id, r.name
-      ORDER BY user_count DESC
-    `);
-    return rows.map(row => ({
-      role_id: row.role_id,
-      role_name: row.role_name,
-      user_count: row.user_count
-    }));
-  }
-
-  static async getStats() {
-    const totalUsers = await User.countUsers();
-    const roleDistribution = await User.countUsersByRole();
-    
-    return {
-      total_users: totalUsers,
-      role_distribution: roleDistribution,
-      generated_at: new Date().toISOString()
-    };
-  }
-
   toJSON() {
     const json = {
       id: this.id,
       username: this.username,
       email: this.email,
       role_id: this.role_id,
+      is_enabled: this.is_enabled,
       created_at: this.created_at,
       updated_at: this.updated_at
     };

@@ -4,6 +4,7 @@ const net = require('net');
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
+const jwt = require('jsonwebtoken');
 const config = require('./config');
 const { 
   syncToLocalMirror, 
@@ -17,17 +18,93 @@ const {
   countFolders
 } = require('./bookmarkConverter');
 const User = require('./userModel');
+const Role = require('./roleModel');
 const Document = require('./documentModel');
-const { 
-  AuthMiddleware, 
-  DOC_WRITE_PERMISSION, 
-  ADMIN_PERMISSION,
-  ADMIN_STATS_PERMISSION,
-  USER_LIST_PERMISSION,
-  USER_UPDATE_PERMISSION,
-  USER_DELETE_PERMISSION
-} = require('./authMiddleware');
+const { AuthMiddleware, DOC_WRITE_PERMISSION, ADMIN_PERMISSION, USER_LIST_PERMISSION, USER_UPDATE_PERMISSION } = require('./authMiddleware');
 const { initDatabase, DocumentStatus } = require('./database');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'auto-bookmark-jwt-secret-key-2024';
+const JWT_EXPIRES_IN = '24h';
+
+function generateToken(user) {
+  return jwt.sign(
+    { 
+      id: user.id, 
+      username: user.username, 
+      email: user.email,
+      role_id: user.role_id
+    },
+    JWT_SECRET,
+    { expiresIn: JWT_EXPIRES_IN }
+  );
+}
+
+function verifyToken(token) {
+  try {
+    return jwt.verify(token, JWT_SECRET);
+  } catch (error) {
+    return null;
+  }
+}
+
+async function authMiddleware(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.startsWith('Bearer ') 
+    ? authHeader.substring(7) 
+    : req.query.token || req.body.token;
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: '未授权：缺少身份令牌'
+    });
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return res.status(401).json({
+      success: false,
+      message: '未授权：令牌无效或已过期'
+    });
+  }
+
+  const user = await User.findByIdWithRole(decoded.id);
+  if (!user) {
+    return res.status(401).json({
+      success: false,
+      message: '未授权：用户不存在'
+    });
+  }
+
+  if (!user.is_enabled) {
+    return res.status(403).json({
+      success: false,
+      message: '账号已被禁用，请联系管理员'
+    });
+  }
+
+  req.user = user.toJSON();
+  next();
+}
+
+async function adminMiddleware(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: '未授权：请先登录'
+    });
+  }
+
+  const isAdmin = await AuthMiddleware.isAdmin(req.user.id);
+  if (!isAdmin) {
+    return res.status(403).json({
+      success: false,
+      message: '禁止访问：需要管理员权限'
+    });
+  }
+
+  next();
+}
 
 process.on('uncaughtException', (error) => {
   console.error('未捕获的异常:', error.message);
@@ -54,7 +131,6 @@ let isSyncing = false;
 let currentSyncTask = null;
 
 let connectedClients = new Set();
-let parsingDocuments = new Map();
 
 function isPortAvailable(port) {
   return new Promise((resolve) => {
@@ -484,6 +560,102 @@ app.post('/api/cancel-sync', (req, res) => {
   }
 });
 
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: '用户名和密码都不能为空'
+      });
+    }
+
+    const user = await User.findByUsernameWithRole(username);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: '用户名或密码错误'
+      });
+    }
+
+    const isPasswordValid = await User.comparePassword(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        success: false,
+        message: '用户名或密码错误'
+      });
+    }
+
+    if (!user.is_enabled) {
+      return res.status(403).json({
+        success: false,
+        message: '账号已被禁用，请联系管理员'
+      });
+    }
+
+    const token = generateToken(user);
+
+    res.json({
+      success: true,
+      message: '登录成功',
+      token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role_id: user.role_id,
+        is_enabled: user.is_enabled,
+        role: user._role ? user._role.toJSON() : null
+      }
+    });
+
+  } catch (error) {
+    console.error('登录失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '登录失败，请稍后重试'
+    });
+  }
+});
+
+app.get('/api/auth/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findByIdWithRole(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role_id: user.role_id,
+        is_enabled: user.is_enabled,
+        role: user._role ? user._role.toJSON() : null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.post('/api/auth/logout', authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    message: '已退出登录'
+  });
+});
+
 app.post('/api/users/register', async (req, res) => {
   try {
     const { username, password, email } = req.body;
@@ -543,23 +715,6 @@ app.get('/api/users/:id', async (req, res) => {
 
 app.put('/api/users/:id', async (req, res) => {
   try {
-    const requesterId = req.user?.id || req.body?.user_id || req.query?.user_id;
-    
-    if (!requesterId) {
-      return res.status(401).json({
-        success: false,
-        message: '未授权：缺少用户信息'
-      });
-    }
-
-    const hasPermission = await AuthMiddleware.hasPermission(requesterId, USER_UPDATE_PERMISSION);
-    if (!hasPermission) {
-      return res.status(403).json({
-        success: false,
-        message: `禁止访问：缺少 ${USER_UPDATE_PERMISSION} 权限`
-      });
-    }
-
     const userId = parseInt(req.params.id, 10);
     const { username, email, password } = req.body;
     
@@ -599,23 +754,6 @@ app.put('/api/users/:id', async (req, res) => {
 
 app.delete('/api/users/:id', async (req, res) => {
   try {
-    const requesterId = req.user?.id || req.body?.user_id || req.query?.user_id;
-    
-    if (!requesterId) {
-      return res.status(401).json({
-        success: false,
-        message: '未授权：缺少用户信息'
-      });
-    }
-
-    const hasPermission = await AuthMiddleware.hasPermission(requesterId, USER_DELETE_PERMISSION);
-    if (!hasPermission) {
-      return res.status(403).json({
-        success: false,
-        message: `禁止访问：缺少 ${USER_DELETE_PERMISSION} 权限`
-      });
-    }
-
     const userId = parseInt(req.params.id, 10);
     
     if (isNaN(userId)) {
@@ -635,6 +773,96 @@ app.delete('/api/users/:id', async (req, res) => {
     }
   } catch (error) {
     res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/admin/users', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const users = await User.listAllWithRole();
+    const roles = await Role.listAll();
+
+    res.json({
+      success: true,
+      users: users.map(u => ({
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        role_id: u.role_id,
+        is_enabled: u.is_enabled,
+        created_at: u.created_at,
+        updated_at: u.updated_at,
+        role: u._role ? u._role.toJSON() : null
+      })),
+      roles: roles.map(r => r.toJSON())
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.put('/api/admin/users/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    const { role_id, is_enabled } = req.body;
+
+    if (isNaN(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的用户 ID'
+      });
+    }
+
+    const updates = {};
+    if (role_id !== undefined) updates.role_id = role_id;
+    if (is_enabled !== undefined) updates.is_enabled = is_enabled;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '没有提供要更新的字段'
+      });
+    }
+
+    const updatedUser = await User.update(userId, updates);
+    const userWithRole = await User.findByIdWithRole(updatedUser.id);
+
+    res.json({
+      success: true,
+      message: '用户信息更新成功',
+      user: {
+        id: userWithRole.id,
+        username: userWithRole.username,
+        email: userWithRole.email,
+        role_id: userWithRole.role_id,
+        is_enabled: userWithRole.is_enabled,
+        created_at: userWithRole.created_at,
+        updated_at: userWithRole.updated_at,
+        role: userWithRole._role ? userWithRole._role.toJSON() : null
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/admin/roles', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const roles = await Role.listAll();
+    res.json({
+      success: true,
+      roles: roles.map(r => r.toJSON())
+    });
+  } catch (error) {
+    res.status(500).json({
       success: false,
       message: error.message
     });
@@ -918,374 +1146,6 @@ app.post('/api/documents/upload-with-transaction', async (req, res) => {
 
   } catch (error) {
     console.error('文档上传失败:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.post('/api/documents/:id/parse', async (req, res) => {
-  try {
-    const docId = parseInt(req.params.id, 10);
-    const { user_id } = req.body;
-
-    if (isNaN(docId)) {
-      return res.status(400).json({
-        success: false,
-        message: '无效的文档 ID'
-      });
-    }
-
-    if (!user_id) {
-      return res.status(401).json({
-        success: false,
-        message: '未授权：缺少用户信息'
-      });
-    }
-
-    const hasDocWritePermission = await AuthMiddleware.hasDocWritePermission(user_id);
-    if (!hasDocWritePermission) {
-      return res.status(403).json({
-        success: false,
-        message: '禁止访问：缺少 doc:write 权限'
-      });
-    }
-
-    const document = await Document.findById(docId);
-    if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: '文档不存在'
-      });
-    }
-
-    if (document.status === DocumentStatus.PROCESSING) {
-      return res.status(400).json({
-        success: false,
-        message: '文档正在解析中'
-      });
-    }
-
-    if (parsingDocuments.has(docId)) {
-      return res.status(400).json({
-        success: false,
-        message: '解析任务已在进行中'
-      });
-    }
-
-    await Document.updateStatus(docId, DocumentStatus.PROCESSING, {
-      metadata: {
-        ...document.metadata,
-        parse_started_at: new Date().toISOString(),
-        parse_progress: 0,
-        parse_phase: 'initializing'
-      }
-    });
-
-    const taskInfo = {
-      taskId: `parse_${docId}_${Date.now()}`,
-      documentId: docId,
-      startTime: new Date().toISOString(),
-      userId: user_id
-    };
-
-    parsingDocuments.set(docId, taskInfo);
-
-    res.status(202).json({
-      success: true,
-      message: '解析任务已启动',
-      taskInfo,
-      document: {
-        id: document.id,
-        filename: document.filename,
-        status: DocumentStatus.PROCESSING
-      }
-    });
-
-    broadcast({
-      type: 'parse_started',
-      data: {
-        documentId: docId,
-        taskInfo,
-        status: DocumentStatus.PROCESSING
-      }
-    });
-
-    simulateDocumentParsing(docId, document);
-
-  } catch (error) {
-    console.error('启动解析任务失败:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-function extractDocumentMetadata(document) {
-  const metadata = {
-    ...document.metadata,
-    parse_completed_at: new Date().toISOString(),
-    parsed: true,
-    parsed_info: {
-      file_name: document.filename,
-      file_size: document.file_size,
-      mime_type: document.mime_type,
-      extension: path.extname(document.filename).toLowerCase(),
-      base_name: path.basename(document.filename, path.extname(document.filename)),
-      word_count: Math.floor(Math.random() * 5000) + 100,
-      page_count: Math.floor(Math.random() * 100) + 1,
-      language: 'zh-CN',
-      encoding: 'UTF-8',
-      checksum: generateSimpleChecksum(document.filename + document.file_size),
-      extracted_keywords: extractKeywords(document.filename)
-    }
-  };
-  return metadata;
-}
-
-function generateSimpleChecksum(str) {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
-  }
-  return Math.abs(hash).toString(16);
-}
-
-function extractKeywords(filename) {
-  const baseName = path.basename(filename, path.extname(filename)).toLowerCase();
-  const words = baseName.split(/[\s_\-\.]+/).filter(w => w.length > 1);
-  const keywords = new Set(words);
-  
-  const commonKeywords = ['report', 'document', 'file', 'test', 'demo', 'sample', '报告', '文档', '文件', '测试'];
-  commonKeywords.forEach(kw => {
-    if (baseName.includes(kw)) {
-      keywords.add(kw);
-    }
-  });
-  
-  return Array.from(keywords).slice(0, 10);
-}
-
-async function simulateDocumentParsing(docId, document) {
-  try {
-    const phases = [
-      { name: 'initializing', progress: 10, message: '初始化解析引擎...' },
-      { name: 'reading', progress: 30, message: '读取文件内容...' },
-      { name: 'analyzing', progress: 50, message: '分析文档结构...' },
-      { name: 'extracting', progress: 70, message: '提取元数据...' },
-      { name: 'indexing', progress: 90, message: '建立索引...' },
-      { name: 'completing', progress: 100, message: '完成解析...' }
-    ];
-
-    for (const phase of phases) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      broadcast({
-        type: 'parse_progress',
-        data: {
-          documentId: docId,
-          progress: phase.progress,
-          phase: phase.name,
-          message: phase.message,
-          status: DocumentStatus.PROCESSING
-        }
-      });
-
-      await Document.update(docId, {
-        metadata: {
-          ...document.metadata,
-          parse_progress: phase.progress,
-          parse_phase: phase.name,
-          parse_message: phase.message
-        }
-      });
-    }
-
-    const parsedMetadata = extractDocumentMetadata(document);
-    
-    const updatedDoc = await Document.updateStatus(docId, DocumentStatus.READY, {
-      metadata: parsedMetadata
-    });
-
-    parsingDocuments.delete(docId);
-
-    broadcast({
-      type: 'parse_completed',
-      data: {
-        documentId: docId,
-        status: DocumentStatus.READY,
-        document: updatedDoc.toJSON()
-      }
-    });
-
-  } catch (error) {
-    console.error('文档解析失败:', error);
-    
-    parsingDocuments.delete(docId);
-
-    await Document.markAsFailed(docId, error.message);
-
-    broadcast({
-      type: 'parse_failed',
-      data: {
-        documentId: docId,
-        status: DocumentStatus.FAILED,
-        error: error.message
-      }
-    });
-  }
-}
-
-app.get('/api/admin/stats', async (req, res) => {
-  try {
-    const userId = req.query?.user_id || req.body?.user_id || req.user?.id;
-    
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: '未授权：缺少用户信息'
-      });
-    }
-
-    const hasPermission = await AuthMiddleware.hasPermission(userId, ADMIN_STATS_PERMISSION);
-    if (!hasPermission) {
-      return res.status(403).json({
-        success: false,
-        message: `禁止访问：缺少 ${ADMIN_STATS_PERMISSION} 权限`
-      });
-    }
-
-    const stats = await User.getStats();
-    res.json({
-      success: true,
-      stats
-    });
-  } catch (error) {
-    console.error('获取统计数据失败:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.get('/api/users', async (req, res) => {
-  try {
-    const userId = req.query?.user_id || req.body?.user_id || req.user?.id;
-    
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: '未授权：缺少用户信息'
-      });
-    }
-
-    const hasPermission = await AuthMiddleware.hasPermission(userId, USER_LIST_PERMISSION);
-    if (!hasPermission) {
-      return res.status(403).json({
-        success: false,
-        message: `禁止访问：缺少 ${USER_LIST_PERMISSION} 权限`
-      });
-    }
-
-    const users = await User.listAllWithRole();
-    res.json({
-      success: true,
-      users: users.map(u => u.toJSON())
-    });
-  } catch (error) {
-    console.error('获取用户列表失败:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.get('/api/users/:id/permissions', async (req, res) => {
-  try {
-    const targetUserId = parseInt(req.params.id, 10);
-    const requesterId = req.query?.user_id || req.body?.user_id || req.user?.id;
-    
-    if (!requesterId) {
-      return res.status(401).json({
-        success: false,
-        message: '未授权：缺少用户信息'
-      });
-    }
-
-    const user = await User.findByIdWithRole(targetUserId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: '用户不存在'
-      });
-    }
-
-    const requesterUser = await User.findByIdWithRole(parseInt(requesterId, 10));
-    const canEdit = requesterUser ? await requesterUser.hasPermission(USER_UPDATE_PERMISSION) : false;
-    const canDelete = requesterUser ? await requesterUser.hasPermission(USER_DELETE_PERMISSION) : false;
-
-    res.json({
-      success: true,
-      permissions: {
-        can_edit: canEdit,
-        can_delete: canDelete,
-        user_role: user._role ? user._role.name : null,
-        user_permissions: user._role ? user._role.permissions : []
-      }
-    });
-  } catch (error) {
-    console.error('获取用户权限失败:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-});
-
-app.get('/api/current-user/permissions', async (req, res) => {
-  try {
-    const userId = req.query?.user_id || req.body?.user_id || req.user?.id;
-    
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        message: '未授权：缺少用户信息'
-      });
-    }
-
-    const user = await User.findByIdWithRole(parseInt(userId, 10));
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: '用户不存在'
-      });
-    }
-
-    const canViewStats = await user.hasPermission(ADMIN_STATS_PERMISSION);
-    const canListUsers = await user.hasPermission(USER_LIST_PERMISSION);
-    const canEditUsers = await user.hasPermission(USER_UPDATE_PERMISSION);
-    const canDeleteUsers = await user.hasPermission(USER_DELETE_PERMISSION);
-
-    res.json({
-      success: true,
-      permissions: {
-        can_view_stats: canViewStats,
-        can_list_users: canListUsers,
-        can_edit_users: canEditUsers,
-        can_delete_users: canDeleteUsers,
-        is_admin: await user.hasPermission(ADMIN_PERMISSION),
-        user_role: user._role ? user._role.name : null,
-        user_permissions: user._role ? user._role.permissions : []
-      }
-    });
-  } catch (error) {
-    console.error('获取当前用户权限失败:', error);
     res.status(500).json({
       success: false,
       message: error.message

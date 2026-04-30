@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户管理 - 书签管理系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="main-content">
+    <div class="page-header">
+      <h1>👥 用户管理</h1>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h3>系统用户列表</h3>
+        <button class="btn btn-secondary" id="refreshBtn">
+          <span>🔄</span>
+          <span>刷新</span>
+        </button>
+      </div>
+      
+      <div class="table-container">
+        <table id="usersTable">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>用户名</th>
+              <th>邮箱</th>
+              <th>角色</th>
+              <th>状态</th>
+              <th>注册时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody">
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                加载中...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editUserModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>编辑用户</h3>
+        <button class="modal-close" id="closeEditModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editUserForm">
+          <input type="hidden" id="editUserId">
+          
+          <div class="form-group">
+            <label class="form-label" for="editUsername">用户名</label>
+            <input type="text" id="editUsername" class="form-input" disabled>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editEmail">邮箱</label>
+            <input type="email" id="editEmail" class="form-input" disabled>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="editRole">角色</label>
+            <select id="editRole" class="form-select">
+              <option value="">请选择角色</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">账号状态</label>
+            <div style="display: flex; gap: 16px; margin-top: 8px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="editStatus" value="enabled" id="statusEnabled">
+                <span style="font-size: 14px;">启用</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="editStatus" value="disabled" id="statusDisabled">
+                <span style="font-size: 14px;">禁用</span>
+              </label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelEdit">取消</button>
+        <button class="btn btn-primary" id="saveEdit">
+          <span>💾</span>
+          <span>保存</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      renderNav();
+      
+      let users = [];
+      let roles = [];
+      let currentEditUser = null;
+      
+      const usersBody = document.getElementById('usersBody');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const editUserModal = document.getElementById('editUserModal');
+      const closeEditModal = document.getElementById('closeEditModal');
+      const cancelEdit = document.getElementById('cancelEdit');
+      const saveEdit = document.getElementById('saveEdit');
+      const editUserId = document.getElementById('editUserId');
+      const editUsername = document.getElementById('editUsername');
+      const editEmail = document.getElementById('editEmail');
+      const editRole = document.getElementById('editRole');
+      const statusEnabled = document.getElementById('statusEnabled');
+      const statusDisabled = document.getElementById('statusDisabled');
+      
+      async function loadUsers() {
+        usersBody.innerHTML = `
+          <tr>
+            <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+              加载中...
+            </td>
+          </tr>
+        `;
+        
+        try {
+          const result = await apiRequest('/api/admin/users', {
+            method: 'GET'
+          });
+          
+          if (result.data && result.data.success) {
+            users = result.data.users || [];
+            roles = result.data.roles || [];
+            renderUsers();
+            populateRoleSelect();
+          } else {
+            usersBody.innerHTML = `
+              <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                  加载失败: ${result.data?.message || '未知错误'}
+                </td>
+              </tr>
+            `;
+          }
+        } catch (error) {
+          usersBody.innerHTML = `
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                网络错误，请稍后重试
+              </td>
+            </tr>
+          `;
+        }
+      }
+      
+      function renderUsers() {
+        if (users.length === 0) {
+          usersBody.innerHTML = `
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <div class="empty-state-icon">👥</div>
+                  <div class="empty-state-text">暂无用户</div>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
+        usersBody.innerHTML = users.map(user => `
+          <tr>
+            <td>${user.id}</td>
+            <td>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="
+                  width: 32px;
+                  height: 32px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 14px;
+                  font-weight: 600;
+                  color: white;
+                ">
+                  ${user.username.charAt(0).toUpperCase()}
+                </div>
+                <span>${escapeHtml(user.username)}</span>
+              </div>
+            </td>
+            <td>${escapeHtml(user.email)}</td>
+            <td>
+              <span class="status-badge" style="
+                background-color: ${getRoleBadgeColor(user.role?.name)};
+                color: ${getRoleTextColor(user.role?.name)};
+              ">
+                ${user.role?.name || '未分配'}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge status-${user.is_enabled ? 'enabled' : 'disabled'}">
+                ${user.is_enabled ? '启用' : '禁用'}
+              </span>
+            </td>
+            <td>${formatDate(user.created_at)}</td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-secondary btn-sm edit-btn" data-id="${user.id}">
+                  编辑
+                </button>
+                ${user.id === AppState.user.id ? '' : `
+                  <button class="btn ${user.is_enabled ? 'btn-warning' : 'btn-success'} btn-sm toggle-status-btn" 
+                    data-id="${user.id}" 
+                    data-enabled="${user.is_enabled}"
+                    data-username="${escapeHtml(user.username)}">
+                    ${user.is_enabled ? '禁用' : '启用'}
+                  </button>
+                `}
+              </div>
+            </td>
+          </tr>
+        `).join('');
+        
+        usersBody.querySelectorAll('.edit-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const id = parseInt(this.dataset.id, 10);
+            openEditModal(id);
+          });
+        });
+        
+        usersBody.querySelectorAll('.toggle-status-btn').forEach(btn => {
+          btn.addEventListener('click', async function() {
+            const id = parseInt(this.dataset.id, 10);
+            const isEnabled = this.dataset.enabled === 'true';
+            const username = this.dataset.username;
+            const action = isEnabled ? '禁用' : '启用';
+            
+            if (confirm(`确定要${action}用户 "${username}" 吗？`)) {
+              try {
+                const result = await apiRequest(`/api/admin/users/${id}`, {
+                  method: 'PUT',
+                  body: { is_enabled: !isEnabled }
+                });
+                
+                if (result.data && result.data.success) {
+                  showToast(`用户已${action}`, 'success');
+                  loadUsers();
+                } else {
+                  showToast(result.data?.message || '操作失败', 'error');
+                }
+              } catch (error) {
+                showToast('网络错误，请稍后重试', 'error');
+              }
+            }
+          });
+        });
+      }
+      
+      function getRoleBadgeColor(roleName) {
+        const colors = {
+          admin: '#ede9fe',
+          user: '#d1fae5',
+          guest: '#f1f5f9'
+        };
+        return colors[roleName] || '#f1f5f9';
+      }
+      
+      function getRoleTextColor(roleName) {
+        const colors = {
+          admin: '#6d28d9',
+          user: '#065f46',
+          guest: '#475569'
+        };
+        return colors[roleName] || '#475569';
+      }
+      
+      function populateRoleSelect() {
+        editRole.innerHTML = '<option value="">请选择角色</option>' + 
+          roles.map(role => 
+            `<option value="${role.id}">${escapeHtml(role.name)} - ${escapeHtml(role.description)}</option>`
+          ).join('');
+      }
+      
+      function openEditModal(userId) {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+        
+        currentEditUser = user;
+        
+        editUserId.value = user.id;
+        editUsername.value = user.username;
+        editEmail.value = user.email;
+        
+        editRole.value = user.role_id || '';
+        
+        if (user.is_enabled) {
+          statusEnabled.checked = true;
+        } else {
+          statusDisabled.checked = true;
+        }
+        
+        editUserModal.classList.add('active');
+      }
+      
+      function closeEditModalFunc() {
+        editUserModal.classList.remove('active');
+        currentEditUser = null;
+      }
+      
+      async function saveUserChanges() {
+        if (!currentEditUser) return;
+        
+        const roleId = editRole.value ? parseInt(editRole.value, 10) : null;
+        const isEnabled = statusEnabled.checked;
+        
+        saveEdit.disabled = true;
+        saveEdit.innerHTML = '<span class="spinner"></span><span>保存中...</span>';
+        
+        try {
+          const updates = {};
+          if (roleId !== currentEditUser.role_id) {
+            updates.role_id = roleId;
+          }
+          if (isEnabled !== currentEditUser.is_enabled) {
+            updates.is_enabled = isEnabled;
+          }
+          
+          if (Object.keys(updates).length === 0) {
+            showToast('没有修改需要保存', 'info');
+            closeEditModalFunc();
+            return;
+          }
+          
+          const result = await apiRequest(`/api/admin/users/${currentEditUser.id}`, {
+            method: 'PUT',
+            body: updates
+          });
+          
+          if (result.data && result.data.success) {
+            showToast('用户信息已更新', 'success');
+            closeEditModalFunc();
+            loadUsers();
+          } else {
+            showToast(result.data?.message || '保存失败', 'error');
+          }
+        } catch (error) {
+          showToast('网络错误，请稍后重试', 'error');
+        } finally {
+          saveEdit.disabled = false;
+          saveEdit.innerHTML = '<span>💾</span><span>保存</span>';
+        }
+      }
+      
+      function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      refreshBtn.addEventListener('click', loadUsers);
+      closeEditModal.addEventListener('click', closeEditModalFunc);
+      cancelEdit.addEventListener('click', closeEditModalFunc);
+      saveEdit.addEventListener('click', saveUserChanges);
+      
+      editUserModal.addEventListener('click', (e) => {
+        if (e.target === editUserModal) {
+          closeEditModalFunc();
+        }
+      });
+      
+      loadUsers();
+    });
+  </script>
+</body>
+</html>

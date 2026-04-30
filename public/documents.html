@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文档管理 - 书签管理系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="main-content">
+    <div class="page-header">
+      <h1>📁 文档管理</h1>
+      <button class="btn btn-primary" id="uploadBtn">
+        <span>⬆️</span>
+        <span>上传文档</span>
+      </button>
+    </div>
+    
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">总文档数</span>
+          <span class="stat-card-icon">📄</span>
+        </div>
+        <div class="stat-card-value" id="totalDocs">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">已就绪</span>
+          <span class="stat-card-icon">✅</span>
+        </div>
+        <div class="stat-card-value" id="readyDocs">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">处理中</span>
+          <span class="stat-card-icon">⏳</span>
+        </div>
+        <div class="stat-card-value" id="pendingDocs">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">失败</span>
+          <span class="stat-card-icon">❌</span>
+        </div>
+        <div class="stat-card-value" id="failedDocs">0</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="filter-bar">
+        <select class="form-select" id="statusFilter">
+          <option value="">全部状态</option>
+          <option value="ready">已就绪</option>
+          <option value="pending">处理中</option>
+          <option value="failed">失败</option>
+        </select>
+        <input type="text" class="form-input" id="searchInput" placeholder="搜索文件名...">
+        <button class="btn btn-secondary" id="refreshBtn">
+          <span>🔄</span>
+          <span>刷新</span>
+        </button>
+      </div>
+      
+      <div class="table-container">
+        <table id="documentsTable">
+          <thead>
+            <tr>
+              <th>文件名</th>
+              <th>大小</th>
+              <th>类型</th>
+              <th>状态</th>
+              <th>上传时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="documentsBody">
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+                加载中...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="uploadModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>上传文档</h3>
+        <button class="modal-close" id="closeModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="fileInput" style="display: none;" multiple>
+          <div class="upload-icon">📁</div>
+          <div class="upload-text">点击选择文件或拖拽文件到此处</div>
+          <div class="upload-hint">支持 PDF、Word、Excel、图片等常见格式</div>
+        </div>
+        
+        <div id="uploadPreview" style="display: none;">
+          <h4 style="margin-bottom: 16px; font-size: 14px; color: #374151;">待上传文件</h4>
+          <div id="fileList"></div>
+        </div>
+        
+        <div id="uploadProgress" style="display: none; margin-top: 20px;">
+          <div class="progress-container">
+            <div class="progress-bar" id="progressBar" style="width: 0%;"></div>
+          </div>
+          <div class="progress-text" id="progressText">准备上传...</div>
+        </div>
+        
+        <div id="uploadError" class="alert alert-error" style="display: none; margin-top: 16px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelUpload">取消</button>
+        <button class="btn btn-primary" id="confirmUpload" disabled>
+          <span>📤</span>
+          <span>开始上传</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      renderNav();
+      
+      let selectedFiles = [];
+      let documents = [];
+      
+      const uploadBtn = document.getElementById('uploadBtn');
+      const uploadModal = document.getElementById('uploadModal');
+      const closeModal = document.getElementById('closeModal');
+      const uploadArea = document.getElementById('uploadArea');
+      const fileInput = document.getElementById('fileInput');
+      const uploadPreview = document.getElementById('uploadPreview');
+      const fileList = document.getElementById('fileList');
+      const cancelUpload = document.getElementById('cancelUpload');
+      const confirmUpload = document.getElementById('confirmUpload');
+      const uploadProgress = document.getElementById('uploadProgress');
+      const progressBar = document.getElementById('progressBar');
+      const progressText = document.getElementById('progressText');
+      const uploadError = document.getElementById('uploadError');
+      const statusFilter = document.getElementById('statusFilter');
+      const searchInput = document.getElementById('searchInput');
+      const refreshBtn = document.getElementById('refreshBtn');
+      
+      function openModal() {
+        uploadModal.classList.add('active');
+        resetUploadForm();
+      }
+      
+      function closeModalFunc() {
+        uploadModal.classList.remove('active');
+      }
+      
+      function resetUploadForm() {
+        selectedFiles = [];
+        fileInput.value = '';
+        uploadPreview.style.display = 'none';
+        fileList.innerHTML = '';
+        uploadProgress.style.display = 'none';
+        uploadError.style.display = 'none';
+        confirmUpload.disabled = true;
+      }
+      
+      function handleFiles(files) {
+        if (!files || files.length === 0) return;
+        
+        selectedFiles = Array.from(files);
+        renderFileList();
+        uploadPreview.style.display = 'block';
+        confirmUpload.disabled = selectedFiles.length === 0;
+      }
+      
+      function renderFileList() {
+        fileList.innerHTML = selectedFiles.map((file, index) => `
+          <div class="upload-preview">
+            <div class="upload-preview-icon">${getFileIcon(file.name)}</div>
+            <div class="upload-preview-info">
+              <div class="upload-preview-name">${escapeHtml(file.name)}</div>
+              <div class="upload-preview-size">${formatFileSize(file.size)}</div>
+            </div>
+            <button class="btn btn-danger btn-sm" data-index="${index}" style="padding: 4px 8px; font-size: 12px;">
+              ✕
+            </button>
+          </div>
+        `).join('');
+        
+        fileList.querySelectorAll('[data-index]').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index, 10);
+            selectedFiles.splice(index, 1);
+            renderFileList();
+            confirmUpload.disabled = selectedFiles.length === 0;
+            if (selectedFiles.length === 0) {
+              uploadPreview.style.display = 'none';
+            }
+          });
+        });
+      }
+      
+      function getFileIcon(filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const icons = {
+          pdf: '📕',
+          doc: '📘', docx: '📘',
+          xls: '📗', xlsx: '📗',
+          ppt: '📙', pptx: '📙',
+          jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', bmp: '🖼️', webp: '🖼️',
+          txt: '📝',
+          html: '🌐', htm: '🌐',
+          css: '🎨',
+          js: '⚡',
+          json: '📋',
+          zip: '📦', rar: '📦', '7z': '📦',
+          mp3: '🎵', wav: '🎵', flac: '🎵',
+          mp4: '🎬', avi: '🎬', mov: '🎬'
+        };
+        return icons[ext] || '📄';
+      }
+      
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      async function uploadFiles() {
+        if (selectedFiles.length === 0) return;
+        
+        confirmUpload.disabled = true;
+        uploadProgress.style.display = 'block';
+        uploadError.style.display = 'none';
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (let i = 0; i < selectedFiles.length; i++) {
+          const file = selectedFiles[i];
+          const progress = Math.round(((i) / selectedFiles.length) * 100);
+          progressBar.style.width = progress + '%';
+          progressText.textContent = `正在上传: ${file.name} (${i + 1}/${selectedFiles.length})`;
+          
+          try {
+            const fileBase64 = await readFileAsBase64(file);
+            
+            const result = await apiRequest('/api/documents/upload', {
+              method: 'POST',
+              body: {
+                filename: file.name,
+                file_base64: fileBase64.split(',')[1] || fileBase64,
+                uploader_id: AppState.user.id,
+                metadata: {
+                  original_name: file.name,
+                  mime_type: file.type
+                }
+              }
+            });
+            
+            if (result.data && result.data.success) {
+              successCount++;
+            } else {
+              failCount++;
+              console.error('上传失败:', result.data?.message);
+            }
+          } catch (error) {
+            failCount++;
+            console.error('上传错误:', error);
+          }
+        }
+        
+        progressBar.style.width = '100%';
+        progressText.textContent = '上传完成';
+        
+        if (failCount > 0) {
+          uploadError.textContent = `${successCount} 个文件上传成功，${failCount} 个文件上传失败`;
+          uploadError.className = 'alert alert-warning';
+          uploadError.style.display = 'block';
+        } else {
+          showToast(`成功上传 ${successCount} 个文件`, 'success');
+        }
+        
+        setTimeout(() => {
+          closeModalFunc();
+          loadDocuments();
+        }, 1000);
+      }
+      
+      function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+      
+      async function loadDocuments() {
+        const documentsBody = document.getElementById('documentsBody');
+        documentsBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+              加载中...
+            </td>
+          </tr>
+        `;
+        
+        try {
+          const result = await apiRequest('/api/documents', {
+            method: 'GET'
+          });
+          
+          if (result.data && result.data.success) {
+            documents = result.data.documents || [];
+            renderDocuments();
+            updateStats();
+          } else {
+            documentsBody.innerHTML = `
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+                  加载失败: ${result.data?.message || '未知错误'}
+                </td>
+              </tr>
+            `;
+          }
+        } catch (error) {
+          documentsBody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+                网络错误，请稍后重试
+              </td>
+            </tr>
+          `;
+        }
+      }
+      
+      function renderDocuments() {
+        const documentsBody = document.getElementById('documentsBody');
+        const statusFilterValue = statusFilter.value;
+        const searchValue = searchInput.value.toLowerCase();
+        
+        let filteredDocs = documents;
+        
+        if (statusFilterValue) {
+          filteredDocs = filteredDocs.filter(doc => doc.status === statusFilterValue);
+        }
+        
+        if (searchValue) {
+          filteredDocs = filteredDocs.filter(doc => 
+            doc.filename.toLowerCase().includes(searchValue)
+          );
+        }
+        
+        if (filteredDocs.length === 0) {
+          documentsBody.innerHTML = `
+            <tr>
+              <td colspan="6">
+                <div class="empty-state">
+                  <div class="empty-state-icon">📂</div>
+                  <div class="empty-state-text">暂无文档</div>
+                  <div class="empty-state-hint">点击上方"上传文档"按钮添加新文档</div>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+        
+        documentsBody.innerHTML = filteredDocs.map(doc => `
+          <tr>
+            <td>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 20px;">${getFileIcon(doc.filename)}</span>
+                <span>${escapeHtml(doc.filename)}</span>
+              </div>
+            </td>
+            <td>${formatFileSize(doc.file_size)}</td>
+            <td>${doc.mime_type || '-'}</td>
+            <td>
+              <span class="status-badge status-${doc.status}">
+                ${getStatusText(doc.status)}
+              </span>
+            </td>
+            <td>${formatDate(doc.created_at)}</td>
+            <td>
+              <div class="actions-cell">
+                <button class="btn btn-danger btn-sm delete-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}">
+                  删除
+                </button>
+              </div>
+            </td>
+          </tr>
+        `).join('');
+        
+        documentsBody.querySelectorAll('.delete-btn').forEach(btn => {
+          btn.addEventListener('click', async function() {
+            const id = parseInt(this.dataset.id, 10);
+            const name = this.dataset.name;
+            
+            if (confirm(`确定要删除文档 "${name}" 吗？此操作不可恢复。`)) {
+              try {
+                const result = await apiRequest(`/api/documents/${id}`, {
+                  method: 'DELETE',
+                  body: { user_id: AppState.user.id }
+                });
+                
+                if (result.data && result.data.success) {
+                  showToast('删除成功', 'success');
+                  loadDocuments();
+                } else {
+                  showToast(result.data?.message || '删除失败', 'error');
+                }
+              } catch (error) {
+                showToast('网络错误，请稍后重试', 'error');
+              }
+            }
+          });
+        });
+      }
+      
+      function getStatusText(status) {
+        const statusMap = {
+          ready: '已就绪',
+          pending: '处理中',
+          failed: '失败'
+        };
+        return statusMap[status] || status;
+      }
+      
+      function updateStats() {
+        document.getElementById('totalDocs').textContent = documents.length;
+        document.getElementById('readyDocs').textContent = documents.filter(d => d.status === 'ready').length;
+        document.getElementById('pendingDocs').textContent = documents.filter(d => d.status === 'pending').length;
+        document.getElementById('failedDocs').textContent = documents.filter(d => d.status === 'failed').length;
+      }
+      
+      uploadBtn.addEventListener('click', openModal);
+      closeModal.addEventListener('click', closeModalFunc);
+      cancelUpload.addEventListener('click', closeModalFunc);
+      confirmUpload.addEventListener('click', uploadFiles);
+      
+      uploadArea.addEventListener('click', () => fileInput.click());
+      fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+      
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+      
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+      
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+      });
+      
+      uploadModal.addEventListener('click', (e) => {
+        if (e.target === uploadModal) {
+          closeModalFunc();
+        }
+      });
+      
+      statusFilter.addEventListener('change', renderDocuments);
+      searchInput.addEventListener('input', renderDocuments);
+      refreshBtn.addEventListener('click', loadDocuments);
+      
+      loadDocuments();
+    });
+  </script>
+</body>
+</html>
