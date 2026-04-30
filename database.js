@@ -53,7 +53,6 @@ async function columnExists(tableName, columnName) {
 
 const DocumentStatus = {
   PENDING: 'pending',
-  PROCESSING: 'processing',
   READY: 'ready',
   FAILED: 'failed'
 };
@@ -64,11 +63,11 @@ async function seedRoles() {
     await runAsync(
       `INSERT INTO roles (name, description, permissions) VALUES (?, ?, ?)`,
       ['admin', '系统管理员，拥有所有权限', JSON.stringify([
-        'user:create', 'user:read', 'user:update', 'user:delete', 'user:list',
+        'user:create', 'user:read', 'user:update', 'user:delete',
         'role:create', 'role:read', 'role:update', 'role:delete',
         'bookmark:create', 'bookmark:read', 'bookmark:update', 'bookmark:delete',
         'doc:create', 'doc:read', 'doc:update', 'doc:delete', 'doc:write',
-        'admin:access', 'admin:stats'
+        'admin:access'
       ])]
     );
     logInfo('已预置管理员角色');
@@ -141,6 +140,12 @@ function initDatabase() {
         if (!hasRoleId) {
           await runAsync('ALTER TABLE users ADD COLUMN role_id INTEGER REFERENCES roles(id)');
           logInfo('已添加 role_id 列到 users 表');
+        }
+
+        const hasIsEnabled = await columnExists('users', 'is_enabled');
+        if (!hasIsEnabled) {
+          await runAsync('ALTER TABLE users ADD COLUMN is_enabled INTEGER DEFAULT 1');
+          logInfo('已添加 is_enabled 列到 users 表');
         }
 
         logInfo('users 表已就绪');
