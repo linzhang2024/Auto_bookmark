@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>书签管理 - 书签管理系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="main-content">
+    <div class="page-header">
+      <h1>🔖 书签管理</h1>
+      <button class="btn btn-primary" id="syncBtn">
+        <span>🔄</span>
+        <span>同步书签</span>
+      </button>
+    </div>
+    
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">总文件夹</span>
+          <span class="stat-card-icon">📁</span>
+        </div>
+        <div class="stat-card-value" id="totalFolders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">总书签数</span>
+          <span class="stat-card-icon">🔗</span>
+        </div>
+        <div class="stat-card-value" id="totalBookmarks">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">已同步</span>
+          <span class="stat-card-icon">✅</span>
+        </div>
+        <div class="stat-card-value" id="syncedBookmarks">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card-header">
+          <span class="stat-card-title">同步失败</span>
+          <span class="stat-card-icon">❌</span>
+        </div>
+        <div class="stat-card-value" id="failedBookmarks">0</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">
+        <h3>书签文件夹</h3>
+        <button class="btn btn-secondary" id="refreshBtn">
+          <span>🔄</span>
+          <span>刷新</span>
+        </button>
+      </div>
+      
+      <div id="folderList">
+        <div class="empty-state">
+          <div class="empty-state-icon">📂</div>
+          <div class="empty-state-text">暂无书签数据</div>
+          <div class="empty-state-hint">点击上方"同步书签"按钮导入浏览器书签</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="syncModal">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>同步书签</h3>
+        <button class="modal-close" id="closeSyncModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <strong>说明：</strong>请从浏览器导出书签 HTML 文件，然后上传到系统进行同步。
+          <br><br>
+          <strong>导出方法：</strong>
+          <ul style="margin-top: 8px; padding-left: 20px;">
+            <li>Chrome: 设置 → 书签和清单 → 书签管理器 → 右上角菜单 → 导出书签</li>
+            <li>Edge: 设置 → 收藏夹 → 更多选项 → 导出收藏夹</li>
+            <li>Firefox: 书签 → 管理书签 → 导入和备份 → 备份...</li>
+          </ul>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="bookmarksPath">选择书签 HTML 文件</label>
+          <div class="upload-area" id="fileUploadArea" style="padding: 24px;">
+            <input type="file" id="bookmarksFile" accept=".html,.htm" style="display: none;">
+            <div class="upload-icon" style="font-size: 36px; margin-bottom: 8px;">📄</div>
+            <div class="upload-text" style="font-size: 14px;">点击选择或拖拽书签 HTML 文件到此处</div>
+            <div class="upload-hint" style="font-size: 12px; margin-top: 4px;">支持 .html 和 .htm 格式</div>
+          </div>
+          <div id="selectedFileInfo" style="display: none; margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 24px;">📄</span>
+              <div>
+                <div id="selectedFileName" style="font-weight: 500; color: #374151;"></div>
+                <div id="selectedFileSize" style="font-size: 12px; color: #9ca3af;"></div>
+              </div>
+              <button class="btn btn-danger btn-sm" id="clearFile" style="margin-left: auto;">清除</button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">
+            <input type="checkbox" id="skipIcon" style="margin-right: 8px;">
+            跳过图标下载（同步更快）
+          </label>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">
+            <input type="checkbox" id="forceUpdate" style="margin-right: 8px;">
+            强制更新（忽略已存在的文件）
+          </label>
+        </div>
+        
+        <div id="syncProgress" style="display: none; margin-top: 16px;">
+          <div class="progress-container">
+            <div class="progress-bar" id="syncProgressBar" style="width: 0%;"></div>
+          </div>
+          <div class="progress-text" id="syncProgressText">准备同步...</div>
+        </div>
+        
+        <div id="syncResult" style="display: none; margin-top: 16px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelSync">取消</button>
+        <button class="btn btn-primary" id="startSync" disabled>
+          <span>🚀</span>
+          <span>开始同步</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="folderDetailModal">
+    <div class="modal" style="max-width: 800px;">
+      <div class="modal-header">
+        <h3 id="folderDetailTitle">书签详情</h3>
+        <button class="modal-close" id="closeFolderModal">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 60vh; overflow-y: auto;">
+        <div id="folderBookmarksList"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="closeFolderDetailBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      renderNav();
+      
+      let selectedFile = null;
+      let syncStatus = null;
+      let bookmarksData = null;
+      
+      const syncBtn = document.getElementById('syncBtn');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const syncModal = document.getElementById('syncModal');
+      const closeSyncModal = document.getElementById('closeSyncModal');
+      const cancelSync = document.getElementById('cancelSync');
+      const startSync = document.getElementById('startSync');
+      const fileUploadArea = document.getElementById('fileUploadArea');
+      const bookmarksFile = document.getElementById('bookmarksFile');
+      const selectedFileInfo = document.getElementById('selectedFileInfo');
+      const selectedFileName = document.getElementById('selectedFileName');
+      const selectedFileSize = document.getElementById('selectedFileSize');
+      const clearFile = document.getElementById('clearFile');
+      const skipIcon = document.getElementById('skipIcon');
+      const forceUpdate = document.getElementById('forceUpdate');
+      const syncProgress = document.getElementById('syncProgress');
+      const syncProgressBar = document.getElementById('syncProgressBar');
+      const syncProgressText = document.getElementById('syncProgressText');
+      const syncResult = document.getElementById('syncResult');
+      const folderList = document.getElementById('folderList');
+      const folderDetailModal = document.getElementById('folderDetailModal');
+      const closeFolderModal = document.getElementById('closeFolderModal');
+      const closeFolderDetailBtn = document.getElementById('closeFolderDetailBtn');
+      const folderDetailTitle = document.getElementById('folderDetailTitle');
+      const folderBookmarksList = document.getElementById('folderBookmarksList');
+      
+      function openSyncModal() {
+        syncModal.classList.add('active');
+        resetSyncForm();
+      }
+      
+      function closeSyncModalFunc() {
+        syncModal.classList.remove('active');
+      }
+      
+      function resetSyncForm() {
+        selectedFile = null;
+        bookmarksFile.value = '';
+        selectedFileInfo.style.display = 'none';
+        startSync.disabled = true;
+        syncProgress.style.display = 'none';
+        syncResult.style.display = 'none';
+        syncProgressBar.style.width = '0%';
+        skipIcon.checked = false;
+        forceUpdate.checked = false;
+      }
+      
+      function handleFileSelect(file) {
+        if (!file) return;
+        
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'html' && ext !== 'htm') {
+          showToast('请选择 .html 或 .htm 格式的书签文件', 'error');
+          return;
+        }
+        
+        selectedFile = file;
+        selectedFileName.textContent = file.name;
+        selectedFileSize.textContent = formatFileSize(file.size);
+        selectedFileInfo.style.display = 'block';
+        startSync.disabled = false;
+        showToast('文件已选择', 'success');
+      }
+      
+      async function startSyncProcess() {
+        if (!selectedFile) {
+          showToast('请先选择书签文件', 'error');
+          return;
+        }
+        
+        startSync.disabled = true;
+        syncProgress.style.display = 'block';
+        syncResult.style.display = 'none';
+        syncProgressBar.style.width = '0%';
+        syncProgressText.textContent = '正在解析书签文件...';
+        
+        try {
+          const fileContent = await readFileAsText(selectedFile);
+          
+          syncProgressText.textContent = '正在准备同步...';
+          syncProgressBar.style.width = '10%';
+          
+          const result = await apiRequest('/api/sync', {
+            method: 'POST',
+            body: {
+              bookmarksContent: fileContent,
+              bookmarksPath: 'uploaded_file',
+              skipIcon: skipIcon.checked,
+              force: forceUpdate.checked
+            }
+          });
+          
+          if (result.data && result.data.success) {
+            syncProgressBar.style.width = '100%';
+            syncProgressText.textContent = '同步任务已启动';
+            
+            showToast('同步任务已启动，请等待完成...', 'success');
+            
+            setTimeout(() => {
+              closeSyncModalFunc();
+              loadStatus();
+            }, 2000);
+          } else {
+            throw new Error(result.data?.message || '同步失败');
+          }
+        } catch (error) {
+          console.error('同步错误:', error);
+          syncResult.style.display = 'block';
+          syncResult.className = 'alert alert-error';
+          syncResult.textContent = error.message || '同步失败，请稍后重试';
+          startSync.disabled = false;
+        }
+      }
+      
+      function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsText(file);
+        });
+      }
+      
+      async function loadStatus() {
+        try {
+          const result = await apiRequest('/api/status', {
+            method: 'GET'
+          });
+          
+          if (result.data) {
+            syncStatus = result.data;
+            updateStats();
+            renderFolders();
+          }
+        } catch (error) {
+          console.error('加载状态失败:', error);
+        }
+      }
+      
+      function updateStats() {
+        if (!syncStatus) return;
+        
+        document.getElementById('totalFolders').textContent = syncStatus.totalFolders || 0;
+        document.getElementById('totalBookmarks').textContent = syncStatus.totalBookmarks || 0;
+        document.getElementById('syncedBookmarks').textContent = syncStatus.completedBookmarks || 0;
+        document.getElementById('failedBookmarks').textContent = syncStatus.failedBookmarks || 0;
+      }
+      
+      function renderFolders() {
+        if (!syncStatus || !syncStatus.folders || syncStatus.folders.length === 0) {
+          folderList.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📂</div>
+              <div class="empty-state-text">暂无书签数据</div>
+              <div class="empty-state-hint">点击上方"同步书签"按钮导入浏览器书签</div>
+            </div>
+          `;
+          return;
+        }
+        
+        folderList.innerHTML = syncStatus.folders.map(folder => `
+          <div class="card" style="margin-bottom: 16px; cursor: pointer;" data-folder='${escapeHtml(JSON.stringify(folder))}'>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="font-size: 32px;">📁</div>
+                <div>
+                  <div style="font-weight: 600; font-size: 16px; color: #1a1a2e;">
+                    ${escapeHtml(folder.name)}
+                  </div>
+                  <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                    ${folder.lastSyncTime ? '最后同步: ' + formatDate(folder.lastSyncTime) : '未同步'}
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 16px; text-align: right;">
+                <div>
+                  <div style="font-weight: 600; color: #3b82f6;">${folder.totalBookmarks || 0}</div>
+                  <div style="font-size: 12px; color: #9ca3af;">总数</div>
+                </div>
+                <div>
+                  <div style="font-weight: 600; color: #10b981;">${folder.completedBookmarks || 0}</div>
+                  <div style="font-size: 12px; color: #9ca3af;">已同步</div>
+                </div>
+                <div>
+                  <div style="font-weight: 600; color: #ef4444;">${folder.failedBookmarks || 0}</div>
+                  <div style="font-size: 12px; color: #9ca3af;">失败</div>
+                </div>
+                <div style="font-size: 20px; color: #9ca3af;">›</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+        
+        folderList.querySelectorAll('[data-folder]').forEach(el => {
+          el.addEventListener('click', function() {
+            try {
+              const folder = JSON.parse(this.dataset.folder);
+              openFolderDetail(folder);
+            } catch (e) {
+              console.error('解析文件夹数据失败:', e);
+            }
+          });
+        });
+      }
+      
+      function openFolderDetail(folder) {
+        folderDetailTitle.textContent = folder.name || '书签详情';
+        
+        let bookmarksHtml = '';
+        if (folder.bookmarks && folder.bookmarks.length > 0) {
+          bookmarksHtml = folder.bookmarks.map(bm => `
+            <div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-bottom: 1px solid #f1f5f9;">
+              <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                ${bm.iconFileName ? `<img src="/api/icons-file?path=${encodeURIComponent(folder.name + '/' + bm.iconFileName)}" style="max-width: 16px; max-height: 16px;" onerror="this.style.display='none'">` : '🔗'}
+              </div>
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 500; color: #1a1a2e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${escapeHtml(bm.title)}
+                </div>
+                <div style="font-size: 12px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${escapeHtml(bm.url)}
+                </div>
+              </div>
+              <div>
+                <span class="status-badge ${bm.syncStatus === 'completed' ? 'status-ready' : bm.syncStatus === 'failed' ? 'status-failed' : 'status-pending'}">
+                  ${bm.syncStatus === 'completed' ? '已同步' : bm.syncStatus === 'failed' ? '失败' : '待定'}
+                </span>
+              </div>
+              <a href="${escapeHtml(bm.url)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration: none;">
+                打开
+              </a>
+            </div>
+          `).join('');
+        } else {
+          bookmarksHtml = `
+            <div class="empty-state" style="padding: 40px 20px;">
+              <div class="empty-state-icon">📭</div>
+              <div class="empty-state-text">该文件夹暂无书签</div>
+            </div>
+          `;
+        }
+        
+        folderBookmarksList.innerHTML = bookmarksHtml;
+        folderDetailModal.classList.add('active');
+      }
+      
+      function closeFolderDetailFunc() {
+        folderDetailModal.classList.remove('active');
+      }
+      
+      function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      syncBtn.addEventListener('click', openSyncModal);
+      refreshBtn.addEventListener('click', loadStatus);
+      closeSyncModal.addEventListener('click', closeSyncModalFunc);
+      cancelSync.addEventListener('click', closeSyncModalFunc);
+      startSync.addEventListener('click', startSyncProcess);
+      
+      fileUploadArea.addEventListener('click', () => bookmarksFile.click());
+      bookmarksFile.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+          handleFileSelect(e.target.files[0]);
+        }
+      });
+      
+      fileUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+      });
+      
+      fileUploadArea.addEventListener('dragleave', () => {
+        fileUploadArea.classList.remove('dragover');
+      });
+      
+      fileUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+          handleFileSelect(e.dataTransfer.files[0]);
+        }
+      });
+      
+      clearFile.addEventListener('click', () => {
+        resetSyncForm();
+      });
+      
+      closeFolderModal.addEventListener('click', closeFolderDetailFunc);
+      closeFolderDetailBtn.addEventListener('click', closeFolderDetailFunc);
+      
+      syncModal.addEventListener('click', (e) => {
+        if (e.target === syncModal) closeSyncModalFunc();
+      });
+      
+      folderDetailModal.addEventListener('click', (e) => {
+        if (e.target === folderDetailModal) closeFolderDetailFunc();
+      });
+      
+      loadStatus();
+    });
+  </script>
+</body>
+</html>

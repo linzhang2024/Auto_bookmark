@@ -441,6 +441,7 @@ app.post('/api/sync', async (req, res) => {
 
   const { 
     bookmarksPath,
+    bookmarksContent,
     syncDir,
     skipIcon = false,
     force = false,
@@ -451,10 +452,19 @@ app.post('/api/sync', async (req, res) => {
   const actualConcurrency = concurrency !== undefined ? concurrency : config.maxConcurrency;
   const actualTimeout = timeout !== undefined ? timeout : config.iconTimeout;
 
-  if (!bookmarksPath || !fs.existsSync(bookmarksPath)) {
+  let htmlContent = null;
+  let sourcePath = null;
+
+  if (bookmarksContent && typeof bookmarksContent === 'string' && bookmarksContent.trim()) {
+    htmlContent = bookmarksContent;
+    sourcePath = 'uploaded_content';
+  } else if (bookmarksPath && fs.existsSync(bookmarksPath)) {
+    htmlContent = fs.readFileSync(bookmarksPath, 'utf-8');
+    sourcePath = bookmarksPath;
+  } else {
     return res.status(400).json({ 
       success: false, 
-      message: '请提供有效的书签 HTML 文件路径' 
+      message: '请提供有效的书签 HTML 文件路径或内容' 
     });
   }
 
@@ -465,7 +475,7 @@ app.post('/api/sync', async (req, res) => {
   const taskInfo = {
     taskId: `sync_${Date.now()}`,
     startTime: new Date().toISOString(),
-    bookmarksPath,
+    bookmarksPath: sourcePath,
     syncDir: targetSyncDir
   };
 
@@ -483,7 +493,6 @@ app.post('/api/sync', async (req, res) => {
   });
 
   try {
-    const htmlContent = fs.readFileSync(bookmarksPath, 'utf-8');
     const bookmarks = parseBookmarks(htmlContent);
     const totalBookmarks = countBookmarks(bookmarks);
     const totalFolders = countFolders(bookmarks);
