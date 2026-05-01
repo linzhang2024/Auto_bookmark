@@ -292,6 +292,10 @@
         }, 1000);
       }
       
+      function openFileSelector() {
+        fileInput.click();
+      }
+      
       function readFileAsBase64(file) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -440,13 +444,20 @@
         document.getElementById('failedDocs').textContent = documents.filter(d => d.status === 'failed').length;
       }
       
-      uploadBtn.addEventListener('click', openModal);
+      uploadBtn.addEventListener('click', () => {
+        fileInput.click();
+      });
       closeModal.addEventListener('click', closeModalFunc);
       cancelUpload.addEventListener('click', closeModalFunc);
       confirmUpload.addEventListener('click', uploadFiles);
       
       uploadArea.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+      fileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          handleFiles(e.target.files);
+          openModal();
+        }
+      });
       
       uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
