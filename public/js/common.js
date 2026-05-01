@@ -64,9 +64,30 @@ async function apiRequest(endpoint, options = {}) {
     config.headers['Content-Type'] = 'application/json';
   }
   
+  console.log(`[API Request] ${config.method} ${url}`);
+  if (config.body) {
+    const bodyObj = JSON.parse(config.body);
+    if (bodyObj.file_base64) {
+      bodyObj.file_base64 = `[BASE64 数据，长度: ${bodyObj.file_base64.length} 字符]`;
+    }
+    console.log('[API Request Body]', bodyObj);
+  }
+  
   try {
     const response = await fetch(url, config);
-    const data = await response.json();
+    
+    console.log(`[API Response] ${config.method} ${url} - Status: ${response.status} ${response.statusText}`);
+    
+    let data;
+    try {
+      data = await response.json();
+      console.log('[API Response Data]');
+      console.dir(data);
+    } catch (parseError) {
+      console.error('[API Response Parse Error] 无法解析响应为 JSON');
+      console.dir(parseError);
+      data = { success: false, message: '响应解析失败' };
+    }
     
     if (response.status === 401) {
       AppState.clearAuth();
@@ -77,7 +98,8 @@ async function apiRequest(endpoint, options = {}) {
     
     return { ok: response.ok, status: response.status, data };
   } catch (error) {
-    console.error('API请求失败:', error);
+    console.error('[API Request Error] 网络请求失败:');
+    console.dir(error);
     return { ok: false, status: 0, data: { success: false, message: '网络请求失败' } };
   }
 }
