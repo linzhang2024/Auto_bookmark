@@ -1157,6 +1157,144 @@ app.delete('/api/documents/:id', async (req, res) => {
   }
 });
 
+app.get('/api/documents/:id/download', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    const document = await Document.findById(docId);
+    
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: '文档不存在'
+      });
+    }
+
+    if (!document.storage_path || !fs.existsSync(document.storage_path)) {
+      return res.status(404).json({
+        success: false,
+        message: '文件不存在'
+      });
+    }
+
+    const stat = fs.statSync(document.storage_path);
+    if (!stat.isFile()) {
+      return res.status(404).json({
+        success: false,
+        message: '无效的文件路径'
+      });
+    }
+
+    res.setHeader('Content-Type', document.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(document.filename)}`);
+    res.setHeader('Content-Length', stat.size);
+
+    const readStream = fs.createReadStream(document.storage_path);
+    readStream.pipe(res);
+
+    readStream.on('error', (err) => {
+      console.error('文件读取错误:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: '文件读取失败'
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error('下载文档失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/documents/:id/view', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    const document = await Document.findById(docId);
+    
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: '文档不存在'
+      });
+    }
+
+    if (!document.storage_path || !fs.existsSync(document.storage_path)) {
+      return res.status(404).json({
+        success: false,
+        message: '文件不存在'
+      });
+    }
+
+    const stat = fs.statSync(document.storage_path);
+    if (!stat.isFile()) {
+      return res.status(404).json({
+        success: false,
+        message: '无效的文件路径'
+      });
+    }
+
+    const viewableTypes = [
+      'application/pdf',
+      'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml',
+      'text/plain', 'text/html', 'text/css', 'application/javascript', 'application/json'
+    ];
+
+    const isViewable = viewableTypes.some(type => 
+      document.mime_type && document.mime_type.startsWith(type.split('/')[0])
+    ) || viewableTypes.includes(document.mime_type);
+
+    if (!isViewable) {
+      return res.status(400).json({
+        success: false,
+        message: '该文件类型不支持在线预览，请下载后查看'
+      });
+    }
+
+    res.setHeader('Content-Type', document.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Length', stat.size);
+
+    const readStream = fs.createReadStream(document.storage_path);
+    readStream.pipe(res);
+
+    readStream.on('error', (err) => {
+      console.error('文件读取错误:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: '文件读取失败'
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error('查看文档失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 app.post('/api/documents/upload-with-transaction', async (req, res) => {
   try {
     const { filename, file_base64, uploader_id, owner_id, metadata } = req.body;
