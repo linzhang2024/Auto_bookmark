@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文档预览 - 书签管理系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .viewer-container {
+      max-width: 100%;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+
+    .viewer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+
+    .viewer-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .viewer-icon {
+      font-size: 24px;
+    }
+
+    .viewer-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .viewer-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .viewer-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 1px solid #e2e8f0;
+      background: white;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toolbar-label {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .encoding-select {
+      padding: 6px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .encoding-select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .viewer-content {
+      padding: 24px;
+      min-height: 400px;
+    }
+
+    .text-viewer {
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #334155;
+      background: #fafafa;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+
+    .image-viewer {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+    }
+
+    .image-viewer img {
+      max-width: 100%;
+      max-height: 80vh;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .pdf-viewer {
+      width: 100%;
+      min-height: 80vh;
+      border: none;
+    }
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: #64748b;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(102, 126, 234, 0.2);
+      border-radius: 50%;
+      border-top-color: #667eea;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 16px;
+    }
+
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      text-align: center;
+    }
+
+    .error-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+
+    .error-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 8px;
+    }
+
+    .error-message {
+      font-size: 14px;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .line-numbers {
+      display: inline-block;
+      text-align: right;
+      color: #9ca3af;
+      padding-right: 16px;
+      margin-right: 16px;
+      border-right: 1px solid #e2e8f0;
+      user-select: none;
+    }
+
+    .code-line {
+      display: block;
+    }
+
+    .code-line:hover {
+      background-color: rgba(102, 126, 234, 0.05);
+    }
+  </style>
+</head>
+<body>
+  <div class="main-content">
+    <div class="viewer-container" id="viewerContainer">
+      <div class="viewer-header" id="viewerHeader" style="display: none;">
+        <div class="viewer-title">
+          <span class="viewer-icon" id="viewerIcon">📄</span>
+          <span class="viewer-name" id="viewerName">document.txt</span>
+        </div>
+        <div class="viewer-info">
+          <span id="viewerSize">0 B</span>
+          <span id="viewerType">-</span>
+        </div>
+        <div class="viewer-toolbar" id="viewerToolbar" style="display: none; padding: 0; border: none; background: transparent;">
+          <div class="toolbar-group" id="encodingGroup" style="display: none;">
+            <span class="toolbar-label">编码:</span>
+            <select class="encoding-select" id="encodingSelect">
+              <option value="UTF-8">UTF-8</option>
+              <option value="GBK">GBK</option>
+              <option value="GB2312">GB2312</option>
+              <option value="GB18030">GB18030</option>
+              <option value="Big5">Big5</option>
+              <option value="Shift_JIS">Shift_JIS</option>
+              <option value="EUC-JP">EUC-JP</option>
+              <option value="EUC-KR">EUC-KR</option>
+              <option value="ISO-8859-1">ISO-8859-1</option>
+              <option value="windows-1252">Windows-1252</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="downloadBtn">
+            <span>⬇️</span>
+            <span>下载</span>
+          </button>
+          <button class="btn btn-secondary btn-sm" id="backBtn">
+            <span>←</span>
+            <span>返回</span>
+          </button>
+        </div>
+      </div>
+      <div class="viewer-content" id="viewerContent">
+        <div class="loading-state" id="loadingState">
+          <div class="loading-spinner"></div>
+          <div>加载中...</div>
+        </div>
+        <div class="error-state" id="errorState" style="display: none;">
+          <div class="error-icon">❌</div>
+          <div class="error-title" id="errorTitle">加载失败</div>
+          <div class="error-message" id="errorMessage">请稍后重试</div>
+          <button class="btn btn-primary" id="retryBtn">重试</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      renderNav();
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const docId = urlParams.get('id');
+      
+      if (!docId) {
+        showError('缺少文档 ID', '请从文档列表中选择要预览的文档');
+        return;
+      }
+      
+      let currentDocument = null;
+      let currentBuffer = null;
+      let currentEncoding = 'UTF-8';
+      
+      const viewerHeader = document.getElementById('viewerHeader');
+      const viewerIcon = document.getElementById('viewerIcon');
+      const viewerName = document.getElementById('viewerName');
+      const viewerSize = document.getElementById('viewerSize');
+      const viewerType = document.getElementById('viewerType');
+      const viewerToolbar = document.getElementById('viewerToolbar');
+      const viewerContent = document.getElementById('viewerContent');
+      const loadingState = document.getElementById('loadingState');
+      const errorState = document.getElementById('errorState');
+      const errorTitle = document.getElementById('errorTitle');
+      const errorMessage = document.getElementById('errorMessage');
+      const encodingGroup = document.getElementById('encodingGroup');
+      const encodingSelect = document.getElementById('encodingSelect');
+      const downloadBtn = document.getElementById('downloadBtn');
+      const backBtn = document.getElementById('backBtn');
+      const retryBtn = document.getElementById('retryBtn');
+      
+      function showLoading() {
+        loadingState.style.display = 'flex';
+        errorState.style.display = 'none';
+        viewerHeader.style.display = 'none';
+      }
+      
+      function showError(title, message) {
+        loadingState.style.display = 'none';
+        errorState.style.display = 'flex';
+        errorTitle.textContent = title;
+        errorMessage.textContent = message;
+      }
+      
+      function getFileIcon(filename, mimeType) {
+        if (mimeType) {
+          if (mimeType.startsWith('image/')) return '🖼️';
+          if (mimeType === 'application/pdf') return '📕';
+          if (mimeType.startsWith('text/')) return '📝';
+        }
+        
+        const ext = filename.split('.').pop().toLowerCase();
+        const icons = {
+          pdf: '📕',
+          doc: '📘', docx: '📘',
+          xls: '📗', xlsx: '📗',
+          ppt: '📙', pptx: '📙',
+          jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', bmp: '🖼️', webp: '🖼️', svg: '🖼️',
+          txt: '📝',
+          html: '🌐', htm: '🌐',
+          css: '🎨',
+          js: '⚡',
+          json: '📋',
+          zip: '📦', rar: '📦', '7z': '📦',
+          mp3: '🎵', wav: '🎵', flac: '🎵',
+          mp4: '🎬', avi: '🎬', mov: '🎬'
+        };
+        return icons[ext] || '📄';
+      }
+      
+      async function loadDocument() {
+        showLoading();
+        
+        try {
+          const infoResult = await apiRequest(`/api/documents/${docId}`, {
+            method: 'GET'
+          });
+          
+          if (!infoResult.data || !infoResult.data.success) {
+            showError('加载失败', infoResult.data?.message || '无法获取文档信息');
+            return;
+          }
+          
+          currentDocument = infoResult.data.document;
+          
+          viewerIcon.textContent = getFileIcon(currentDocument.filename, currentDocument.mime_type);
+          viewerName.textContent = currentDocument.filename;
+          viewerSize.textContent = formatFileSize(currentDocument.file_size);
+          viewerType.textContent = currentDocument.mime_type || '未知类型';
+          
+          viewerHeader.style.display = 'flex';
+          viewerToolbar.style.display = 'flex';
+          
+          const isText = currentDocument.mime_type && currentDocument.mime_type.startsWith('text/');
+          const isImage = currentDocument.mime_type && currentDocument.mime_type.startsWith('image/');
+          const isPdf = currentDocument.mime_type === 'application/pdf';
+          
+          if (isText) {
+            encodingGroup.style.display = 'flex';
+            await loadTextContent();
+          } else if (isImage) {
+            encodingGroup.style.display = 'none';
+            renderImage();
+          } else if (isPdf) {
+            encodingGroup.style.display = 'none';
+            renderPdf();
+          } else {
+            showError('不支持的文件类型', '该文件类型不支持在线预览，请下载后查看');
+          }
+          
+        } catch (error) {
+          showError('网络错误', error.message || '请检查网络连接后重试');
+        }
+      }
+      
+      async function loadTextContent() {
+        try {
+          const response = await fetch(`/api/documents/${docId}/raw`, {
+            headers: {
+              'Authorization': `Bearer ${AppState.token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          currentBuffer = await response.arrayBuffer();
+          renderTextContent();
+          
+        } catch (error) {
+          showError('加载失败', error.message || '无法读取文件内容');
+        }
+      }
+      
+      function renderTextContent() {
+        if (!currentBuffer) return;
+        
+        try {
+          const decoder = new TextDecoder(currentEncoding, { fatal: false });
+          const text = decoder.decode(new Uint8Array(currentBuffer));
+          
+          const lines = text.split('\n');
+          const lineCount = lines.length;
+          const maxLineNumWidth = String(lineCount).length;
+          
+          const html = lines.map((line, index) => {
+            const lineNum = String(index + 1).padStart(maxLineNumWidth, ' ');
+            const escapedLine = escapeHtml(line);
+            return `<span class="code-line"><span class="line-numbers">${lineNum}</span>${escapedLine}</span>`;
+          }).join('');
+          
+          loadingState.style.display = 'none';
+          errorState.style.display = 'none';
+          
+          viewerContent.innerHTML = `<pre class="text-viewer">${html}</pre>`;
+          
+        } catch (error) {
+          showError('解码失败', `无法使用 ${currentEncoding} 解码文件: ${error.message}`);
+        }
+      }
+      
+      function renderImage() {
+        loadingState.style.display = 'none';
+        errorState.style.display = 'none';
+        
+        viewerContent.innerHTML = `
+          <div class="image-viewer">
+            <img src="/api/documents/${docId}/view" alt="${escapeHtml(currentDocument.filename)}">
+          </div>
+        `;
+      }
+      
+      function renderPdf() {
+        loadingState.style.display = 'none';
+        errorState.style.display = 'none';
+        
+        viewerContent.innerHTML = `
+          <iframe 
+            class="pdf-viewer" 
+            src="/api/documents/${docId}/view" 
+            title="${escapeHtml(currentDocument.filename)}"
+          ></iframe>
+        `;
+      }
+      
+      function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      encodingSelect.addEventListener('change', function() {
+        currentEncoding = this.value;
+        if (currentBuffer) {
+          renderTextContent();
+        }
+      });
+      
+      downloadBtn.addEventListener('click', function() {
+        if (currentDocument) {
+          window.location.href = `/api/documents/${docId}/download`;
+        }
+      });
+      
+      backBtn.addEventListener('click', function() {
+        window.location.href = '/documents.html';
+      });
+      
+      retryBtn.addEventListener('click', loadDocument);
+      
+      loadDocument();
+    });
+  </script>
+</body>
+</html>

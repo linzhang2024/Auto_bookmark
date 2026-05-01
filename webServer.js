@@ -1357,6 +1357,66 @@ app.get('/api/documents/:id/view', async (req, res) => {
   }
 });
 
+app.get('/api/documents/:id/raw', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    const document = await Document.findById(docId);
+    
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: '文档不存在'
+      });
+    }
+
+    if (!document.storage_path || !fs.existsSync(document.storage_path)) {
+      return res.status(404).json({
+        success: false,
+        message: '文件不存在'
+      });
+    }
+
+    const stat = fs.statSync(document.storage_path);
+    if (!stat.isFile()) {
+      return res.status(404).json({
+        success: false,
+        message: '无效的文件路径'
+      });
+    }
+
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Length', stat.size);
+
+    const readStream = fs.createReadStream(document.storage_path);
+    readStream.pipe(res);
+
+    readStream.on('error', (err) => {
+      console.error('文件读取错误:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: '文件读取失败'
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error('获取原始文件失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 app.post('/api/documents/upload-with-transaction', async (req, res) => {
   try {
     const { filename, file_base64, uploader_id, owner_id, metadata } = req.body;
