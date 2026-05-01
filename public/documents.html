@@ -234,6 +234,8 @@
       async function uploadFiles() {
         if (selectedFiles.length === 0) return;
         
+        console.log('[Upload] 开始上传流程，文件数量:', selectedFiles.length);
+        
         confirmUpload.disabled = true;
         uploadProgress.style.display = 'block';
         uploadError.style.display = 'none';
@@ -247,36 +249,59 @@
           progressBar.style.width = progress + '%';
           progressText.textContent = `正在上传: ${file.name} (${i + 1}/${selectedFiles.length})`;
           
+          console.log(`[Upload] 处理文件 ${i + 1}/${selectedFiles.length}:`, {
+            name: file.name,
+            size: file.size,
+            type: file.type
+          });
+          
           try {
             const fileBase64 = await readFileAsBase64(file);
+            console.log(`[Upload] 文件 ${file.name} 转换为 Base64 完成，长度:`, fileBase64.length);
+            
+            const uploadBody = {
+              filename: file.name,
+              file_base64: fileBase64.split(',')[1] || fileBase64,
+              uploader_id: AppState.user.id,
+              metadata: {
+                original_name: file.name,
+                mime_type: file.type
+              }
+            };
+            
+            console.log(`[Upload] 准备发送请求到 /api/documents/upload`);
+            console.log('[Upload] 请求体 (file_base64 已截断):', {
+              ...uploadBody,
+              file_base64: `[BASE64 数据，长度: ${uploadBody.file_base64.length} 字符]`
+            });
             
             const result = await apiRequest('/api/documents/upload', {
               method: 'POST',
-              body: {
-                filename: file.name,
-                file_base64: fileBase64.split(',')[1] || fileBase64,
-                uploader_id: AppState.user.id,
-                metadata: {
-                  original_name: file.name,
-                  mime_type: file.type
-                }
-              }
+              body: uploadBody
             });
+            
+            console.log(`[Upload] 文件 ${file.name} 上传结果:`, result);
             
             if (result.data && result.data.success) {
               successCount++;
+              console.log(`[Upload] ✓ 文件 ${file.name} 上传成功`);
             } else {
               failCount++;
-              console.error('上传失败:', result.data?.message);
+              console.error(`[Upload] ✗ 文件 ${file.name} 上传失败:`, result.data?.message);
+              console.error('[Upload] 完整响应:');
+              console.dir(result);
             }
           } catch (error) {
             failCount++;
-            console.error('上传错误:', error);
+            console.error(`[Upload] ✗ 文件 ${file.name} 上传异常:`);
+            console.dir(error);
           }
         }
         
         progressBar.style.width = '100%';
         progressText.textContent = '上传完成';
+        
+        console.log(`[Upload] 上传完成统计: 成功 ${successCount}, 失败 ${failCount}`);
         
         if (failCount > 0) {
           uploadError.textContent = `${successCount} 个文件上传成功，${failCount} 个文件上传失败`;

@@ -232,9 +232,17 @@ async function startServer() {
     
     await ensureTestUsers();
     
+    console.log('正在确保上传目录存在...');
+    if (!fs.existsSync(DEFAULT_UPLOAD_DIR)) {
+      fs.mkdirSync(DEFAULT_UPLOAD_DIR, { recursive: true });
+      console.log(`✓ 上传目录已创建: ${DEFAULT_UPLOAD_DIR}`);
+    } else {
+      console.log(`✓ 上传目录已存在: ${DEFAULT_UPLOAD_DIR}`);
+    }
+    
   } catch (error) {
-    console.error('数据库初始化失败:', error.message);
-    console.error('将继续启动服务器，但用户功能可能不可用');
+    console.error('初始化失败:', error.message);
+    console.error('将继续启动服务器，但部分功能可能不可用');
   }
   
   try {
@@ -933,18 +941,44 @@ app.get('/api/admin/roles', authMiddleware, adminMiddleware, async (req, res) =>
 });
 
 app.post('/api/documents/upload', async (req, res) => {
+  console.log('\n═══════════════════════════════════════════');
+  console.log('[Document Upload] 收到上传请求');
+  console.log('[Document Upload] 请求方法:', req.method);
+  console.log('[Document Upload] 请求路径:', req.path);
+  console.log('[Document Upload] Content-Type:', req.headers['content-type']);
+  
   try {
     const { filename, file_content, file_base64, uploader_id, owner_id, metadata } = req.body;
+    
+    console.log('[Document Upload] 收到的请求体字段:', {
+      filename: filename ? `存在 (${filename})` : '缺失',
+      file_base64: file_base64 ? `存在 (长度: ${file_base64.length})` : '缺失',
+      file_content: file_content ? '存在' : '缺失',
+      uploader_id: uploader_id,
+      owner_id: owner_id,
+      metadata: metadata ? '存在' : '缺失'
+    });
 
     if (!uploader_id) {
+      console.log('[Document Upload] 错误: 缺少 uploader_id');
       return res.status(400).json({
         success: false,
         message: '缺少上传者 ID'
       });
     }
 
+    const isAdmin = await AuthMiddleware.isAdmin(uploader_id);
     const hasDocWritePermission = await AuthMiddleware.hasDocWritePermission(uploader_id);
-    if (!hasDocWritePermission) {
+    const canUpload = isAdmin || hasDocWritePermission;
+    
+    console.log('[Document Upload] 权限检查:', {
+      isAdmin,
+      hasDocWritePermission,
+      canUpload
+    });
+    
+    if (!canUpload) {
+      console.log('[Document Upload] 权限拒绝: 用户既不是管理员也没有 doc:write 权限');
       return res.status(403).json({
         success: false,
         message: '禁止访问：缺少 doc:write 权限'
@@ -952,6 +986,7 @@ app.post('/api/documents/upload', async (req, res) => {
     }
 
     if (!filename) {
+      console.log('[Document Upload] 错误: 缺少 filename');
       return res.status(400).json({
         success: false,
         message: '缺少文件名'
@@ -960,8 +995,19 @@ app.post('/api/documents/upload', async (req, res) => {
 
     let fileBuffer;
     if (file_base64) {
-      fileBuffer = Buffer.from(file_base64, 'base64');
+      console.log('[Document Upload] 使用 file_base64 解码...');
+      try {
+        fileBuffer = Buffer.from(file_base64, 'base64');
+        console.log('[Document Upload] Base64 解码成功，文件大小:', fileBuffer.length, '字节');
+      } catch (decodeError) {
+        console.error('[Document Upload] Base64 解码失败:', decodeError.message);
+        return res.status(400).json({
+          success: false,
+          message: 'Base64 解码失败: ' + decodeError.message
+        });
+      }
     } else if (file_content) {
+      console.log('[Document Upload] 使用 file_content...');
       if (Buffer.isBuffer(file_content)) {
         fileBuffer = file_content;
       } else if (typeof file_content === 'string') {
@@ -969,14 +1015,21 @@ app.post('/api/documents/upload', async (req, res) => {
       } else if (Array.isArray(file_content)) {
         fileBuffer = Buffer.from(file_content);
       }
+      console.log('[Document Upload] file_content 处理完成，大小:', fileBuffer ? fileBuffer.length : 0, '字节');
     }
 
     if (!fileBuffer) {
+      console.log('[Document Upload] 错误: 无法解析文件内容');
       return res.status(400).json({
         success: false,
         message: '缺少文件内容（file_base64 或 file_content）'
       });
     }
+
+    console.log('[Document Upload] 开始执行 atomicUpload...');
+    console.log('[Document Upload] 文件名:', filename);
+    console.log('[Document Upload] 上传者 ID:', uploader_id);
+    console.log('[Document Upload] 存储目录:', DEFAULT_UPLOAD_DIR);
 
     const result = await Document.atomicUpload({
       filename,
@@ -987,14 +1040,28 @@ app.post('/api/documents/upload', async (req, res) => {
       metadata: metadata || {}
     });
 
-    res.status(201).json({
+    console.log('[Document Upload] atomicUpload 成功!');
+    console.log('[Document Upload] 文档 ID:', result.document.id);
+    console.log('[Document Upload] 存储路径:', result.document.storage_path);
+
+    const response = {
       success: true,
       message: '文档上传成功',
       document: result.document.toJSON()
-    });
+    };
+
+    console.log('[Document Upload] 返回响应:', JSON.stringify(response, null, 2));
+    console.log('═══════════════════════════════════════════\n');
+
+    res.status(201).json(response);
 
   } catch (error) {
-    console.error('文档上传失败:', error);
+    console.error('[Document Upload] 捕获到异常:');
+    console.error('[Document Upload] 错误类型:', error.constructor.name);
+    console.error('[Document Upload] 错误消息:', error.message);
+    console.error('[Document Upload] 错误堆栈:', error.stack);
+    console.log('═══════════════════════════════════════════\n');
+    
     res.status(500).json({
       success: false,
       message: error.message
@@ -1306,8 +1373,11 @@ app.post('/api/documents/upload-with-transaction', async (req, res) => {
       });
     }
 
+    const isAdmin = await AuthMiddleware.isAdmin(uploader_id);
     const hasDocWritePermission = await AuthMiddleware.hasDocWritePermission(uploader_id);
-    if (!hasDocWritePermission) {
+    const canUpload = isAdmin || hasDocWritePermission;
+    
+    if (!canUpload) {
       return res.status(403).json({
         success: false,
         message: '禁止访问：缺少 doc:write 权限'
