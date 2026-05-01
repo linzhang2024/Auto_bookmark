@@ -393,7 +393,13 @@
             </td>
             <td>${formatDate(doc.created_at)}</td>
             <td>
-              <div class="actions-cell">
+              <div class="actions-cell" style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary btn-sm view-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}" data-mime="${doc.mime_type || ''}">
+                  查看
+                </button>
+                <button class="btn btn-primary btn-sm download-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}">
+                  下载
+                </button>
                 <button class="btn btn-danger btn-sm delete-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}">
                   删除
                 </button>
@@ -401,6 +407,36 @@
             </td>
           </tr>
         `).join('');
+        
+        documentsBody.querySelectorAll('.view-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const id = parseInt(this.dataset.id, 10);
+            const name = this.dataset.name;
+            const mime = this.dataset.mime;
+            
+            const viewableTypes = ['application/pdf', 'image/', 'text/'];
+            const isViewable = viewableTypes.some(type => mime.startsWith(type));
+            
+            if (!isViewable && mime !== '') {
+              showToast('该文件类型不支持在线预览，请下载后查看', 'warning');
+              return;
+            }
+            
+            const viewUrl = `/api/documents/${id}/view`;
+            window.open(viewUrl, '_blank');
+          });
+        });
+        
+        documentsBody.querySelectorAll('.download-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const id = parseInt(this.dataset.id, 10);
+            const name = this.dataset.name;
+            
+            const downloadUrl = `/api/documents/${id}/download`;
+            window.location.href = downloadUrl;
+            showToast(`正在下载: ${name}`, 'info');
+          });
+        });
         
         documentsBody.querySelectorAll('.delete-btn').forEach(btn => {
           btn.addEventListener('click', async function() {
@@ -444,9 +480,7 @@
         document.getElementById('failedDocs').textContent = documents.filter(d => d.status === 'failed').length;
       }
       
-      uploadBtn.addEventListener('click', () => {
-        fileInput.click();
-      });
+      uploadBtn.addEventListener('click', openModal);
       closeModal.addEventListener('click', closeModalFunc);
       cancelUpload.addEventListener('click', closeModalFunc);
       confirmUpload.addEventListener('click', uploadFiles);
@@ -455,7 +489,6 @@
       fileInput.addEventListener('change', (e) => {
         if (e.target.files && e.target.files.length > 0) {
           handleFiles(e.target.files);
-          openModal();
         }
       });
       
@@ -472,6 +505,20 @@
         e.preventDefault();
         uploadArea.classList.remove('dragover');
         handleFiles(e.dataTransfer.files);
+      });
+      
+      document.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+      
+      document.addEventListener('drop', (e) => {
+        e.preventDefault();
+        if (e.target !== uploadArea && !uploadArea.contains(e.target)) {
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            openModal();
+            handleFiles(e.dataTransfer.files);
+          }
+        }
       });
       
       uploadModal.addEventListener('click', (e) => {
