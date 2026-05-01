@@ -47,6 +47,24 @@ const MIME_TYPES = {
   '.flac': 'audio/flac'
 };
 
+const FILE_CATEGORIES = {
+  documents: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.html', '.htm', '.css', '.js', '.json', '.xml'],
+  images: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'],
+  videos: ['.mp4', '.avi', '.mov'],
+  audios: ['.mp3', '.wav', '.flac'],
+  archives: ['.zip', '.rar', '.7z', '.tar', '.gz']
+};
+
+function getFileCategory(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  for (const [category, extensions] of Object.entries(FILE_CATEGORIES)) {
+    if (extensions.includes(ext)) {
+      return category;
+    }
+  }
+  return 'others';
+}
+
 class Document {
   constructor(id, filename, storage_path, file_size, mime_type, uploader_id, owner_id, status, metadata, created_at, updated_at) {
     this.id = id;
@@ -381,8 +399,11 @@ class Document {
       throw new Error('缺少上传者 ID');
     }
 
-    if (!fs.existsSync(storageDir)) {
-      fs.mkdirSync(storageDir, { recursive: true });
+    const fileCategory = getFileCategory(filename);
+    const categoryDir = path.join(storageDir, fileCategory);
+
+    if (!fs.existsSync(categoryDir)) {
+      fs.mkdirSync(categoryDir, { recursive: true });
     }
 
     const timestamp = Date.now();
@@ -390,7 +411,7 @@ class Document {
     const ext = path.extname(filename);
     const baseName = path.basename(filename, ext);
     const uniqueFilename = `${baseName}_${timestamp}_${randomStr}${ext}`;
-    const storage_path = path.join(storageDir, uniqueFilename);
+    const storage_path = path.join(categoryDir, uniqueFilename);
 
     let document = null;
     let fileWritten = false;
@@ -437,6 +458,18 @@ class Document {
         }
       }
 
+      try {
+        const categoryDir = path.dirname(storage_path);
+        if (fs.existsSync(categoryDir)) {
+          const files = fs.readdirSync(categoryDir);
+          if (files.length === 0) {
+            fs.rmdirSync(categoryDir);
+          }
+        }
+      } catch (cleanupErr) {
+        console.error('清理空目录失败:', cleanupErr.message);
+      }
+
       if (document) {
         try {
           await Document.markAsFailed(document.id, error.message);
@@ -477,8 +510,11 @@ class Document {
             throw new Error('缺少上传者 ID');
           }
 
-          if (!fs.existsSync(storageDir)) {
-            fs.mkdirSync(storageDir, { recursive: true });
+          const fileCategory = getFileCategory(filename);
+          const categoryDir = path.join(storageDir, fileCategory);
+
+          if (!fs.existsSync(categoryDir)) {
+            fs.mkdirSync(categoryDir, { recursive: true });
           }
 
           const timestamp = Date.now();
@@ -486,7 +522,7 @@ class Document {
           const ext = path.extname(filename);
           const baseName = path.basename(filename, ext);
           const uniqueFilename = `${baseName}_${timestamp}_${randomStr}${ext}`;
-          storage_path = path.join(storageDir, uniqueFilename);
+          storage_path = path.join(categoryDir, uniqueFilename);
 
           const serializedMetadata = Document.serializeMetadata({
             ...metadata,
@@ -540,6 +576,20 @@ class Document {
             } catch (cleanupErr) {
               console.error('清理临时文件失败:', cleanupErr.message);
             }
+          }
+
+          try {
+            if (storage_path) {
+              const categoryDir = path.dirname(storage_path);
+              if (fs.existsSync(categoryDir)) {
+                const files = fs.readdirSync(categoryDir);
+                if (files.length === 0) {
+                  fs.rmdirSync(categoryDir);
+                }
+              }
+            }
+          } catch (cleanupErr) {
+            console.error('清理空目录失败:', cleanupErr.message);
           }
 
           reject(error);

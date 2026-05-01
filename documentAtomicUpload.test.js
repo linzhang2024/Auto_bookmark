@@ -75,15 +75,27 @@ describe('Document Model - 原子化上传与事务测试', () => {
     await closeDatabase();
   });
 
+  function deleteDirectoryRecursive(dirPath) {
+    if (fs.existsSync(dirPath)) {
+      const entries = fs.readdirSync(dirPath);
+      for (const entry of entries) {
+        const fullPath = path.join(dirPath, entry);
+        if (fs.statSync(fullPath).isDirectory()) {
+          deleteDirectoryRecursive(fullPath);
+        } else {
+          fs.unlinkSync(fullPath);
+        }
+      }
+    }
+  }
+
   afterEach(async () => {
     await run('DELETE FROM documents');
     if (fs.existsSync(TEST_UPLOAD_DIR)) {
-      const files = fs.readdirSync(TEST_UPLOAD_DIR);
-      for (const file of files) {
-        try {
-          fs.unlinkSync(path.join(TEST_UPLOAD_DIR, file));
-        } catch {}
-      }
+      deleteDirectoryRecursive(TEST_UPLOAD_DIR);
+      try {
+        fs.rmdirSync(TEST_UPLOAD_DIR);
+      } catch {}
     }
   });
 
