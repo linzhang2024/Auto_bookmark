@@ -171,6 +171,57 @@ async function findAvailablePort(startPort = DEFAULT_START_PORT) {
   throw new Error(`在尝试了 ${MAX_PORT_ATTEMPTS} 个端口后，未找到可用端口 (范围: ${startPort} - ${startPort + MAX_PORT_ATTEMPTS - 1})`);
 }
 
+async function ensureTestUsers() {
+  try {
+    console.log('正在检查测试用户...');
+    
+    const adminRole = await Role.findByName('admin');
+    const userRole = await Role.findByName('user');
+    
+    if (!adminRole) {
+      console.log('警告: 管理员角色不存在，测试用户可能无法正常工作');
+      return;
+    }
+    
+    if (!userRole) {
+      console.log('警告: 普通用户角色不存在，测试用户可能无法正常工作');
+      return;
+    }
+    
+    let adminUser = await User.findByUsername('admin');
+    if (!adminUser) {
+      console.log('创建管理员账户 (admin/admin123)...');
+      adminUser = await User.create(
+        'admin',
+        'admin123',
+        'admin@example.com',
+        adminRole.id
+      );
+      console.log('✓ 管理员账户创建成功');
+    } else {
+      console.log('✓ 管理员账户已存在');
+    }
+    
+    let testUser = await User.findByUsername('user');
+    if (!testUser) {
+      console.log('创建普通用户账户 (user/user123)...');
+      testUser = await User.create(
+        'user',
+        'user123',
+        'user@example.com',
+        userRole.id
+      );
+      console.log('✓ 普通用户账户创建成功');
+    } else {
+      console.log('✓ 普通用户账户已存在');
+    }
+    
+  } catch (error) {
+    console.error('初始化测试用户失败:', error.message);
+    console.error('将继续启动服务器，但测试用户可能不可用');
+  }
+}
+
 async function startServer() {
   let actualPort;
   
@@ -178,6 +229,9 @@ async function startServer() {
     console.log('正在初始化数据库...');
     await initDatabase();
     console.log('数据库初始化完成');
+    
+    await ensureTestUsers();
+    
   } catch (error) {
     console.error('数据库初始化失败:', error.message);
     console.error('将继续启动服务器，但用户功能可能不可用');
