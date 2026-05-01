@@ -1,0 +1,47 @@
+1. voice clone，make a audio of chinese medicine.
+2. audio2face, create a piece of demo project.
+
+openclaw agents add creativity   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-creativity
+openclaw agents set-identity --agent creativity --name "王炸·创意总监" --emoji "💥"
+
+openclaw agents add Visual   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-Visual
+openclaw agents set-identity --agent Visual --name "老K·视觉特效" --emoji "📷"
+
+openclaw agents add Editing   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-Editing
+openclaw agents set-identity --agent Editing --name "剪子·后期剪辑" --emoji "✂️"
+
+openclaw agents add Operations   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-Operations
+openclaw agents set-identity --agent Operations --name "阿运·运营专员" --emoji "📊"
+
+openclaw agents add Product_selection   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-Product_selection
+openclaw agents set-identity --agent Product_selection --name "货哥·选品专家" --emoji "💰"
+
+
+1. 简历优化：请帮我修改简历，争取[职位]。重点突出可衡量的成就、强有力的行动动词以及招聘人员搜索的关键词。
+
+2. 撰写求职信：请为[公司名称]的[职位名称]撰写一封简洁自信的求职信。内容需个性化、专业，并针对该职位量身定制。
+
+3. 面试准备：请针对[职位名称]拟定10个常见的面试问题，并用自然、自信、听起来像日常对话一样真诚的语言作答。
+
+4. 技能转换：重新构建我在[行业]的经验，使其与[新行业或职位]相匹配。突出可迁移技能并展示可衡量的影响。
+
+5. 招聘人员拓展：请撰写一条简短的LinkedIn消息给招聘人员，申请[职位名称]。内容要热情、简洁、引人入胜，并包含明确的行动号召。
+
+6. 后续策略：面试结束后，请撰写一封后续邮件发送给人力资源部。邮件内容要礼貌、令人印象深刻，并详细说明我为什么是最佳人选。
+
+7. 薪资谈判：帮我为[公司][职位]起草薪资谈判邮件，包括市场薪资研究和我的价值主张。
+
+
+idea：
+1、老动画，制作为现实版。
+2、Isaac-sim。
+3、自动化运营。
+
+面试官您好，我叫[张林]，非常荣幸能参与本次[实施交付经理]岗位的面试。
+我毕业于[您的毕业院校]，在软件交付与项目管理领域，拥有近5年的实战经验。我的职业开始于Java开发工程师，后续做项目实施工程师，逐步成长为能独立负责项目的项目交付经理。
+我的核心能力，是在高压与不确定的环境中，将零散、紧急的业务需求，快速转化为清晰、可执行的技术方案，并进行最终的实施交付。
+在“疫情防控”这类应急项目中，面对24小时不停变化的防控指令和基层海量的反馈，我建立了实时响应机制，在48小时内将“流调信息录入繁琐”、“数据统计滞后”等模糊痛点，归纳提炼为具体的产品需求，并主导设计了以“核酸检测数据+时空轨迹”为核心的风险管理系统。我累计推动处理了超200项优化需求，并通过点对点培训与手册编制，提升一线问题解决率。
+我曾主导7个智慧旅游项目，通过精细化的WBS分解和里程碑管控，实现了100%按期交付。
+我是一个以业务成功为导向的产品价值交付者。我坚信，我过去在G端项目中沉淀的这套方法论——从需求分析、方案设计到实施交付，能够快速迁移并应用到贵公司的产品工作中。
+我的职业规划是，在这样一个优秀的平台上，深度参与打造具有行业影响力的产品，做优秀的产品交付者，成长为一位卓越的产品策划者与价值创造者。
+以上就是我的介绍，谢谢您！

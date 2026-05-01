@@ -124,6 +124,30 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="deleteModal">
+    <div class="modal" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3>确认删除</h3>
+        <button class="modal-close" id="closeDeleteModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; padding: 20px 0;">
+          <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+          <div style="font-size: 16px; color: #374151; margin-bottom: 8px;">确定要删除此文档吗？</div>
+          <div id="deleteFileName" style="font-weight: 600; color: #1a1a2e; margin-bottom: 16px;"></div>
+          <div style="font-size: 13px; color: #9ca3af;">此操作不可恢复，文件将从服务器永久删除。</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelDelete">取消</button>
+        <button class="btn btn-danger" id="confirmDelete">
+          <span>🗑️</span>
+          <span>确认删除</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/common.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -132,6 +156,7 @@
       
       let selectedFiles = [];
       let documents = [];
+      let pendingDelete = null;
       
       const uploadBtn = document.getElementById('uploadBtn');
       const uploadModal = document.getElementById('uploadModal');
@@ -149,6 +174,52 @@
       const statusFilter = document.getElementById('statusFilter');
       const searchInput = document.getElementById('searchInput');
       const refreshBtn = document.getElementById('refreshBtn');
+      
+      const deleteModal = document.getElementById('deleteModal');
+      const closeDeleteModal = document.getElementById('closeDeleteModal');
+      const deleteFileName = document.getElementById('deleteFileName');
+      const cancelDelete = document.getElementById('cancelDelete');
+      const confirmDelete = document.getElementById('confirmDelete');
+      
+      function openDeleteModal(id, name) {
+        pendingDelete = { id, name };
+        deleteFileName.textContent = `"${name}"`;
+        deleteModal.classList.add('active');
+      }
+      
+      function closeDeleteModalFunc() {
+        deleteModal.classList.remove('active');
+        pendingDelete = null;
+      }
+      
+      async function executeDelete() {
+        if (!pendingDelete) return;
+        
+        const { id, name } = pendingDelete;
+        confirmDelete.disabled = true;
+        cancelDelete.disabled = true;
+        
+        try {
+          const result = await apiRequest(`/api/documents/${id}`, {
+            method: 'DELETE',
+            body: { user_id: AppState.user.id }
+          });
+          
+          if (result.data && result.data.success) {
+            showToast('删除成功', 'success');
+            closeDeleteModalFunc();
+            loadDocuments();
+          } else {
+            showToast(result.data?.message || '删除失败', 'error');
+            confirmDelete.disabled = false;
+            cancelDelete.disabled = false;
+          }
+        } catch (error) {
+          showToast('网络错误，请稍后重试', 'error');
+          confirmDelete.disabled = false;
+          cancelDelete.disabled = false;
+        }
+      }
       
       function openModal() {
         uploadModal.classList.add('active');
@@ -464,27 +535,10 @@
         });
         
         documentsBody.querySelectorAll('.delete-btn').forEach(btn => {
-          btn.addEventListener('click', async function() {
+          btn.addEventListener('click', function() {
             const id = parseInt(this.dataset.id, 10);
             const name = this.dataset.name;
-            
-            if (confirm(`确定要删除文档 "${name}" 吗？此操作不可恢复。`)) {
-              try {
-                const result = await apiRequest(`/api/documents/${id}`, {
-                  method: 'DELETE',
-                  body: { user_id: AppState.user.id }
-                });
-                
-                if (result.data && result.data.success) {
-                  showToast('删除成功', 'success');
-                  loadDocuments();
-                } else {
-                  showToast(result.data?.message || '删除失败', 'error');
-                }
-              } catch (error) {
-                showToast('网络错误，请稍后重试', 'error');
-              }
-            }
+            openDeleteModal(id, name);
           });
         });
       }
@@ -549,6 +603,16 @@
       uploadModal.addEventListener('click', (e) => {
         if (e.target === uploadModal) {
           closeModalFunc();
+        }
+      });
+      
+      closeDeleteModal.addEventListener('click', closeDeleteModalFunc);
+      cancelDelete.addEventListener('click', closeDeleteModalFunc);
+      confirmDelete.addEventListener('click', executeDelete);
+      
+      deleteModal.addEventListener('click', (e) => {
+        if (e.target === deleteModal) {
+          closeDeleteModalFunc();
         }
       });
       

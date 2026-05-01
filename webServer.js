@@ -1320,15 +1320,10 @@ app.get('/api/documents/:id/view', async (req, res) => {
       });
     }
 
-    const viewableTypes = [
-      'application/pdf',
-      'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml',
-      'text/plain', 'text/html', 'text/css', 'application/javascript', 'application/json'
-    ];
-
-    const isViewable = viewableTypes.some(type => 
-      document.mime_type && document.mime_type.startsWith(type.split('/')[0])
-    ) || viewableTypes.includes(document.mime_type);
+    const viewableTypePrefixes = ['application/pdf', 'image/', 'text/'];
+    const isViewable = viewableTypePrefixes.some(prefix => 
+      document.mime_type && document.mime_type.startsWith(prefix)
+    );
 
     if (!isViewable) {
       return res.status(400).json({
