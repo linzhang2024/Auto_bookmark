@@ -198,10 +198,18 @@ function initDatabase() {
             folders_created INTEGER DEFAULT 0,
             duplicates_found INTEGER DEFAULT 0,
             duration_ms INTEGER,
+            backup_file_path TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
           )
         `);
+        
+        const hasBackupFilePath = await columnExists('sync_history', 'backup_file_path');
+        if (!hasBackupFilePath) {
+          await runAsync('ALTER TABLE sync_history ADD COLUMN backup_file_path TEXT');
+          logInfo('已添加 backup_file_path 列到 sync_history 表');
+        }
+        
         logInfo('sync_history 表已就绪');
 
         await runAsync(`

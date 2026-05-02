@@ -1,6 +1,6 @@
 {
   "folderName": "VPN",
-  "lastSyncTime": "2026-05-02T05:09:48.708Z",
+  "lastSyncTime": "2026-05-02T15:13:26.493Z",
   "bookmarks": [
     {
       "title": "西瓜-发布页",
@@ -10,7 +10,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T05:09:47.236Z"
+      "lastSyncTime": "2026-05-02T15:13:24.889Z"
     },
     {
       "title": "仪表盘 | 三月七",
@@ -34,9 +34,9 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777698579729",
-    "startTime": "2026-05-02T05:09:39.729Z",
-    "endTime": "2026-05-02T05:09:48.708Z",
+    "syncId": "sync_1777734797680",
+    "startTime": "2026-05-02T15:13:17.680Z",
+    "endTime": "2026-05-02T15:13:26.493Z",
     "totalBookmarks": 3,
     "completedBookmarks": 2,
     "failedBookmarks": 1

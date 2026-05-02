@@ -1,6 +1,6 @@
 {
   "folderName": "书签栏",
-  "lastSyncTime": "2026-05-02T05:09:48.709Z",
+  "lastSyncTime": "2026-05-02T15:13:26.494Z",
   "bookmarks": [
     {
       "title": "-中国期货市场监控中心",
@@ -10,7 +10,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T05:09:43.980Z"
+      "lastSyncTime": "2026-05-02T15:13:22.100Z"
     },
     {
       "title": "Gmail",
@@ -144,9 +144,9 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777698579729",
-    "startTime": "2026-05-02T05:09:39.729Z",
-    "endTime": "2026-05-02T05:09:48.709Z",
+    "syncId": "sync_1777734797680",
+    "startTime": "2026-05-02T15:13:17.680Z",
+    "endTime": "2026-05-02T15:13:26.494Z",
     "totalBookmarks": 14,
     "completedBookmarks": 13,
     "failedBookmarks": 1

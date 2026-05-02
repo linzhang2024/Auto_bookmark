@@ -17,6 +17,11 @@ const {
   countBookmarks,
   countFolders
 } = require('./bookmarkConverter');
+const {
+  convertToHtml,
+  createBackupFromBookmarks,
+  generateBackupFilename
+} = require('./bookmarkExporter');
 const User = require('./userModel');
 const Role = require('./roleModel');
 const Document = require('./documentModel');
@@ -132,6 +137,7 @@ const wss = new WebSocket.Server({ server });
 const DEFAULT_START_PORT = config.startPort || 4000;
 const MAX_PORT_ATTEMPTS = config.maxPortAttempts || 50;
 const DEFAULT_SYNC_DIR = config.syncDir || path.join(__dirname, 'bookmarks_mirror');
+const DEFAULT_BACKUP_DIR = config.backupDir || path.join(__dirname, 'bookmarks_backups');
 const DEFAULT_UPLOAD_DIR = path.join(__dirname, 'uploads');
 
 let currentSyncDir = DEFAULT_SYNC_DIR;
@@ -139,6 +145,15 @@ let isSyncing = false;
 let currentSyncTask = null;
 
 let connectedClients = new Set();
+
+function ensureBackupDir() {
+  if (!fs.existsSync(DEFAULT_BACKUP_DIR)) {
+    fs.mkdirSync(DEFAULT_BACKUP_DIR, { recursive: true });
+    console.log(`✓ 备份目录已创建: ${DEFAULT_BACKUP_DIR}`);
+  } else {
+    console.log(`✓ 备份目录已存在: ${DEFAULT_BACKUP_DIR}`);
+  }
+}
 
 function isPortAvailable(port) {
   return new Promise((resolve) => {
@@ -247,6 +262,9 @@ async function startServer() {
     } else {
       console.log(`✓ 上传目录已存在: ${DEFAULT_UPLOAD_DIR}`);
     }
+    
+    console.log('正在确保备份目录存在...');
+    ensureBackupDir();
     
   } catch (error) {
     console.error('初始化失败:', error.message);
@@ -602,8 +620,18 @@ app.post('/api/sync', async (req, res) => {
       }
     });
 
+    let backupFilePath = null;
     try {
-      await SyncHistory.updateSyncResult(taskInfo.taskId, result, 'manual_upload');
+      backupFilePath = await createBackupFromBookmarks(bookmarks, DEFAULT_BACKUP_DIR, {
+        browserSource: 'manual_upload'
+      });
+      console.log(`✓ 已创建备份文件: ${backupFilePath}`);
+    } catch (backupError) {
+      console.error('创建备份文件失败:', backupError.message);
+    }
+
+    try {
+      await SyncHistory.updateSyncResult(taskInfo.taskId, result, 'manual_upload', backupFilePath);
     } catch (historyError) {
       console.error('保存同步历史失败:', historyError.message);
     }
@@ -614,6 +642,7 @@ app.post('/api/sync', async (req, res) => {
         taskId: taskInfo.taskId,
         result: {
           ...result,
+          backupFilePath: backupFilePath,
           endTime: new Date().toISOString()
         }
       }
@@ -998,8 +1027,18 @@ app.post('/api/browser-sync', async (req, res) => {
         duplicatesFound: duplicatesFound
       };
 
+      let backupFilePath = null;
       try {
-        await SyncHistory.updateSyncResult(taskInfo.taskId, resultWithDuplicates, browserType);
+        backupFilePath = await createBackupFromBookmarks(bookmarksData, DEFAULT_BACKUP_DIR, {
+          browserSource: browserType
+        });
+        console.log(`✓ 已创建备份文件: ${backupFilePath}`);
+      } catch (backupError) {
+        console.error('创建备份文件失败:', backupError.message);
+      }
+
+      try {
+        await SyncHistory.updateSyncResult(taskInfo.taskId, resultWithDuplicates, browserType, backupFilePath);
       } catch (historyError) {
         console.error('保存同步历史失败:', historyError.message);
       }
@@ -1010,6 +1049,7 @@ app.post('/api/browser-sync', async (req, res) => {
           taskId: taskInfo.taskId,
           result: {
             ...resultWithDuplicates,
+            backupFilePath: backupFilePath,
             endTime: new Date().toISOString()
           }
         }
@@ -2264,6 +2304,162 @@ app.post('/api/sync-history/retry-batch', authMiddleware, async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || '启动重试任务失败'
+    });
+  }
+});
+
+app.get('/api/sync-history/:id/download', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    
+    console.log(`[备份下载] 开始下载历史记录 id=${id} 的备份文件`);
+    
+    if (isNaN(id)) {
+      console.warn(`[备份下载] 无效的历史记录 ID: ${req.params.id}`);
+      return res.status(400).json({
+        success: false,
+        message: '无效的历史记录 ID'
+      });
+    }
+    
+    const history = await SyncHistory.findById(id);
+    
+    if (!history) {
+      console.warn(`[备份下载] 历史记录不存在 id=${id}`);
+      return res.status(404).json({
+        success: false,
+        message: '同步历史记录不存在'
+      });
+    }
+    
+    if (!history.backup_file_path) {
+      console.warn(`[备份下载] 该历史记录没有备份文件 id=${id}`);
+      return res.status(404).json({
+        success: false,
+        message: '该同步历史记录没有备份文件'
+      });
+    }
+    
+    const backupPath = history.backup_file_path;
+    if (!fs.existsSync(backupPath)) {
+      console.warn(`[备份下载] 备份文件不存在: ${backupPath}`);
+      return res.status(404).json({
+        success: false,
+        message: '备份文件不存在'
+      });
+    }
+    
+    const stat = fs.statSync(backupPath);
+    if (!stat.isFile()) {
+      return res.status(404).json({
+        success: false,
+        message: '无效的备份文件路径'
+      });
+    }
+    
+    const fileName = path.basename(backupPath);
+    
+    console.log(`[备份下载] 开始发送文件: ${backupPath}`);
+    
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+    res.setHeader('Content-Length', stat.size);
+    
+    const readStream = fs.createReadStream(backupPath);
+    readStream.pipe(res);
+    
+    readStream.on('error', (err) => {
+      console.error('[备份下载] 文件读取错误:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: '文件读取失败'
+        });
+      }
+    });
+    
+  } catch (error) {
+    console.error(`[备份下载] 下载失败 id=${req.params.id}: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: error.message || '下载备份文件失败'
+    });
+  }
+});
+
+app.get('/api/backups/config', async (req, res) => {
+  try {
+    console.log(`[备份配置] 获取备份目录配置`);
+    
+    res.json({
+      success: true,
+      data: {
+        backupDir: DEFAULT_BACKUP_DIR,
+        backupDirExists: fs.existsSync(DEFAULT_BACKUP_DIR)
+      }
+    });
+  } catch (error) {
+    console.error(`[备份配置] 获取配置失败: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取备份配置失败'
+    });
+  }
+});
+
+app.get('/api/bookmarks/export', async (req, res) => {
+  try {
+    const { format = 'html', source = 'mirror' } = req.query;
+    
+    console.log(`[书签导出] 开始导出书签，格式=${format}, 来源=${source}`);
+    
+    if (format !== 'html') {
+      return res.status(400).json({
+        success: false,
+        message: '仅支持 HTML 格式导出'
+      });
+    }
+    
+    let bookmarks = null;
+    let browserSource = 'export';
+    
+    if (source === 'mirror') {
+      const mirrorPath = currentSyncDir || DEFAULT_SYNC_DIR;
+      if (!fs.existsSync(mirrorPath)) {
+        return res.status(404).json({
+          success: false,
+          message: '本地镜像目录不存在，请先同步书签'
+        });
+      }
+      
+      const { collectBookmarksFromMirror } = require('./bookmarkExporter');
+      bookmarks = await collectBookmarksFromMirror(mirrorPath);
+      browserSource = 'local_mirror';
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: '仅支持从本地镜像导出'
+      });
+    }
+    
+    const htmlContent = convertToHtml(bookmarks, { browserSource });
+    const timestamp = new Date().toISOString()
+      .replace(/[-:]/g, '')
+      .replace('T', '_')
+      .substring(0, 15);
+    const fileName = `bookmarks_export_${timestamp}.html`;
+    
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+    res.send(htmlContent);
+    
+    console.log(`[书签导出] 导出完成，文件名: ${fileName}`);
+    
+  } catch (error) {
+    console.error(`[书签导出] 导出失败: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: error.message || '导出书签失败'
     });
   }
 });
