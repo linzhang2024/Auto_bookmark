@@ -22,6 +22,13 @@ const Role = require('./roleModel');
 const Document = require('./documentModel');
 const { AuthMiddleware, DOC_WRITE_PERMISSION, ADMIN_PERMISSION, USER_LIST_PERMISSION, USER_UPDATE_PERMISSION } = require('./authMiddleware');
 const { initDatabase, DocumentStatus } = require('./database');
+const { 
+  detectBrowsers, 
+  readBrowserBookmarks, 
+  formatDetectionResult,
+  BrowserType 
+} = require('./browserBookmarkFinder');
+const { BookmarkDeduplicator } = require('./BookmarkDeduplicator');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'auto-bookmark-jwt-secret-key-2024';
 const JWT_EXPIRES_IN = '24h';
@@ -629,6 +636,369 @@ app.post('/api/cancel-sync', (req, res) => {
   } else {
     res.json({ success: false, message: '当前没有正在进行的同步任务' });
   }
+});
+
+app.get('/api/browsers', (req, res) => {
+  try {
+    const detection = detectBrowsers();
+    const result = formatDetectionResult(detection);
+    res.json(result);
+  } catch (error) {
+    console.error('检测浏览器失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || '检测浏览器失败'
+    });
+  }
+});
+
+app.post('/api/browser-bookmarks', async (req, res) => {
+  try {
+    const { browserType, customPath } = req.body;
+    
+    if (!browserType) {
+      return res.status(400).json({
+        success: false,
+        error: '请指定浏览器类型'
+      });
+    }
+    
+    const validTypes = [BrowserType.CHROME, BrowserType.EDGE, BrowserType.FIREFOX, BrowserType.SAFARI];
+    if (!validTypes.includes(browserType)) {
+      return res.status(400).json({
+        success: false,
+        error: `不支持的浏览器类型: ${browserType}`
+      });
+    }
+    
+    const result = await readBrowserBookmarks(browserType, customPath);
+    
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error,
+        browserName: result.browserName
+      });
+    }
+    
+    const totalBookmarks = countBookmarks(result.data);
+    const totalFolders = countFolders(result.data);
+    
+    res.json({
+      success: true,
+      browserName: result.browserName,
+      totalBookmarks,
+      totalFolders,
+      bookmarks: result.data
+    });
+    
+  } catch (error) {
+    console.error('读取浏览器书签失败:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || '读取浏览器书签失败'
+    });
+  }
+});
+
+function flattenBookmarks(items) {
+  const result = [];
+  
+  function traverse(itemsList, folderPath = '') {
+    if (!Array.isArray(itemsList)) return;
+    
+    for (const item of itemsList) {
+      if (!item) continue;
+      
+      if (item.type === 'folder') {
+        const newPath = folderPath ? `${folderPath}/${item.name}` : item.name;
+        if (item.children) {
+          traverse(item.children, newPath);
+        }
+      } else if (item.type === 'link') {
+        result.push({
+          ...item,
+          folderPath: folderPath
+        });
+      }
+    }
+  }
+  
+  traverse(items);
+  return result;
+}
+
+function deduplicateBookmarks(newBookmarks, existingBookmarks = []) {
+  const deduplicator = new BookmarkDeduplicator({
+    urlSimilarityThreshold: 1.0,
+    titleSimilarityThreshold: 0.9,
+    ignoreUrlParams: true,
+    ignoreUrlProtocol: true,
+    ignoreUrlTrailingSlash: true,
+    keepNewer: true,
+    keepMoreComplete: true
+  });
+  
+  const allBookmarks = [
+    ...(existingBookmarks || []),
+    ...newBookmarks
+  ];
+  
+  const { deduplicated, report } = deduplicator.deduplicate(allBookmarks);
+  
+  return {
+    deduplicated,
+    report
+  };
+}
+
+function collectAllBookmarksWithFolders(items) {
+  const result = {
+    folders: new Map(),
+    bookmarks: []
+  };
+  
+  function traverse(itemsList, currentPath = '') {
+    if (!Array.isArray(itemsList)) return;
+    
+    for (const item of itemsList) {
+      if (!item) continue;
+      
+      if (item.type === 'folder') {
+        const folderKey = currentPath ? `${currentPath}/${item.name}` : item.name;
+        result.folders.set(folderKey, {
+          name: item.name,
+          path: folderKey,
+          addDate: item.addDate,
+          lastModified: item.lastModified
+        });
+        
+        if (item.children) {
+          traverse(item.children, folderKey);
+        }
+      } else if (item.type === 'link') {
+        result.bookmarks.push({
+          ...item,
+          folderPath: currentPath
+        });
+      }
+    }
+  }
+  
+  traverse(items);
+  return result;
+}
+
+app.post('/api/browser-sync', async (req, res) => {
+  if (isSyncing) {
+    return res.status(400).json({ 
+      success: false, 
+      message: '同步任务正在进行中' 
+    });
+  }
+
+  const { 
+    browserType, 
+    customPath,
+    syncDir,
+    skipIcon = false,
+    force = false,
+    enableDeduplication = true,
+    concurrency,
+    timeout
+  } = req.body;
+
+  if (!browserType) {
+    return res.status(400).json({
+      success: false,
+      error: '请指定浏览器类型'
+    });
+  }
+
+  const actualConcurrency = concurrency !== undefined ? concurrency : config.maxConcurrency;
+  const actualTimeout = timeout !== undefined ? timeout : config.iconTimeout;
+
+  broadcast({
+    type: 'browser_sync_status',
+    data: {
+      phase: 'scanning',
+      message: '正在扫描浏览器书签...',
+      progress: 0
+    }
+  });
+
+  let bookmarksData;
+  try {
+    const readResult = await readBrowserBookmarks(browserType, customPath);
+    
+    if (!readResult.success) {
+      broadcast({
+        type: 'browser_sync_failed',
+        data: {
+          error: readResult.error,
+          browserName: readResult.browserName
+        }
+      });
+      return res.status(400).json({
+        success: false,
+        error: readResult.error,
+        browserName: readResult.browserName
+      });
+    }
+    
+    bookmarksData = readResult.data;
+  } catch (error) {
+    broadcast({
+      type: 'browser_sync_failed',
+      data: {
+        error: error.message
+      }
+    });
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+
+  const totalBookmarks = countBookmarks(bookmarksData);
+  const totalFolders = countFolders(bookmarksData);
+
+  broadcast({
+    type: 'browser_sync_status',
+    data: {
+      phase: 'analyzing',
+      message: `分析完成：发现 ${totalFolders} 个文件夹，${totalBookmarks} 个书签`,
+      progress: 20
+    }
+  });
+
+  if (enableDeduplication) {
+    broadcast({
+      type: 'browser_sync_status',
+      data: {
+        phase: 'deduplicating',
+        message: '正在检查重复书签...',
+        progress: 30
+      }
+    });
+
+    const { deduplicated, report } = deduplicateBookmarks(
+      flattenBookmarks(bookmarksData)
+    );
+
+    if (report.duplicatesFound > 0) {
+      console.log(`去重完成：发现 ${report.duplicatesFound} 个重复书签，已合并`);
+    }
+  }
+
+  const targetSyncDir = syncDir ? path.resolve(syncDir) : currentSyncDir;
+
+  isSyncing = true;
+  
+  const taskInfo = {
+    taskId: `browser_sync_${Date.now()}`,
+    startTime: new Date().toISOString(),
+    browserType,
+    customPath,
+    syncDir: targetSyncDir
+  };
+
+  currentSyncTask = taskInfo;
+
+  res.json({ 
+    success: true, 
+    message: '浏览器同步任务已启动',
+    taskInfo,
+    stats: {
+      totalBookmarks,
+      totalFolders
+    }
+  });
+
+  broadcast({
+    type: 'browser_sync_started',
+    data: {
+      ...taskInfo,
+      totalBookmarks,
+      totalFolders
+    }
+  });
+
+  (async () => {
+    try {
+      broadcast({
+        type: 'browser_sync_status',
+        data: {
+          phase: 'syncing',
+          message: '开始同步书签...',
+          progress: 40
+        }
+      });
+
+      let completedCount = 0;
+      let lastProgressTime = Date.now();
+
+      const result = await syncToLocalMirror(bookmarksData, targetSyncDir, {
+        maxConcurrent: actualConcurrency,
+        timeout: actualTimeout,
+        skipIconDownload: skipIcon,
+        forceUpdate: force,
+        onProgress: (current, total, message) => {
+          const now = Date.now();
+          if (now - lastProgressTime > 500 || current === total) {
+            const progress = 40 + Math.round((current / Math.max(total, 1)) * 50);
+            broadcast({
+              type: 'browser_sync_status',
+              data: {
+                phase: 'syncing',
+                current,
+                total,
+                message,
+                progress: Math.min(progress, 90)
+              }
+            });
+            lastProgressTime = now;
+          }
+        }
+      });
+
+      broadcast({
+        type: 'browser_sync_status',
+        data: {
+          phase: 'finalizing',
+          message: '正在完成同步...',
+          progress: 95
+        }
+      });
+
+      broadcast({
+        type: 'browser_sync_completed',
+        data: {
+          taskId: taskInfo.taskId,
+          result: {
+            ...result,
+            endTime: new Date().toISOString()
+          }
+        }
+      });
+
+      const status = checkSyncStatus(targetSyncDir);
+      broadcast(formatSyncStatusForClient(status));
+
+    } catch (error) {
+      console.error('浏览器同步任务失败:', error);
+      broadcast({
+        type: 'browser_sync_failed',
+        data: {
+          taskId: taskInfo.taskId,
+          error: error.message
+        }
+      });
+    } finally {
+      isSyncing = false;
+      currentSyncTask = null;
+    }
+  })();
 });
 
 app.post('/api/auth/login', async (req, res) => {

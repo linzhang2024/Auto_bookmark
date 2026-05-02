@@ -1,0 +1,19 @@
+1. voice clone，make a audio of chinese medicine.
+2. audio2face, create a piece of demo project.
+
+openclaw agents add creativity   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-creativity
+openclaw agents set-identity --agent creativity --name  --emoji "💥"
+
+openclaw agents add Visual   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-Visual
+openclaw agents set-identity --agent Visual --name
+
+openclaw agents add Editing   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-Editing
+openclaw agents set-identity --agent Editing --name 
+
+openclaw agents add Operations   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-Operations
+openclaw agents set-identity --agent Operations --name 
+
+openclaw agents add Product_selection   --model deepseek/deepseek-chat   --workspace ~/.openclaw/workspace-Product_selection
+openclaw agents set-identity --agent Product_selection --name 
+
+中文汉字测试，！~·-》->

@@ -5,6 +5,171 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>书签管理 - 书签管理系统</title>
   <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .sync-tabs {
+      display: flex;
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 20px;
+    }
+    .sync-tab {
+      padding: 12px 24px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #6b7280;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s ease;
+    }
+    .sync-tab:hover {
+      color: #4b5563;
+    }
+    .sync-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+    .sync-tab-content {
+      display: none;
+    }
+    .sync-tab-content.active {
+      display: block;
+    }
+    .browser-option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 12px;
+    }
+    .browser-option:hover {
+      border-color: #d1d5db;
+      background-color: #f9fafb;
+    }
+    .browser-option.selected {
+      border-color: #667eea;
+      background-color: rgba(102, 126, 234, 0.05);
+    }
+    .browser-option.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .browser-icon {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    .browser-info {
+      flex: 1;
+    }
+    .browser-name {
+      font-weight: 500;
+      color: #1f2937;
+      font-size: 14px;
+    }
+    .browser-status {
+      font-size: 12px;
+      margin-top: 2px;
+    }
+    .browser-status.installed {
+      color: #10b981;
+    }
+    .browser-status.not-installed {
+      color: #9ca3af;
+    }
+    .custom-path-section {
+      margin-top: 16px;
+      padding: 16px;
+      background-color: #f8fafc;
+      border-radius: 8px;
+    }
+    .sync-status-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .sync-status-bar.scanning {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+    .sync-status-bar.analyzing {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    .sync-status-bar.deduplicating {
+      background-color: #e0e7ff;
+      color: #3730a3;
+    }
+    .sync-status-bar.syncing {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+    .sync-status-bar.finalizing {
+      background-color: #fce7f3;
+      color: #9d174d;
+    }
+    .sync-status-bar.completed {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    .sync-status-bar.error {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+    .sync-status-icon {
+      font-size: 20px;
+    }
+    .sync-status-icon.spinning {
+      animation: spin 1s linear infinite;
+    }
+    .phase-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      margin-right: 8px;
+    }
+    .phase-badge.scanning { background-color: #3b82f6; color: white; }
+    .phase-badge.analyzing { background-color: #f59e0b; color: white; }
+    .phase-badge.deduplicating { background-color: #8b5cf6; color: white; }
+    .phase-badge.syncing { background-color: #10b981; color: white; }
+    .phase-badge.finalizing { background-color: #ec4899; color: white; }
+    .phase-badge.completed { background-color: #059669; color: white; }
+    .phase-badge.error { background-color: #dc2626; color: white; }
+    .error-detail {
+      margin-top: 12px;
+      padding: 12px;
+      background-color: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+    }
+    .error-detail h4 {
+      color: #991b1b;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+    .error-detail p {
+      color: #b91c1c;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .error-detail .help-text {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid #fecaca;
+      color: #7f1d1d;
+    }
+  </style>
 </head>
 <body>
   <div class="main-content">
@@ -67,62 +232,139 @@
   </div>
 
   <div class="modal-overlay" id="syncModal">
-    <div class="modal" style="max-width: 600px;">
+    <div class="modal" style="max-width: 650px;">
       <div class="modal-header">
         <h3>同步书签</h3>
         <button class="modal-close" id="closeSyncModal">&times;</button>
       </div>
       <div class="modal-body">
-        <div class="alert alert-info">
-          <strong>说明：</strong>请从浏览器导出书签 HTML 文件，然后上传到系统进行同步。
-          <br><br>
-          <strong>导出方法：</strong>
-          <ul style="margin-top: 8px; padding-left: 20px;">
-            <li>Chrome: 设置 → 书签和清单 → 书签管理器 → 右上角菜单 → 导出书签</li>
-            <li>Edge: 设置 → 收藏夹 → 更多选项 → 导出收藏夹</li>
-            <li>Firefox: 书签 → 管理书签 → 导入和备份 → 备份...</li>
-          </ul>
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label" for="bookmarksPath">选择书签 HTML 文件</label>
-          <div class="upload-area" id="fileUploadArea" style="padding: 24px;">
-            <input type="file" id="bookmarksFile" accept=".html,.htm" style="display: none;">
-            <div class="upload-icon" style="font-size: 36px; margin-bottom: 8px;">📄</div>
-            <div class="upload-text" style="font-size: 14px;">点击选择或拖拽书签 HTML 文件到此处</div>
-            <div class="upload-hint" style="font-size: 12px; margin-top: 4px;">支持 .html 和 .htm 格式</div>
+        <div class="sync-tabs">
+          <div class="sync-tab active" data-tab="auto">
+            <span>🤖</span> 自动同步
           </div>
-          <div id="selectedFileInfo" style="display: none; margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 8px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span style="font-size: 24px;">📄</span>
-              <div>
-                <div id="selectedFileName" style="font-weight: 500; color: #374151;"></div>
-                <div id="selectedFileSize" style="font-size: 12px; color: #9ca3af;"></div>
+          <div class="sync-tab" data-tab="manual">
+            <span>📄</span> 手动上传
+          </div>
+        </div>
+
+        <div class="sync-tab-content active" id="tab-auto">
+          <div class="alert alert-info">
+            <strong>说明：</strong>选择已安装的浏览器，系统将自动读取书签并同步。
+            <br><br>
+            <strong>支持的浏览器：</strong>
+            <ul style="margin-top: 8px; padding-left: 20px;">
+              <li>Google Chrome (自动检测)</li>
+              <li>Microsoft Edge (自动检测)</li>
+              <li>Mozilla Firefox (需手动导出 HTML)</li>
+            </ul>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">选择浏览器</label>
+            <div id="browserList">
+              <div class="empty-state" style="padding: 30px;">
+                <div class="empty-state-icon">🔍</div>
+                <div class="empty-state-text">正在检测已安装的浏览器...</div>
               </div>
-              <button class="btn btn-danger btn-sm" id="clearFile" style="margin-left: auto;">清除</button>
             </div>
           </div>
+          
+          <div id="customPathSection" class="custom-path-section" style="display: none;">
+            <label class="form-label">自定义书签路径 (可选)</label>
+            <input type="text" class="form-input" id="customBookmarkPath" placeholder="例如: C:\Users\用户名\AppData\Local\Google\Chrome\User Data\Default\Bookmarks">
+            <p style="font-size: 12px; color: #6b7280; margin-top: 8px;">
+              💡 如果自动检测失败，可以手动指定书签文件路径
+            </p>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="autoSkipIcon" style="margin-right: 8px;">
+              跳过图标下载（同步更快）
+            </label>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="autoForceUpdate" style="margin-right: 8px;">
+              强制更新（忽略已存在的文件）
+            </label>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="enableDeduplication" style="margin-right: 8px;" checked>
+              启用智能去重（推荐）
+            </label>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label class="form-label">
-            <input type="checkbox" id="skipIcon" style="margin-right: 8px;">
-            跳过图标下载（同步更快）
-          </label>
+
+        <div class="sync-tab-content" id="tab-manual">
+          <div class="alert alert-info">
+            <strong>说明：</strong>请从浏览器导出书签 HTML 文件，然后上传到系统进行同步。
+            <br><br>
+            <strong>导出方法：</strong>
+            <ul style="margin-top: 8px; padding-left: 20px;">
+              <li>Chrome: 设置 → 书签和清单 → 书签管理器 → 右上角菜单 → 导出书签</li>
+              <li>Edge: 设置 → 收藏夹 → 更多选项 → 导出收藏夹</li>
+              <li>Firefox: 书签 → 管理书签 → 导入和备份 → 导出书签到 HTML</li>
+            </ul>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label" for="bookmarksPath">选择书签 HTML 文件</label>
+            <div class="upload-area" id="fileUploadArea" style="padding: 24px;">
+              <input type="file" id="bookmarksFile" accept=".html,.htm" style="display: none;">
+              <div class="upload-icon" style="font-size: 36px; margin-bottom: 8px;">📄</div>
+              <div class="upload-text" style="font-size: 14px;">点击选择或拖拽书签 HTML 文件到此处</div>
+              <div class="upload-hint" style="font-size: 12px; margin-top: 4px;">支持 .html 和 .htm 格式</div>
+            </div>
+            <div id="selectedFileInfo" style="display: none; margin-top: 12px; padding: 12px; background: #f8fafc; border-radius: 8px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 24px;">📄</span>
+                <div>
+                  <div id="selectedFileName" style="font-weight: 500; color: #374151;"></div>
+                  <div id="selectedFileSize" style="font-size: 12px; color: #9ca3af;"></div>
+                </div>
+                <button class="btn btn-danger btn-sm" id="clearFile" style="margin-left: auto;">清除</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="skipIcon" style="margin-right: 8px;">
+              跳过图标下载（同步更快）
+            </label>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">
+              <input type="checkbox" id="forceUpdate" style="margin-right: 8px;">
+              强制更新（忽略已存在的文件）
+            </label>
+          </div>
         </div>
-        
-        <div class="form-group">
-          <label class="form-label">
-            <input type="checkbox" id="forceUpdate" style="margin-right: 8px;">
-            强制更新（忽略已存在的文件）
-          </label>
-        </div>
-        
-        <div id="syncProgress" style="display: none; margin-top: 16px;">
+
+        <div id="syncStatusContainer" style="display: none;">
+          <div id="syncStatusBar" class="sync-status-bar">
+            <span id="syncStatusIcon" class="sync-status-icon">⏳</span>
+            <div style="flex: 1;">
+              <span id="syncPhaseBadge" class="phase-badge">准备中</span>
+              <span id="syncStatusMessage">准备同步...</span>
+            </div>
+          </div>
+          
           <div class="progress-container">
             <div class="progress-bar" id="syncProgressBar" style="width: 0%;"></div>
           </div>
           <div class="progress-text" id="syncProgressText">准备同步...</div>
+          
+          <div id="syncErrorDetail" class="error-detail" style="display: none;">
+            <h4 id="syncErrorTitle">同步失败</h4>
+            <p id="syncErrorMessage"></p>
+            <div id="syncErrorHelp" class="help-text"></div>
+          </div>
         </div>
         
         <div id="syncResult" style="display: none; margin-top: 16px;"></div>
@@ -130,8 +372,8 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="cancelSync">取消</button>
         <button class="btn btn-primary" id="startSync" disabled>
-          <span>🚀</span>
-          <span>开始同步</span>
+          <span id="startSyncIcon">🚀</span>
+          <span id="startSyncText">开始同步</span>
         </button>
       </div>
     </div>
@@ -159,8 +401,11 @@
       renderNav();
       
       let selectedFile = null;
+      let selectedBrowser = null;
       let syncStatus = null;
-      let bookmarksData = null;
+      let detectedBrowsers = [];
+      let ws = null;
+      let isSyncing = false;
       
       const syncBtn = document.getElementById('syncBtn');
       const refreshBtn = document.getElementById('refreshBtn');
@@ -168,18 +413,35 @@
       const closeSyncModal = document.getElementById('closeSyncModal');
       const cancelSync = document.getElementById('cancelSync');
       const startSync = document.getElementById('startSync');
+      const startSyncIcon = document.getElementById('startSyncIcon');
+      const startSyncText = document.getElementById('startSyncText');
+      
       const fileUploadArea = document.getElementById('fileUploadArea');
       const bookmarksFile = document.getElementById('bookmarksFile');
       const selectedFileInfo = document.getElementById('selectedFileInfo');
       const selectedFileName = document.getElementById('selectedFileName');
       const selectedFileSize = document.getElementById('selectedFileSize');
       const clearFile = document.getElementById('clearFile');
+      
       const skipIcon = document.getElementById('skipIcon');
       const forceUpdate = document.getElementById('forceUpdate');
-      const syncProgress = document.getElementById('syncProgress');
+      const autoSkipIcon = document.getElementById('autoSkipIcon');
+      const autoForceUpdate = document.getElementById('autoForceUpdate');
+      const enableDeduplication = document.getElementById('enableDeduplication');
+      
+      const syncStatusContainer = document.getElementById('syncStatusContainer');
+      const syncStatusBar = document.getElementById('syncStatusBar');
+      const syncStatusIcon = document.getElementById('syncStatusIcon');
+      const syncPhaseBadge = document.getElementById('syncPhaseBadge');
+      const syncStatusMessage = document.getElementById('syncStatusMessage');
       const syncProgressBar = document.getElementById('syncProgressBar');
       const syncProgressText = document.getElementById('syncProgressText');
       const syncResult = document.getElementById('syncResult');
+      const syncErrorDetail = document.getElementById('syncErrorDetail');
+      const syncErrorTitle = document.getElementById('syncErrorTitle');
+      const syncErrorMessage = document.getElementById('syncErrorMessage');
+      const syncErrorHelp = document.getElementById('syncErrorHelp');
+      
       const folderList = document.getElementById('folderList');
       const folderDetailModal = document.getElementById('folderDetailModal');
       const closeFolderModal = document.getElementById('closeFolderModal');
@@ -187,25 +449,341 @@
       const folderDetailTitle = document.getElementById('folderDetailTitle');
       const folderBookmarksList = document.getElementById('folderBookmarksList');
       
+      const customPathSection = document.getElementById('customPathSection');
+      const customBookmarkPath = document.getElementById('customBookmarkPath');
+      const browserList = document.getElementById('browserList');
+      
+      const syncTabs = document.querySelectorAll('.sync-tab');
+      const tabContents = document.querySelectorAll('.sync-tab-content');
+      let activeTab = 'auto';
+      
+      function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}`;
+        
+        try {
+          ws = new WebSocket(wsUrl);
+          
+          ws.onopen = function() {
+            console.log('WebSocket 连接已建立');
+          };
+          
+          ws.onmessage = function(event) {
+            try {
+              const data = JSON.parse(event.data);
+              handleWebSocketMessage(data);
+            } catch (e) {
+              console.error('解析 WebSocket 消息失败:', e);
+            }
+          };
+          
+          ws.onclose = function() {
+            console.log('WebSocket 连接已关闭');
+          };
+          
+          ws.onerror = function(error) {
+            console.error('WebSocket 错误:', error);
+          };
+        } catch (e) {
+          console.error('建立 WebSocket 连接失败:', e);
+        }
+      }
+      
+      function handleWebSocketMessage(data) {
+        if (!data.type) return;
+        
+        switch (data.type) {
+          case 'browser_sync_started':
+            updateSyncStatus('scanning', '正在扫描浏览器书签...', 0);
+            break;
+            
+          case 'browser_sync_status':
+            if (data.data) {
+              const phase = data.data.phase || 'syncing';
+              const message = data.data.message || '正在同步...';
+              const progress = data.data.progress || 0;
+              updateSyncStatus(phase, message, progress);
+            }
+            break;
+            
+          case 'browser_sync_completed':
+            updateSyncStatus('completed', '同步完成！', 100);
+            showSyncResult(data.data?.result, true);
+            break;
+            
+          case 'browser_sync_failed':
+            handleSyncError(data.data?.error, data.data?.browserName);
+            break;
+            
+          case 'sync_progress':
+            if (isSyncing) {
+              const current = data.data?.current || 0;
+              const total = data.data?.total || 0;
+              const message = data.data?.message || '正在同步...';
+              const phase = data.data?.phase || 'syncing';
+              const progress = total > 0 ? Math.round((current / total) * 100) : 0;
+              updateSyncStatus(phase, message, progress);
+            }
+            break;
+            
+          case 'sync_completed':
+            if (isSyncing) {
+              updateSyncStatus('completed', '同步完成！', 100);
+              showSyncResult(data.data?.result, true);
+            }
+            break;
+            
+          case 'sync_failed':
+            if (isSyncing) {
+              handleSyncError(data.data?.error);
+            }
+            break;
+            
+          case 'status':
+            if (data.data) {
+              syncStatus = data.data;
+              updateStats();
+              renderFolders();
+            }
+            break;
+        }
+      }
+      
+      function updateSyncStatus(phase, message, progress) {
+        const phases = {
+          scanning: { icon: '🔍', label: '扫描中' },
+          analyzing: { icon: '📊', label: '分析中' },
+          deduplicating: { icon: '🔄', label: '去重中' },
+          syncing: { icon: '🚀', label: '同步中' },
+          finalizing: { icon: '✅', label: '完成中' },
+          completed: { icon: '🎉', label: '已完成' },
+          error: { icon: '❌', label: '错误' }
+        };
+        
+        const phaseInfo = phases[phase] || phases.syncing;
+        
+        syncStatusBar.className = `sync-status-bar ${phase}`;
+        syncStatusIcon.textContent = phaseInfo.icon;
+        
+        if (phase !== 'completed' && phase !== 'error') {
+          syncStatusIcon.classList.add('spinning');
+        } else {
+          syncStatusIcon.classList.remove('spinning');
+        }
+        
+        syncPhaseBadge.className = `phase-badge ${phase}`;
+        syncPhaseBadge.textContent = phaseInfo.label;
+        syncStatusMessage.textContent = message;
+        
+        syncProgressBar.style.width = `${progress}%`;
+        syncProgressText.textContent = `${message} (${progress}%)`;
+      }
+      
+      function handleSyncError(errorMessage, browserName) {
+        isSyncing = false;
+        updateSyncStatus('error', '同步失败', 0);
+        
+        syncErrorDetail.style.display = 'block';
+        syncErrorTitle.textContent = browserName ? `${browserName} 同步失败` : '同步失败';
+        syncErrorMessage.textContent = errorMessage || '未知错误';
+        
+        let helpText = '';
+        if (errorMessage) {
+          if (errorMessage.includes('未安装') || errorMessage.includes('无法访问')) {
+            helpText = '💡 解决方案：<br>';
+            helpText += '1. 请确保浏览器已正确安装<br>';
+            helpText += '2. 或者尝试在上方输入框中手动指定书签文件路径<br>';
+            helpText += '3. 也可以选择"手动上传"方式，从浏览器导出 HTML 书签文件';
+          } else if (errorMessage.includes('Firefox') || errorMessage.includes('SQLite')) {
+            helpText = '💡 Firefox 书签需要手动导出：<br>';
+            helpText += '1. 打开 Firefox → 书签 → 管理书签<br>';
+            helpText += '2. 点击"导入和备份" → "导出书签到 HTML"<br>';
+            helpText += '3. 切换到"手动上传"标签页，上传导出的 HTML 文件';
+          } else if (errorMessage.includes('权限') || errorMessage.includes('permission')) {
+            helpText = '💡 权限问题：<br>';
+            helpText += '请以管理员身份运行应用程序，或手动指定书签文件路径';
+          }
+        }
+        
+        if (helpText) {
+          syncErrorHelp.innerHTML = helpText;
+          syncErrorHelp.style.display = 'block';
+        } else {
+          syncErrorHelp.style.display = 'none';
+        }
+        
+        startSync.disabled = false;
+        startSyncIcon.textContent = '🚀';
+        startSyncText.textContent = '重新同步';
+      }
+      
+      function showSyncResult(result, success) {
+        isSyncing = false;
+        syncResult.style.display = 'block';
+        
+        if (success) {
+          syncResult.className = 'alert alert-success';
+          let resultText = '同步完成！\n\n';
+          if (result) {
+            resultText += `📁 创建文件夹: ${result.foldersCreated || 0} 个\n`;
+            resultText += `🔗 同步书签: ${result.bookmarksSynced || 0} 个\n`;
+            resultText += `✅ 已存在: ${result.bookmarksAlreadySynced || 0} 个\n`;
+            resultText += `❌ 失败: ${result.bookmarksFailed || 0} 个`;
+          }
+          syncResult.textContent = resultText;
+          
+          showToast('同步成功！', 'success');
+          
+          setTimeout(() => {
+            closeSyncModalFunc();
+            loadStatus();
+          }, 3000);
+        } else {
+          syncResult.className = 'alert alert-error';
+          syncResult.textContent = result || '同步失败，请稍后重试';
+        }
+        
+        startSync.disabled = false;
+        startSyncIcon.textContent = '🚀';
+        startSyncText.textContent = '重新同步';
+      }
+      
       function openSyncModal() {
         syncModal.classList.add('active');
         resetSyncForm();
+        connectWebSocket();
+        detectBrowsers();
       }
       
       function closeSyncModalFunc() {
         syncModal.classList.remove('active');
+        if (ws) {
+          ws.close();
+          ws = null;
+        }
       }
       
       function resetSyncForm() {
         selectedFile = null;
+        selectedBrowser = null;
+        isSyncing = false;
         bookmarksFile.value = '';
         selectedFileInfo.style.display = 'none';
+        customBookmarkPath.value = '';
+        customPathSection.style.display = 'none';
+        
         startSync.disabled = true;
-        syncProgress.style.display = 'none';
+        syncStatusContainer.style.display = 'none';
         syncResult.style.display = 'none';
+        syncErrorDetail.style.display = 'none';
         syncProgressBar.style.width = '0%';
+        
         skipIcon.checked = false;
         forceUpdate.checked = false;
+        autoSkipIcon.checked = false;
+        autoForceUpdate.checked = false;
+        enableDeduplication.checked = true;
+        
+        startSyncIcon.textContent = '🚀';
+        startSyncText.textContent = '开始同步';
+        
+        updateStartButtonState();
+      }
+      
+      async function detectBrowsers() {
+        browserList.innerHTML = `
+          <div class="empty-state" style="padding: 30px;">
+            <div class="empty-state-icon">🔍</div>
+            <div class="empty-state-text">正在检测已安装的浏览器...</div>
+          </div>
+        `;
+        
+        try {
+          const result = await apiRequest('/api/browsers', { method: 'GET' });
+          
+          if (result.data && result.data.success) {
+            detectedBrowsers = result.data.browsers || [];
+            renderBrowserList();
+          } else {
+            throw new Error(result.data?.error || '检测浏览器失败');
+          }
+        } catch (error) {
+          console.error('检测浏览器失败:', error);
+          browserList.innerHTML = `
+            <div class="empty-state" style="padding: 30px;">
+              <div class="empty-state-icon">⚠️</div>
+              <div class="empty-state-text">检测浏览器失败</div>
+              <div class="empty-state-hint">${error.message || '请尝试手动上传书签文件'}</div>
+            </div>
+          `;
+        }
+      }
+      
+      function renderBrowserList() {
+        if (detectedBrowsers.length === 0) {
+          browserList.innerHTML = `
+            <div class="empty-state" style="padding: 30px;">
+              <div class="empty-state-icon">📭</div>
+              <div class="empty-state-text">未检测到已安装的浏览器</div>
+              <div class="empty-state-hint">请切换到"手动上传"标签页，上传导出的书签 HTML 文件</div>
+            </div>
+          `;
+          return;
+        }
+        
+        const browserIcons = {
+          chrome: '🌐',
+          edge: '🔷',
+          firefox: '🦊',
+          safari: '🧭'
+        };
+        
+        browserList.innerHTML = detectedBrowsers.map(browser => `
+          <div class="browser-option ${browser.isInstalled ? '' : 'disabled'}" 
+               data-browser="${browser.type}"
+               data-installed="${browser.isInstalled}">
+            <div class="browser-icon">${browserIcons[browser.type] || '📱'}</div>
+            <div class="browser-info">
+              <div class="browser-name">${browser.name}</div>
+              <div class="browser-status ${browser.isInstalled ? 'installed' : 'not-installed'}">
+                ${browser.isInstalled ? '✓ 已安装' : '✗ 未安装'}
+                ${browser.canAutoSync ? '' : '(需手动导出)'}
+              </div>
+            </div>
+            ${browser.isInstalled ? '<div style="font-size: 18px; color: #d1d5db;">›</div>' : ''}
+          </div>
+        `).join('');
+        
+        browserList.querySelectorAll('.browser-option:not(.disabled)').forEach(el => {
+          el.addEventListener('click', function() {
+            const browserType = this.dataset.browser;
+            
+            browserList.querySelectorAll('.browser-option').forEach(b => {
+              b.classList.remove('selected');
+            });
+            
+            this.classList.add('selected');
+            selectedBrowser = browserType;
+            
+            const browser = detectedBrowsers.find(b => b.type === browserType);
+            if (browser && !browser.canAutoSync) {
+              customPathSection.style.display = 'block';
+            } else {
+              customPathSection.style.display = 'block';
+            }
+            
+            updateStartButtonState();
+            showToast(`已选择 ${this.querySelector('.browser-name').textContent}`, 'success');
+          });
+        });
+      }
+      
+      function updateStartButtonState() {
+        if (activeTab === 'auto') {
+          startSync.disabled = !selectedBrowser;
+        } else {
+          startSync.disabled = !selectedFile;
+        }
       }
       
       function handleFileSelect(file) {
@@ -221,57 +799,82 @@
         selectedFileName.textContent = file.name;
         selectedFileSize.textContent = formatFileSize(file.size);
         selectedFileInfo.style.display = 'block';
-        startSync.disabled = false;
+        updateStartButtonState();
         showToast('文件已选择', 'success');
       }
       
       async function startSyncProcess() {
-        if (!selectedFile) {
-          showToast('请先选择书签文件', 'error');
-          return;
-        }
+        if (isSyncing) return;
         
-        startSync.disabled = true;
-        syncProgress.style.display = 'block';
-        syncResult.style.display = 'none';
-        syncProgressBar.style.width = '0%';
-        syncProgressText.textContent = '正在解析书签文件...';
+        let syncData;
         
-        try {
-          const fileContent = await readFileAsText(selectedFile);
+        if (activeTab === 'auto') {
+          if (!selectedBrowser) {
+            showToast('请选择浏览器', 'error');
+            return;
+          }
           
-          syncProgressText.textContent = '正在准备同步...';
-          syncProgressBar.style.width = '10%';
+          syncData = {
+            browserType: selectedBrowser,
+            skipIcon: autoSkipIcon.checked,
+            force: autoForceUpdate.checked,
+            enableDeduplication: enableDeduplication.checked
+          };
           
-          const result = await apiRequest('/api/sync', {
-            method: 'POST',
-            body: {
+          if (customBookmarkPath.value.trim()) {
+            syncData.customPath = customBookmarkPath.value.trim();
+          }
+        } else {
+          if (!selectedFile) {
+            showToast('请先选择书签文件', 'error');
+            return;
+          }
+          
+          try {
+            const fileContent = await readFileAsText(selectedFile);
+            
+            syncData = {
               bookmarksContent: fileContent,
               bookmarksPath: 'uploaded_file',
               skipIcon: skipIcon.checked,
               force: forceUpdate.checked
-            }
+            };
+          } catch (error) {
+            showToast('读取文件失败: ' + error.message, 'error');
+            return;
+          }
+        }
+        
+        isSyncing = true;
+        startSync.disabled = true;
+        startSyncIcon.innerHTML = '<span class="spinner"></span>';
+        startSyncText.textContent = '同步中...';
+        
+        syncStatusContainer.style.display = 'block';
+        syncResult.style.display = 'none';
+        syncErrorDetail.style.display = 'none';
+        
+        updateSyncStatus('scanning', '正在准备同步...', 5);
+        
+        try {
+          const endpoint = activeTab === 'auto' ? '/api/browser-sync' : '/api/sync';
+          const result = await apiRequest(endpoint, {
+            method: 'POST',
+            body: syncData
           });
           
           if (result.data && result.data.success) {
-            syncProgressBar.style.width = '100%';
-            syncProgressText.textContent = '同步任务已启动';
-            
-            showToast('同步任务已启动，请等待完成...', 'success');
-            
-            setTimeout(() => {
-              closeSyncModalFunc();
-              loadStatus();
-            }, 2000);
+            if (activeTab === 'auto') {
+              updateSyncStatus('scanning', '正在扫描浏览器书签...', 10);
+            } else {
+              updateSyncStatus('analyzing', '正在解析书签文件...', 10);
+            }
           } else {
-            throw new Error(result.data?.message || '同步失败');
+            throw new Error(result.data?.message || result.data?.error || '同步失败');
           }
         } catch (error) {
           console.error('同步错误:', error);
-          syncResult.style.display = 'block';
-          syncResult.className = 'alert alert-error';
-          syncResult.textContent = error.message || '同步失败，请稍后重试';
-          startSync.disabled = false;
+          handleSyncError(error.message);
         }
       }
       
@@ -417,6 +1020,21 @@
         div.textContent = text;
         return div.innerHTML;
       }
+      
+      syncTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+          const tabId = this.dataset.tab;
+          
+          syncTabs.forEach(t => t.classList.remove('active'));
+          tabContents.forEach(c => c.classList.remove('active'));
+          
+          this.classList.add('active');
+          document.getElementById(`tab-${tabId}`).classList.add('active');
+          
+          activeTab = tabId;
+          updateStartButtonState();
+        });
+      });
       
       syncBtn.addEventListener('click', openSyncModal);
       refreshBtn.addEventListener('click', loadStatus);
