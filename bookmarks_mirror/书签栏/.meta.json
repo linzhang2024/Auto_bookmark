@@ -1,17 +1,7 @@
 {
   "folderName": "书签栏",
-  "lastSyncTime": "2026-05-02T03:48:31.973Z",
+  "lastSyncTime": "2026-05-02T05:09:48.709Z",
   "bookmarks": [
-    {
-      "title": "综合办公",
-      "url": "http://www.ctnma.cn/",
-      "iconFileName": "综合办公.ico",
-      "urlStatus": "unknown",
-      "lastVisited": null,
-      "isInvalid": false,
-      "syncStatus": "completed",
-      "lastSyncTime": "2026-05-02T03:48:20.171Z"
-    },
     {
       "title": "-中国期货市场监控中心",
       "url": "https://investorservice.cfmmc.com/logout.do",
@@ -20,11 +10,21 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T03:48:27.306Z"
+      "lastSyncTime": "2026-05-02T05:09:43.980Z"
     },
     {
       "title": "Gmail",
       "url": "https://accounts.google.com/b/0/AddMailService",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "综合办公",
+      "url": "http://www.ctnma.cn/",
       "iconFileName": null,
       "urlStatus": "unknown",
       "lastVisited": null,
@@ -144,9 +144,9 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777693698956",
-    "startTime": "2026-05-02T03:48:18.956Z",
-    "endTime": "2026-05-02T03:48:31.973Z",
+    "syncId": "sync_1777698579729",
+    "startTime": "2026-05-02T05:09:39.729Z",
+    "endTime": "2026-05-02T05:09:48.709Z",
     "totalBookmarks": 14,
     "completedBookmarks": 13,
     "failedBookmarks": 1

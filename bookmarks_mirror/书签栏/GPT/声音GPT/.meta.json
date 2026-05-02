@@ -1,6 +1,6 @@
 {
   "folderName": "声音GPT",
-  "lastSyncTime": "2026-05-02T03:48:31.975Z",
+  "lastSyncTime": "2026-05-02T05:09:48.708Z",
   "bookmarks": [
     {
       "title": "Fish-Speech在线推理Demo",
@@ -10,7 +10,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T03:48:28.147Z"
+      "lastSyncTime": "2026-05-02T05:09:48.707Z"
     },
     {
       "title": "Suno-bark",
@@ -104,9 +104,9 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777693698956",
-    "startTime": "2026-05-02T03:48:18.956Z",
-    "endTime": "2026-05-02T03:48:31.975Z",
+    "syncId": "sync_1777698579729",
+    "startTime": "2026-05-02T05:09:39.729Z",
+    "endTime": "2026-05-02T05:09:48.708Z",
     "totalBookmarks": 10,
     "completedBookmarks": 9,
     "failedBookmarks": 1

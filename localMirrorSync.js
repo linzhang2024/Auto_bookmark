@@ -624,7 +624,8 @@ async function syncSingleBookmark(bookmark, options) {
     ...bookmark,
     syncStatus: SyncStatus.PENDING,
     iconFileName: bookmark.existingMeta?.iconFileName || null,
-    lastSyncTime: bookmark.existingMeta?.lastSyncTime || null
+    lastSyncTime: bookmark.existingMeta?.lastSyncTime || null,
+    errorMessage: null
   };
 
   try {
@@ -651,6 +652,7 @@ async function syncSingleBookmark(bookmark, options) {
     if (!skipIconDownload && (!iconAlreadyExists || forceUpdate)) {
       if (!isValidString(bookmark.url)) {
         result.syncStatus = SyncStatus.FAILED;
+        result.errorMessage = 'URL 无效或为空';
       } else {
         const downloadedFileName = await downloadFavicon(
           bookmark.url, 
@@ -664,6 +666,7 @@ async function syncSingleBookmark(bookmark, options) {
           result.syncStatus = SyncStatus.COMPLETED;
         } else {
           result.syncStatus = SyncStatus.FAILED;
+          result.errorMessage = `图标下载失败：无法从 ${bookmark.url} 获取 favicon`;
         }
       }
     } else {
@@ -673,8 +676,10 @@ async function syncSingleBookmark(bookmark, options) {
       result.syncStatus = SyncStatus.COMPLETED;
     }
   } catch (error) {
-    console.warn(`同步书签 "${bookmark.title || 'unknown'}" 时发生错误: ${error.message}`);
+    const errorMsg = error.message || '未知错误';
+    console.warn(`同步书签 "${bookmark.title || 'unknown'}" 时发生错误: ${errorMsg}`);
     result.syncStatus = SyncStatus.FAILED;
+    result.errorMessage = errorMsg;
   }
 
   result.lastSyncTime = new Date().toISOString();
@@ -928,6 +933,13 @@ async function syncToLocalMirror(bookmarks, outputDir, options = {}) {
     }
   }
 
+  const detailedFailedBookmarks = failedResults.map(bm => ({
+    title: bm?.title || 'unknown',
+    url: bm?.url || '',
+    folderPath: bm?.folderPath || '',
+    errorMessage: bm?.errorMessage || null
+  }));
+
   return {
     syncId,
     startTime: syncStartTime,
@@ -939,10 +951,7 @@ async function syncToLocalMirror(bookmarks, outputDir, options = {}) {
     bookmarksAlreadySynced: syncAnalysis.bookmarksAlreadySynced?.length || 0,
     bookmarksFailed: failedResults.length,
     bookmarksWithConflicts: syncAnalysis.bookmarksWithConflicts?.length || 0,
-    failedBookmarks: failedResults.map(bm => ({
-      title: bm?.title || 'unknown',
-      url: bm?.url || ''
-    }))
+    failedBookmarks: detailedFailedBookmarks
   };
 }
 

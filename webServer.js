@@ -29,6 +29,7 @@ const {
   BrowserType 
 } = require('./browserBookmarkFinder');
 const { BookmarkDeduplicator } = require('./BookmarkDeduplicator');
+const { SyncHistory, SyncFailureDetail } = require('./syncHistoryModel');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'auto-bookmark-jwt-secret-key-2024';
 const JWT_EXPIRES_IN = '24h';
@@ -601,6 +602,12 @@ app.post('/api/sync', async (req, res) => {
       }
     });
 
+    try {
+      await SyncHistory.updateSyncResult(taskInfo.taskId, result, 'manual_upload');
+    } catch (historyError) {
+      console.error('保存同步历史失败:', historyError.message);
+    }
+
     broadcast({
       type: 'sync_completed',
       data: {
@@ -617,6 +624,19 @@ app.post('/api/sync', async (req, res) => {
 
   } catch (error) {
     console.error('同步任务失败:', error);
+    
+    try {
+      await SyncHistory.create({
+        sync_id: taskInfo.taskId,
+        browser_source: 'manual_upload',
+        status: 'failed',
+        error_message: error.message,
+        sync_dir: targetSyncDir
+      });
+    } catch (historyError) {
+      console.error('保存同步历史失败:', historyError.message);
+    }
+
     broadcast({
       type: 'sync_failed',
       data: {
@@ -973,14 +993,24 @@ app.post('/api/browser-sync', async (req, res) => {
         }
       });
 
+      const resultWithDuplicates = {
+        ...result,
+        duplicatesFound: duplicatesFound
+      };
+
+      try {
+        await SyncHistory.updateSyncResult(taskInfo.taskId, resultWithDuplicates, browserType);
+      } catch (historyError) {
+        console.error('保存同步历史失败:', historyError.message);
+      }
+
       broadcast({
         type: 'browser_sync_completed',
         data: {
           taskId: taskInfo.taskId,
           result: {
-            ...result,
-            endTime: new Date().toISOString(),
-            duplicatesFound: duplicatesFound
+            ...resultWithDuplicates,
+            endTime: new Date().toISOString()
           }
         }
       });
@@ -990,6 +1020,19 @@ app.post('/api/browser-sync', async (req, res) => {
 
     } catch (error) {
       console.error('浏览器同步任务失败:', error);
+      
+      try {
+        await SyncHistory.create({
+          sync_id: taskInfo.taskId,
+          browser_source: browserType,
+          status: 'failed',
+          error_message: error.message,
+          sync_dir: targetSyncDir
+        });
+      } catch (historyError) {
+        console.error('保存同步历史失败:', historyError.message);
+      }
+
       broadcast({
         type: 'browser_sync_failed',
         data: {
@@ -1848,6 +1891,156 @@ app.post('/api/documents/upload-with-transaction', async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message
+    });
+  }
+});
+
+app.get('/api/sync-history', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 50;
+    const offset = parseInt(req.query.offset, 10) || 0;
+    
+    const historyList = await SyncHistory.listAll(limit, offset);
+    
+    res.json({
+      success: true,
+      data: {
+        history: historyList.map(h => h.toJSON()),
+        total: historyList.length,
+        limit,
+        offset
+      }
+    });
+  } catch (error) {
+    console.error('获取同步历史失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取同步历史失败'
+    });
+  }
+});
+
+app.get('/api/sync-history/stats', async (req, res) => {
+  try {
+    const stats = await SyncHistory.getStats();
+    const errorDistribution = await SyncFailureDetail.getErrorDistribution();
+    
+    res.json({
+      success: true,
+      data: {
+        stats,
+        errorDistribution
+      }
+    });
+  } catch (error) {
+    console.error('获取同步统计失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取同步统计失败'
+    });
+  }
+});
+
+app.get('/api/sync-history/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的历史记录 ID'
+      });
+    }
+    
+    const history = await SyncHistory.findById(id);
+    
+    if (!history) {
+      return res.status(404).json({
+        success: false,
+        message: '同步历史记录不存在'
+      });
+    }
+    
+    const failures = await history.getFailures();
+    
+    res.json({
+      success: true,
+      data: {
+        ...history.toJSON(),
+        failures: failures.map(f => f.toJSON())
+      }
+    });
+  } catch (error) {
+    console.error('获取同步历史详情失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取同步历史详情失败'
+    });
+  }
+});
+
+app.delete('/api/sync-history/:id', authMiddleware, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    
+    if (isNaN(id)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的历史记录 ID'
+      });
+    }
+    
+    const isAdmin = await AuthMiddleware.isAdmin(req.user.id);
+    if (!isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: '仅管理员可以删除同步历史记录'
+      });
+    }
+    
+    const result = await SyncHistory.delete(id);
+    
+    if (result) {
+      res.json({
+        success: true,
+        message: '同步历史记录已删除'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: '同步历史记录不存在'
+      });
+    }
+  } catch (error) {
+    console.error('删除同步历史失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '删除同步历史失败'
+    });
+  }
+});
+
+app.delete('/api/sync-history', authMiddleware, async (req, res) => {
+  try {
+    const isAdmin = await AuthMiddleware.isAdmin(req.user.id);
+    if (!isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: '仅管理员可以清除所有同步历史记录'
+      });
+    }
+    
+    await SyncHistory.clearAll();
+    
+    res.json({
+      success: true,
+      message: '所有同步历史记录已清除'
+    });
+  } catch (error) {
+    console.error('清除同步历史失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '清除同步历史失败'
     });
   }
 });

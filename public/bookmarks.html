@@ -175,10 +175,16 @@
   <div class="main-content">
     <div class="page-header">
       <h1>🔖 书签管理</h1>
-      <button class="btn btn-primary" id="syncBtn">
-        <span>🔄</span>
-        <span>同步书签</span>
-      </button>
+      <div style="display: flex; gap: 12px;">
+        <a href="/sync-history.html" class="btn btn-secondary" style="text-decoration: none;">
+          <span>📊</span>
+          <span>历史记录</span>
+        </a>
+        <button class="btn btn-primary" id="syncBtn">
+          <span>🔄</span>
+          <span>同步书签</span>
+        </button>
+      </div>
     </div>
     
     <div class="stats-grid" id="statsGrid">

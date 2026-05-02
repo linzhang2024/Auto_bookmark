@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>同步历史记录 - 书签管理系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .history-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-item {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    .stat-item.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-item.green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .stat-item.red { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+    .stat-item.orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .history-item {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .history-item:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    
+    .history-summary {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+    }
+    
+    .history-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+    
+    .history-icon.completed { background: #d1fae5; }
+    .history-icon.partial { background: #fef3c7; }
+    .history-icon.failed { background: #fee2e2; }
+    
+    .history-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .history-title {
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .history-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .history-badge.completed { background: #d1fae5; color: #065f46; }
+    .history-badge.partial { background: #fef3c7; color: #92400e; }
+    .history-badge.failed { background: #fee2e2; color: #991b1b; }
+    
+    .history-meta {
+      font-size: 12px;
+      color: #6b7280;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .history-stats-bar {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+    
+    .stat-badge {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+    }
+    
+    .stat-badge.success { color: #10b981; }
+    .stat-badge.failed { color: #ef4444; }
+    
+    .expand-icon {
+      font-size: 20px;
+      color: #9ca3af;
+      transition: transform 0.3s ease;
+    }
+    
+    .history-item.expanded .expand-icon {
+      transform: rotate(180deg);
+    }
+    
+    .history-detail {
+      display: none;
+      border-top: 1px solid #f3f4f6;
+      padding: 16px 20px;
+      background: #fafbfc;
+    }
+    
+    .history-item.expanded .history-detail {
+      display: block;
+    }
+    
+    .detail-section {
+      margin-bottom: 20px;
+    }
+    
+    .detail-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .detail-title {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .failures-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .failure-item {
+      background: white;
+      border-left: 4px solid #ef4444;
+      border-radius: 0 8px 8px 0;
+      padding: 12px 16px;
+    }
+    
+    .failure-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    
+    .failure-title {
+      font-weight: 500;
+      color: #1f2937;
+      font-size: 14px;
+    }
+    
+    .failure-type {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    
+    .failure-url {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+      word-break: break-all;
+    }
+    
+    .failure-folder {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    .failure-desc {
+      background: #fef2f2;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #991b1b;
+      line-height: 1.5;
+    }
+    
+    .no-failures {
+      text-align: center;
+      padding: 24px;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    
+    .empty-state-text {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    .empty-state-hint {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+    
+    .refresh-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .summary-label {
+      color: #6b7280;
+      font-size: 13px;
+    }
+    
+    .summary-value {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 14px;
+    }
+    
+    .error-type-card {
+      background: white;
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 8px;
+    }
+    
+    .error-type-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .error-type-name {
+      font-weight: 600;
+      color: #ef4444;
+    }
+    
+    .error-type-count {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .error-type-desc {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-content">
+    <div class="history-header">
+      <div>
+        <h1>📊 同步历史记录</h1>
+        <p style="color: #6b7280; margin-top: 4px; font-size: 14px;">查看所有书签同步的历史记录和详细统计</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary refresh-btn" id="refreshBtn">
+          <span>🔄</span>
+          <span>刷新</span>
+        </button>
+      </div>
+    </div>
+    
+    <div id="statsContainer" class="history-stats"></div>
+    
+    <div id="errorDistribution" style="display: none; margin-bottom: 24px;">
+      <h3 style="margin-bottom: 12px; color: #374151; font-size: 16px;">错误类型分布</h3>
+      <div id="errorTypeList"></div>
+    </div>
+    
+    <div id="historyContainer">
+      <div class="loading">⏳ 加载中...</div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      renderNav();
+      
+      const statsContainer = document.getElementById('statsContainer');
+      const historyContainer = document.getElementById('historyContainer');
+      const errorDistribution = document.getElementById('errorDistribution');
+      const errorTypeList = document.getElementById('errorTypeList');
+      const refreshBtn = document.getElementById('refreshBtn');
+      
+      let expandedIds = new Set();
+      
+      async function loadStats() {
+        try {
+          const result = await apiRequest('/api/sync-history/stats', { method: 'GET' });
+          
+          if (result.data && result.data.success) {
+            const stats = result.data.data.stats;
+            const errorDist = result.data.data.errorDistribution;
+            
+            statsContainer.innerHTML = `
+              <div class="stat-item blue">
+                <div class="stat-value">${stats.totalSyncs}</div>
+                <div class="stat-label">总同步次数</div>
+              </div>
+              <div class="stat-item green">
+                <div class="stat-value">${stats.totalBookmarks}</div>
+                <div class="stat-label">总处理书签</div>
+              </div>
+              <div class="stat-item red">
+                <div class="stat-value">${stats.totalFailures}</div>
+                <div class="stat-label">失败总数</div>
+              </div>
+              <div class="stat-item orange">
+                <div class="stat-value">${stats.successRate}%</div>
+                <div class="stat-label">成功率</div>
+              </div>
+            `;
+            
+            if (errorDist && errorDist.length > 0) {
+              errorDistribution.style.display = 'block';
+              errorTypeList.innerHTML = errorDist.map(type => `
+                <div class="error-type-card">
+                  <div class="error-type-header">
+                    <span class="error-type-name">${escapeHtml(type.error_type)}</span>
+                    <span class="error-type-count">${type.count} 次</span>
+                  </div>
+                  <div class="error-type-desc">${escapeHtml(type.description)}</div>
+                </div>
+              `).join('');
+            }
+          }
+        } catch (error) {
+          console.error('加载统计信息失败:', error);
+        }
+      }
+      
+      async function loadHistory() {
+        historyContainer.innerHTML = '<div class="loading">⏳ 加载中...</div>';
+        
+        try {
+          const result = await apiRequest('/api/sync-history', { method: 'GET' });
+          
+          if (result.data && result.data.success) {
+            const historyList = result.data.data.history;
+            
+            if (historyList.length === 0) {
+              historyContainer.innerHTML = `
+                <div class="empty-state">
+                  <div class="empty-state-icon">📭</div>
+                  <div class="empty-state-text">暂无同步历史记录</div>
+                  <div class="empty-state-hint">点击"同步书签"开始导入书签后，历史记录将显示在这里</div>
+                </div>
+              `;
+              return;
+            }
+            
+            historyContainer.innerHTML = `
+              <div class="history-list">
+                ${historyList.map(item => renderHistoryItem(item)).join('')}
+              </div>
+            `;
+            
+            document.querySelectorAll('.history-summary').forEach(el => {
+              el.addEventListener('click', function() {
+                const item = this.closest('.history-item');
+                const id = item.dataset.id;
+                
+                if (expandedIds.has(id)) {
+                  item.classList.remove('expanded');
+                  expandedIds.delete(id);
+                } else {
+                  item.classList.add('expanded');
+                  expandedIds.add(id);
+                  loadHistoryDetail(id, item);
+                }
+              });
+            });
+          } else {
+            throw new Error(result.data?.message || '加载失败');
+          }
+        } catch (error) {
+          historyContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <div class="empty-state-text">加载失败</div>
+              <div class="empty-state-hint">${escapeHtml(error.message || '请稍后重试')}</div>
+            </div>
+          `;
+        }
+      }
+      
+      async function loadHistoryDetail(id, itemEl) {
+        const detailEl = itemEl.querySelector('.history-detail');
+        
+        if (detailEl.querySelector('.detail-section')) {
+          return;
+        }
+        
+        try {
+          const result = await apiRequest(`/api/sync-history/${id}`, { method: 'GET' });
+          
+          if (result.data && result.data.success) {
+            const data = result.data.data;
+            
+            detailEl.innerHTML = `
+              <div class="detail-section">
+                <div class="detail-title">📋 同步详情</div>
+                <div class="summary-grid">
+                  <div class="summary-item">
+                    <span class="summary-label">浏览器来源</span>
+                    <span class="summary-value">${getBrowserName(data.browser_source)}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">总文件夹</span>
+                    <span class="summary-value">${data.total_folders || 0} 个</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">创建文件夹</span>
+                    <span class="summary-value">${data.folders_created || 0} 个</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">跳过重复</span>
+                    <span class="summary-value">${data.duplicates_found || 0} 个</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">同步耗时</span>
+                    <span class="summary-value">${data.duration_formatted || '未知'}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">同步目录</span>
+                    <span class="summary-value" style="font-size: 12px; word-break: break-all;">${escapeHtml(data.sync_dir || '-')}</span>
+                  </div>
+                </div>
+              </div>
+              
+              ${data.failures && data.failures.length > 0 ? `
+              <div class="detail-section">
+                <div class="detail-title">❌ 失败详情 (${data.failures.length} 个)</div>
+                <div class="failures-list">
+                  ${data.failures.map(failure => `
+                    <div class="failure-item">
+                      <div class="failure-header">
+                        <div class="failure-title">${escapeHtml(failure.bookmark_title || '未知标题')}</div>
+                        <span class="failure-type">${escapeHtml(failure.error_type)}</span>
+                      </div>
+                      <div class="failure-url">🔗 ${escapeHtml(failure.bookmark_url || '-')}</div>
+                      ${failure.folder_path ? `<div class="failure-folder">📁 ${escapeHtml(failure.folder_path)}</div>` : ''}
+                      <div class="failure-desc">
+                        <strong>错误说明:</strong> ${escapeHtml(failure.error_description)}
+                        ${failure.error_message ? `<br><strong>具体错误:</strong> ${escapeHtml(failure.error_message)}` : ''}
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              ` : `
+              <div class="detail-section">
+                <div class="detail-title">✅ 全部成功</div>
+                <div class="no-failures">
+                  🎉 本次同步所有书签均处理成功，没有失败项
+                </div>
+              </div>
+              `}
+            `;
+          }
+        } catch (error) {
+          console.error('加载详情失败:', error);
+          detailEl.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">加载详情失败: ${escapeHtml(error.message)}</div>`;
+        }
+      }
+      
+      function renderHistoryItem(item) {
+        const status = item.status;
+        const statusLabel = getStatusLabel(status);
+        const iconEmoji = status === 'completed' ? '✅' : status === 'partial' ? '⚠️' : '❌';
+        const totalCount = item.total_count || 0;
+        const successCount = item.success_count || 0;
+        const failedCount = item.failed_count || 0;
+        
+        return `
+          <div class="history-item ${expandedIds.has(item.id) ? 'expanded' : ''}" data-id="${item.id}">
+            <div class="history-summary">
+              <div class="history-icon ${status}">${iconEmoji}</div>
+              <div class="history-info">
+                <div class="history-title">
+                  ${formatDate(item.executed_at)}
+                  <span class="history-badge ${status}">${statusLabel}</span>
+                </div>
+                <div class="history-meta">
+                  <span>📁 ${getBrowserName(item.browser_source)}</span>
+                  <span>📊 成功率: ${totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100}%</span>
+                  ${item.duration_formatted ? `<span>⏱️ ${item.duration_formatted}</span>` : ''}
+                </div>
+              </div>
+              <div class="history-stats-bar">
+                <span class="stat-badge success">✅ ${successCount}</span>
+                <span class="stat-badge failed">❌ ${failedCount}</span>
+              </div>
+              <span class="expand-icon">▼</span>
+            </div>
+            <div class="history-detail">
+              <div style="text-align: center; padding: 20px; color: #6b7280;">⏳ 加载详情中...</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      function getBrowserName(source) {
+        if (!source) return '未知';
+        const names = {
+          'chrome': 'Google Chrome',
+          'edge': 'Microsoft Edge',
+          'firefox': 'Mozilla Firefox',
+          'safari': 'Safari',
+          'manual_upload': '手动上传'
+        };
+        return names[source] || source;
+      }
+      
+      function getStatusLabel(status) {
+        const labels = {
+          'completed': '全部成功',
+          'partial': '部分成功',
+          'failed': '同步失败'
+        };
+        return labels[status] || status;
+      }
+      
+      function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      function formatDate(dateStr) {
+        if (!dateStr) return '未知时间';
+        const date = new Date(dateStr);
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      }
+      
+      refreshBtn.addEventListener('click', function() {
+        loadStats();
+        loadHistory();
+        showToast('已刷新', 'success');
+      });
+      
+      loadStats();
+      loadHistory();
+    });
+  </script>
+</body>
+</html>
