@@ -1,0 +1,84 @@
+{
+  "folderName": "霍山项目",
+  "lastSyncTime": "2026-05-02T03:47:20.318Z",
+  "bookmarks": [
+    {
+      "title": "海康开放平台",
+      "url": "https://open.hikvision.com/docs/docId?productId=5c67f1e2f05948198c909700&curNodeId=16741aecc05944a6b0cd1341d68e4546",
+      "iconFileName": "海康开放平台.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:31.910Z"
+    },
+    {
+      "title": "霍山县城市大脑",
+      "url": "http://59.203.223.130:10002/ump/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:28.988Z"
+    },
+    {
+      "title": "视频融合平台",
+      "url": "http://114.104.61.247:10000/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:31.282Z"
+    },
+    {
+      "title": "视频融合NVR",
+      "url": "http://114.104.61.247:10800/#/about",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:33.779Z"
+    },
+    {
+      "title": "智慧城市大屏数据导入系统",
+      "url": "http://59.203.223.130:2002/dataprocess/#/login",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:34.014Z"
+    },
+    {
+      "title": "登录-文旅",
+      "url": "http://223.243.96.27:8082/doc/page/login.asp?_1647996857634&page=config",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:34.027Z"
+    },
+    {
+      "title": "配 置",
+      "url": "http://60.173.185.76:85/doc/page/config.asp",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:36.669Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.318Z",
+    "totalBookmarks": 7,
+    "completedBookmarks": 1,
+    "failedBookmarks": 6
+  }
+}

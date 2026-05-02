@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN" translate="no">
+<head>
+<meta charset="UTF-8" />
+<meta name="google" content="notranslate" />
+<link rel="icon" type="image/svg+xml" href="/images/logo-circle.svg" media="(prefers-color-scheme: light)" />
+<link rel="icon" type="image/svg+xml" href="/images/logo-circle.svg" media="(prefers-color-scheme: dark)" />
+<link rel="icon" type="image/png" href="/images/logo-circle.svg" media="(prefers-color-scheme: light)" />
+<link rel="icon" type="image/png" href="/images/logo-circle.svg" media="(prefers-color-scheme: dark)" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="format-detection" content="email=no" />
+<meta name="format-detection" content="address=no" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes" />
+<title>一面千识</title>
+<meta name="title" content="一面千识" />
+<meta name="description" content="一面千识" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://meetchances.com" />
+<meta property="og:title" content="一面千识" />
+<meta property="og:description" content="一面千识" />
+<meta property="og:image" content="/images/shadcn-admin.png" />
+<meta property="twitter:card" content="summary_large_image" />
+<meta property="twitter:url" content="https://meetchances.com" />
+<meta property="twitter:title" content="一面千识" />
+<meta property="twitter:description" content="一面千识" />
+<meta property="twitter:image" content="/images/shadcn-admin.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://dnu-cdn.xpertiise.com/static/fonts.css" rel="stylesheet" />
+<meta name="theme-color" content="#fff" />
+<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+<script async src="https://sf1-scmcdn-cn.feishucdn.com/obj/feishu-static/docComponentSdk/lib/1.0.13.js"></script>
+<script type="module" crossorigin src="/assets/index-DsTQwiOb.js"></script>
+<link rel="modulepreload" crossorigin href="/assets/react-vendor-CrEGRKeq.js">
+<link rel="modulepreload" crossorigin href="/assets/tanstack-DLWty4KH.js">
+<link rel="stylesheet" crossorigin href="/assets/index-CqTwUQxo.css">
+</head>
+<body class="group/body">
+<div id="root"></div>
+</body>
+</html>

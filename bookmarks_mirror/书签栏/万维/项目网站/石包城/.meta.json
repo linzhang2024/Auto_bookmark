@@ -1,0 +1,94 @@
+{
+  "folderName": "石包城",
+  "lastSyncTime": "2026-05-02T03:44:41.057Z",
+  "bookmarks": [
+    {
+      "title": "一机游",
+      "url": "https://h5.sbqyzhly.com/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:04.256Z"
+    },
+    {
+      "title": "石包城-智游云平台",
+      "url": "https://console.sbqyzhly.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:05.299Z"
+    },
+    {
+      "title": "肃北县全域旅游大数据分析平台",
+      "url": "http://data.sbqyzhly.com/#/page_01?params=0-0",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:06.887Z"
+    },
+    {
+      "title": "综合管理平台",
+      "url": "https://nat.sbqyzhly.com/#/login",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:07.983Z"
+    },
+    {
+      "title": "肃北县全域旅游智慧景区资讯网",
+      "url": "https://www.sbqyzhly.com/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:11.204Z"
+    },
+    {
+      "title": "文创- 中国国家博物馆官方网站",
+      "url": "https://www.chnmuseum.cn/wc/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:04.915Z"
+    },
+    {
+      "title": "酒泉肃北县全域旅游平台建设内容及功能描述20230213",
+      "url": "https://docs.qq.com/sheet/DTU90TE9lbHFUY21Z?tab=BB08J2",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "肃北县13个项目及48名传承人入选市级非遗项目和非遗传承人",
+      "url": "https://m.thepaper.cn/baijiahao_12808532",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.057Z",
+    "totalBookmarks": 8,
+    "completedBookmarks": 2,
+    "failedBookmarks": 6
+  }
+}

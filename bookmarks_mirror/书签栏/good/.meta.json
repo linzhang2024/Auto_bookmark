@@ -1,0 +1,44 @@
+{
+  "folderName": "good",
+  "lastSyncTime": "2026-05-02T03:48:31.973Z",
+  "bookmarks": [
+    {
+      "title": "账户与交易 — TianQin Python SDK 1.0.0 文档",
+      "url": "https://doc.shinnytech.com/tqsdk/1.0.0/usage/trade.html#broker-list",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:20.096Z"
+    },
+    {
+      "title": "合约, 行情和历史数据 — TianQin Python SDK 3.8.6 文档",
+      "url": "https://doc.shinnytech.com/tqsdk/latest/usage/mddatas.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:20.096Z"
+    },
+    {
+      "title": "账号管理",
+      "url": "https://account.shinnytech.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693698956",
+    "startTime": "2026-05-02T03:48:18.956Z",
+    "endTime": "2026-05-02T03:48:31.973Z",
+    "totalBookmarks": 3,
+    "completedBookmarks": 1,
+    "failedBookmarks": 2
+  }
+}

@@ -872,6 +872,7 @@ app.post('/api/browser-sync', async (req, res) => {
     }
   });
 
+      let duplicatesFound = 0;
   if (enableDeduplication) {
     broadcast({
       type: 'browser_sync_status',
@@ -888,6 +889,7 @@ app.post('/api/browser-sync', async (req, res) => {
 
     if (report.duplicatesFound > 0) {
       console.log(`去重完成：发现 ${report.duplicatesFound} 个重复书签，已合并`);
+      duplicatesFound = report.duplicatesFound;
     }
   }
 
@@ -977,7 +979,8 @@ app.post('/api/browser-sync', async (req, res) => {
           taskId: taskInfo.taskId,
           result: {
             ...result,
-            endTime: new Date().toISOString()
+            endTime: new Date().toISOString(),
+            duplicatesFound: duplicatesFound
           }
         }
       });

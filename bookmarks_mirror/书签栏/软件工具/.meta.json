@@ -1,0 +1,124 @@
+{
+  "folderName": "软件工具",
+  "lastSyncTime": "2026-05-02T03:47:20.325Z",
+  "bookmarks": [
+    {
+      "title": "Ping, mtr, dig and TCP port check from multiple locations – 144.34.173.198",
+      "url": "http://port.ping.pe/43.226.24.107:19071",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:53.881Z"
+    },
+    {
+      "title": "图片在线转换base64编码-在线base64编码转换成图片工具",
+      "url": "http://www.jsons.cn/img2base64/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:54.369Z"
+    },
+    {
+      "title": "SMS-Activate是在线接受短信的虚拟号码服务",
+      "url": "https://sms-activate.org/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "html在线测试",
+      "url": "https://www.runoob.com/try/try.php?filename=tryhtml_image_test",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "httpbin.org",
+      "url": "http://httpbin.org/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Flourish | 数据可视化",
+      "url": "https://app.flourish.studio/login",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Interactive Particle Logo",
+      "url": "https://codepen.io/Zaku/pen/AobWbm",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "chatgpt对接微信",
+      "url": "https://github.com/zhayujie/chatgpt-on-wechat",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Chat GPT注册100%成功并对接微信，全过程保姆级教程，简单易懂，有手就行丨科技源代码 - YouTube",
+      "url": "https://www.youtube.com/watch?v=jiSbvOn1cfI",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Login – Vercel",
+      "url": "https://vercel.com/login",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "AI声音克隆_免费高速下载|百度网盘-分享无限制",
+      "url": "https://pan.baidu.com/s/1Jm-p_DZ2IVcNkkOYVULerg?pwd=qi2p#list/path=%2Fsharelink3400628616-125067166663714%2FAI%E5%A3%B0%E9%9F%B3%E5%85%8B%E9%9A%86&parentPath=%2Fsharelink3400628616-125067166663714",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.325Z",
+    "totalBookmarks": 11,
+    "completedBookmarks": 9,
+    "failedBookmarks": 2
+  }
+}

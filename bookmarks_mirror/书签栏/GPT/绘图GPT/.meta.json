@@ -1,0 +1,164 @@
+{
+  "folderName": "绘图GPT",
+  "lastSyncTime": "2026-05-02T03:48:31.974Z",
+  "bookmarks": [
+    {
+      "title": "线稿  |  Petalica Paint",
+      "url": "https://petalica.com/index_en.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:24.590Z"
+    },
+    {
+      "title": "Segment Anything | Meta AI",
+      "url": "https://segment-anything.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:24.487Z"
+    },
+    {
+      "title": "DALL·E",
+      "url": "https://labs.openai.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:20.476Z"
+    },
+    {
+      "title": "Dream by WOMBO",
+      "url": "https://dream.ai/create",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "AutoDraw",
+      "url": "https://www.autodraw.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "流程图绘制 - diagrams.net",
+      "url": "https://app.diagrams.net/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "102 项目 | Behance 上的照片、视频、徽标、插图和品牌",
+      "url": "https://www.behance.net/search/projects/?field=102&sort=appreciations&time=week",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Stable Diffusion Online",
+      "url": "https://stablediffusionweb.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Midjourney",
+      "url": "https://www.midjourney.com/home/?callbackUrl=%2Fapp%2F",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Microsoft Designer",
+      "url": "https://designer.microsoft.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Flickr：在地圖上發掘所有人的相片",
+      "url": "https://www.flickr.com/map",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Image Creator from Microsoft Bing",
+      "url": "https://www.bing.com/images/create?form=IRPGEN",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Leonardo.ai",
+      "url": "https://leonardo.ai/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "MasterGo 莫高设计 - AI 时代的数字界面生产平台",
+      "url": "https://mastergo.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "开源绘图— DeepFloyd",
+      "url": "https://deepfloyd.ai/deepfloyd-if",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693698956",
+    "startTime": "2026-05-02T03:48:18.956Z",
+    "endTime": "2026-05-02T03:48:31.974Z",
+    "totalBookmarks": 15,
+    "completedBookmarks": 12,
+    "failedBookmarks": 3
+  }
+}

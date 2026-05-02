@@ -1,0 +1,34 @@
+{
+  "folderName": "芒康项目",
+  "lastSyncTime": "2026-05-02T03:44:41.055Z",
+  "bookmarks": [
+    {
+      "title": "芒康县应用支撑平台",
+      "url": "http://113.62.131.140:8090/enterPage",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:42.846Z"
+    },
+    {
+      "title": "一部手机游芒康-首页",
+      "url": "http://113.62.131.140:8091/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:45.297Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.055Z",
+    "totalBookmarks": 2,
+    "completedBookmarks": 0,
+    "failedBookmarks": 2
+  }
+}

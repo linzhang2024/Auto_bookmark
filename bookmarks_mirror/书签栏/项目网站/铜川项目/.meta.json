@@ -1,0 +1,54 @@
+{
+  "folderName": "铜川项目",
+  "lastSyncTime": "2026-05-02T03:47:20.324Z",
+  "bookmarks": [
+    {
+      "title": "弹性云主机 - 控制台",
+      "url": "https://console2.ctyun.cn/ecm/?agencyId=0fb2e5d7d9029fbf1f2bc00bdb395cdb&region=cn-snxy1&locale=zh-cn#/ecs/manager/vmList",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:32.641Z"
+    },
+    {
+      "title": "铜川市“三公（工）”融合流调溯源大数据平台",
+      "url": "http://113.142.153.96:81/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:40.324Z"
+    },
+    {
+      "title": "门户",
+      "url": "http://113.142.153.96:81/#/tcmh/home1",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:45.473Z"
+    },
+    {
+      "title": "idaas 正常",
+      "url": "http://113.142.153.96:82/easy-idaas",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:42.781Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.324Z",
+    "totalBookmarks": 4,
+    "completedBookmarks": 0,
+    "failedBookmarks": 4
+  }
+}

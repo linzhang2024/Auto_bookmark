@@ -1,0 +1,64 @@
+{
+  "folderName": "景泰项目",
+  "lastSyncTime": "2026-05-02T03:44:41.055Z",
+  "bookmarks": [
+    {
+      "title": "新闻内容",
+      "url": "https://www.mqxzhwl.cn/main/O/newsList",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:50.072Z"
+    },
+    {
+      "title": "智游景泰·旅游服务门户",
+      "url": "https://www.jtaiwl.cn/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "旧-景泰县智慧文旅大数据分析平台",
+      "url": "http://60.164.246.2:8090/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "智游云",
+      "url": "https://console.tourgansu.com/enterPage",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "60.164.246.2:9003",
+      "url": "http://60.164.246.2:9003/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.055Z",
+    "totalBookmarks": 5,
+    "completedBookmarks": 4,
+    "failedBookmarks": 1
+  }
+}

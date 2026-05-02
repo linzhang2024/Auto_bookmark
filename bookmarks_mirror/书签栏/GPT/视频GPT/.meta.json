@@ -1,0 +1,94 @@
+{
+  "folderName": "视频GPT",
+  "lastSyncTime": "2026-05-02T03:48:31.974Z",
+  "bookmarks": [
+    {
+      "title": "音唇同步Wav2Lip 演示",
+      "url": "http://bhaasha.iiit.ac.in/lipsync/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:26.230Z"
+    },
+    {
+      "title": "Gradio",
+      "url": "https://687d119023cd37e5fb.gradio.live/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:26.293Z"
+    },
+    {
+      "title": "D-ID   Create Video",
+      "url": "https://studio.d-id.com/editor",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Character Lip Sync Tutorial with Nvidia Omniverse - Audio2Face - YouTube",
+      "url": "https://www.youtube.com/watch?v=071RiNWC6Bc",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Untitled - Runway",
+      "url": "https://app.runwayml.com/video-tools/projects/1ae2bf99-4489-4d34-bd7b-175923c06135",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "NUWA-Infinity",
+      "url": "https://nuwa-infinity.microsoft.com/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Wonder Studio",
+      "url": "https://wonderdynamics.com/?utm_source=nettsz.com",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "数字人，人像语音HeyGen - AI Spokesperson Video Creator",
+      "url": "https://app.heygen.com/create/draft?tab=template&vt=l&templateId=138f1bf733c746a4b30eb8c8b011bec2",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693698956",
+    "startTime": "2026-05-02T03:48:18.956Z",
+    "endTime": "2026-05-02T03:48:31.974Z",
+    "totalBookmarks": 8,
+    "completedBookmarks": 6,
+    "failedBookmarks": 2
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "folderName": "天水秦州区",
+  "lastSyncTime": "2026-05-02T03:47:20.312Z",
+  "bookmarks": [
+    {
+      "title": "news.tourgansu.com",
+      "url": "https://news.tourgansu.com/",
+      "iconFileName": "news.tourgansu.com.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:45:57.568Z"
+    },
+    {
+      "title": "obs.3dyunzhan.com/sceneFront/index.html?G_TEMP_ID=d5b9eba86d0c42c8a54f17d762b40ac1",
+      "url": "https://obs.3dyunzhan.com/sceneFront/index.html?G_TEMP_ID=d5b9eba86d0c42c8a54f17d762b40ac1",
+      "iconFileName": "obs.3dyunzhan.com_sceneFront_index.html_G_TEMP_ID=d5b9eba86d0c42c8a54f17d762b40ac1.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:45:58.233Z"
+    },
+    {
+      "title": "甘肃省天水市秦州区村庄旅游攻略...@书写诸史史的动态",
+      "url": "https://mbd.baidu.com/newspage/data/dtlandingsuper?nid=dt_4711911074022315339",
+      "iconFileName": "甘肃省天水市秦州区村庄旅游攻略...@书写诸史史的动态.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:45:58.714Z"
+    },
+    {
+      "title": "旅游景点",
+      "url": "http://www.moa.gov.cn/ztzl/xnl2023/202306/t20230626_6430892.htm",
+      "iconFileName": "旅游景点.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:45:58.900Z"
+    },
+    {
+      "title": "秦州区农村综合性改革试点试验项目",
+      "url": "http://118.182.164.62:8090/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:04.279Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.312Z",
+    "totalBookmarks": 5,
+    "completedBookmarks": 4,
+    "failedBookmarks": 1
+  }
+}

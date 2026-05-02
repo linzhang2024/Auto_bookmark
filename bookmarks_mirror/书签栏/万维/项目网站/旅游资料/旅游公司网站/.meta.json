@@ -1,0 +1,64 @@
+{
+  "folderName": "旅游公司网站",
+  "lastSyncTime": "2026-05-02T03:44:41.059Z",
+  "bookmarks": [
+    {
+      "title": "奇创旅游-景区规划-乡村旅游策划-全域旅游规划-旅游规划设计",
+      "url": "https://www.kchance.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:33.918Z"
+    },
+    {
+      "title": "中国非物质文化遗产网·中国非物质文化遗产数字博物馆",
+      "url": "https://www.ihchina.cn/#page1",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "大旗云 丨 智慧文旅产业生态链建设者",
+      "url": "https://cloud.daqsoft.com/#/index",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "茶卡盐湖景区【官网】",
+      "url": "https://www.chakasl.com/index.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "故宫博物院",
+      "url": "https://www.dpm.org.cn/Home.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.059Z",
+    "totalBookmarks": 5,
+    "completedBookmarks": 4,
+    "failedBookmarks": 1
+  }
+}

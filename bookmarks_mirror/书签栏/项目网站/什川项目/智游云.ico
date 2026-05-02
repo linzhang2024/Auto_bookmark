@@ -1,0 +1,11 @@
+<!DOCTYPE html><html lang=en><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1"><title v-text="JSON.parse(sessionStorage.getItem('baseinfo')).title"></title>
+<script type="text/javascript">
+        window._AMapSecurityConfig = {
+            securityJsCode:'ed6a32b1f93733a323e57157e7863759',
+        }
+</script>
+<script src="https://webapi.amap.com/maps?v=1.4.4&key=c0f81a7fa20b4f4d75f1d8320114fd19&plugin=AMap.Walking,AMap.PolyEditor"></script><script>var link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+  link.type = 'image/x-icon';
+  link.rel = 'shortcut icon';
+  link.href = sessionStorage.getItem('baseinfo')?JSON.parse(sessionStorage.getItem('baseinfo')).ico:'';
+  document.getElementsByTagName('head')[0].appendChild(link);</script><link href=/css/node_modules.ad2f277c.css rel=prefetch><link href=/css/runtime.8ef4dedb.css rel=prefetch><link href=/js/node_modules.0a3c5918.js rel=prefetch><link href=/js/runtime.22b6fcd0.js rel=prefetch><link href=/css/app.15e24d88.css rel=preload as=style><link href=/js/app.1e778deb.js rel=preload as=script><link href=/css/app.15e24d88.css rel=stylesheet></head><body><noscript><strong>We're sorry but clivia-ui doesn't work properly without JavaScript enabled. Please enable it to continue.</strong></noscript><div id=app></div><script src=/js/app.1e778deb.js></script></body></html>

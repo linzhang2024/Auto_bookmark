@@ -1,0 +1,124 @@
+{
+  "folderName": "项目网站",
+  "lastSyncTime": "2026-05-02T03:44:41.058Z",
+  "bookmarks": [
+    {
+      "title": "和政大屏-登录",
+      "url": "http://dicp.hzxzhly.com/hezheng/#/loginScreen",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:08.605Z"
+    },
+    {
+      "title": "青城古镇旅游资讯网-首页",
+      "url": "http://qingchengguzhen.top:29009/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:13.747Z"
+    },
+    {
+      "title": "青海省数字文旅大数据平台",
+      "url": "http://221.207.8.254:8090/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:16.062Z"
+    },
+    {
+      "title": "陇南市武都区智慧文旅综合信息平台",
+      "url": "http://data.wuduhi.com/#/page_06?params=0-0",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:16.357Z"
+    },
+    {
+      "title": "网格化管理综合治理平台",
+      "url": "https://app.mszhcs.cn/grid#/sign-in",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:14.303Z"
+    },
+    {
+      "title": "监控",
+      "url": "https://118.180.24.220:543/portal/ui/login?service=https%3A%2F%2F118.180.24.220%3A543%2Fportal%2F",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:35.647Z"
+    },
+    {
+      "title": "游溪桥后台",
+      "url": "https://yxqcszxc.com/#/login",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "兰州市基层治理",
+      "url": "https://xlbb.wwlzyb.cn/mp/#/homePage/index",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "兰州市基层治理-old",
+      "url": "https://xlbb.wwlzyb.cn/blmpms/#/homePage/index",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "一部手机游甘肃·旅游服务门户",
+      "url": "https://nav.tourgansu.com/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "文旅办公助手-登录",
+      "url": "https://ds.tourgansu.com/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.058Z",
+    "totalBookmarks": 11,
+    "completedBookmarks": 5,
+    "failedBookmarks": 6
+  }
+}

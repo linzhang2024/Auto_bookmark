@@ -1,0 +1,74 @@
+{
+  "folderName": "玛曲项目",
+  "lastSyncTime": "2026-05-02T03:44:41.056Z",
+  "bookmarks": [
+    {
+      "title": "登录",
+      "url": "https://www.mqxzhwl.cn/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:00.108Z"
+    },
+    {
+      "title": "玛曲720",
+      "url": "https://www.720yun.com/t/2fakn9d9Opw?scene_id=112582889",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:54.183Z"
+    },
+    {
+      "title": "玛曲乡村旅游信息收集表",
+      "url": "https://docs.qq.com/sheet/DSktVcXRQTElva3dx?tab=owikeg",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "一部手机游甘肃",
+      "url": "http://console.tourgansu.com/enterPage",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "玛曲开发数据",
+      "url": "https://docs.qq.com/sheet/DQ0RqWUFFSHV0WUtz?tab=BB08J2",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "玛曲一机游开发",
+      "url": "https://docs.qq.com/sheet/DSmdMT3FZeE14WlRp?tab=BB08J2",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.056Z",
+    "totalBookmarks": 6,
+    "completedBookmarks": 4,
+    "failedBookmarks": 2
+  }
+}

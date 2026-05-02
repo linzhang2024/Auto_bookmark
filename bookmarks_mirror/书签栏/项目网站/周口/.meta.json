@@ -1,0 +1,24 @@
+{
+  "folderName": "周口",
+  "lastSyncTime": "2026-05-02T03:47:20.323Z",
+  "bookmarks": [
+    {
+      "title": "周口历史文化名城保护云平台",
+      "url": "http://119.96.188.36:9001/enterPage",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:06.571Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.323Z",
+    "totalBookmarks": 1,
+    "completedBookmarks": 0,
+    "failedBookmarks": 1
+  }
+}

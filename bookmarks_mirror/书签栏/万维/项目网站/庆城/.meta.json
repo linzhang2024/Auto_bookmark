@@ -1,0 +1,54 @@
+{
+  "folderName": "庆城",
+  "lastSyncTime": "2026-05-02T03:44:41.062Z",
+  "bookmarks": [
+    {
+      "title": "登录",
+      "url": "https://console.qihuangzhouzu.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "周祖陵-公众服务门户",
+      "url": "https://nav.qihuangzhouzu.com/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "庆城旅游资讯网",
+      "url": "https://www.qihuangzhouzu.com/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "周祖文化旅游区大数据分析平台",
+      "url": "https://data.qihuangzhouzu.com/#/page_01?params=0-0",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.062Z",
+    "totalBookmarks": 4,
+    "completedBookmarks": 4,
+    "failedBookmarks": 0
+  }
+}

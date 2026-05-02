@@ -1,10 +1,10 @@
 {
   "folderName": "其他书签",
-  "lastSyncTime": "2026-04-29T07:21:15.454Z",
+  "lastSyncTime": "2026-05-02T03:48:31.977Z",
   "bookmarks": [
     {
-      "title": "维基百科",
-      "url": "https://www.wikipedia.org",
+      "title": "嘻哈段子",
+      "url": "https://author.baidu.com/home?from=bjh_article&app_id=1536747770033554",
       "iconFileName": null,
       "urlStatus": "unknown",
       "lastVisited": null,
@@ -13,8 +13,68 @@
       "lastSyncTime": null
     },
     {
-      "title": "Reddit",
-      "url": "https://www.reddit.com",
+      "title": "那年夏天的回复",
+      "url": "https://author.baidu.com/home?from=bjh_article&app_id=1765620124153154",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "高项-信息系统项目管理师【VIP冲刺班】（14期）",
+      "url": "https://www.zhihu.com/education/training/course-detail/1748018698101850112",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "职业体验研究所 - 知学堂",
+      "url": "https://www.zhihu.com/education/video-course/1656335016006389760",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "荣胜教育-哇题库-学习中心-我的课程",
+      "url": "https://www.wowtiku.com/learnList",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "GitHub - NVlabs/VILA: VILA - A multi-image visual language model with training, inference and evaluation recipe, deployable from cloud to edge (Jetson Orin and laptops)",
+      "url": "https://github.com/NVlabs/VILA",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": " Cinematic Studio Template - Unity Learn",
+      "url": "https://learn.unity.com/tutorial/get-started-with-the-cinematic-studio-sample#",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Start learning Unity - Unity Learn",
+      "url": "https://learn.unity.com/tutorial/start-learning-unity#66300935edbc2a067b93b796",
       "iconFileName": null,
       "urlStatus": "unknown",
       "lastVisited": null,
@@ -24,11 +84,11 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777447275449",
-    "startTime": "2026-04-29T07:21:15.449Z",
-    "endTime": "2026-04-29T07:21:15.454Z",
-    "totalBookmarks": 2,
-    "completedBookmarks": 2,
+    "syncId": "sync_1777693698956",
+    "startTime": "2026-05-02T03:48:18.956Z",
+    "endTime": "2026-05-02T03:48:31.977Z",
+    "totalBookmarks": 8,
+    "completedBookmarks": 8,
     "failedBookmarks": 0
   }
 }

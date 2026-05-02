@@ -617,30 +617,155 @@
         startSyncText.textContent = '重新同步';
       }
       
+      function calculateDuration(startTime, endTime) {
+        try {
+          const start = new Date(startTime);
+          const end = new Date(endTime);
+          const diffMs = end - start;
+          
+          if (diffMs < 1000) {
+            return `${diffMs} 毫秒`;
+          } else if (diffMs < 60000) {
+            return `${Math.round(diffMs / 1000)} 秒`;
+          } else {
+            const minutes = Math.floor(diffMs / 60000);
+            const seconds = Math.round((diffMs % 60000) / 1000);
+            return `${minutes} 分 ${seconds} 秒`;
+          }
+        } catch {
+          return '未知';
+        }
+      }
+      
+      function renderSyncResultSummary(result, isBrowserSync) {
+        if (!result) {
+          return '<p>无结果数据</p>';
+        }
+        
+        const startTime = result.startTime;
+        const endTime = result.endTime;
+        const duration = startTime && endTime ? calculateDuration(startTime, endTime) : '未知';
+        
+        const totalSuccess = (result.bookmarksSynced || 0) + (result.bookmarksAlreadySynced || 0);
+        const totalFailed = result.bookmarksFailed || 0;
+        const duplicatesSkipped = result.duplicatesFound || 0;
+        const foldersCreated = result.foldersCreated || 0;
+        
+        let failedDetails = '';
+        if (result.failedBookmarks && result.failedBookmarks.length > 0) {
+          const maxToShow = 5;
+          const shownFailures = result.failedBookmarks.slice(0, maxToShow);
+          const hiddenCount = result.failedBookmarks.length - maxToShow;
+          
+          failedDetails = `
+            <div style="margin-top: 16px;">
+              <h4 style="color: #991b1b; font-size: 14px; margin-bottom: 8px;">失败详情 (${result.failedBookmarks.length} 个):</h4>
+              <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; max-height: 200px; overflow-y: auto;">
+                ${shownFailures.map(bm => `
+                  <div style="padding: 8px 0; border-bottom: 1px solid #fee2e2; font-size: 12px;">
+                    <div style="font-weight: 500; color: #7f1d1d;">${escapeHtml(bm.title || '未知标题')}</div>
+                    <div style="color: #b91c1c; word-break: break-all;">${escapeHtml(bm.url || '')}</div>
+                  </div>
+                `).join('')}
+                ${hiddenCount > 0 ? `<div style="padding: 8px 0; color: #7f1d1d; font-size: 12px; font-style: italic;">... 还有 ${hiddenCount} 个失败的书签</div>` : ''}
+              </div>
+            </div>
+          `;
+        }
+        
+        const successCount = totalSuccess;
+        const totalCount = successCount + totalFailed;
+        const successRate = totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 100;
+        
+        return `
+          <div style="padding: 16px; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border-radius: 12px; border: 1px solid #a7f3d0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <h3 style="margin: 0; color: #065f46; font-size: 18px;">🎉 同步完成</h3>
+              <span style="background: #059669; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;">
+                成功率 ${successRate}%
+              </span>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px;">
+              <div style="background: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="font-size: 24px; margin-bottom: 4px;">✅</div>
+                <div style="font-size: 20px; font-weight: 700; color: #059669;">${totalSuccess}</div>
+                <div style="font-size: 12px; color: #047857;">成功总数</div>
+              </div>
+              
+              <div style="background: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="font-size: 24px; margin-bottom: 4px;">❌</div>
+                <div style="font-size: 20px; font-weight: 700; color: #dc2626;">${totalFailed}</div>
+                <div style="font-size: 12px; color: #b91c1c;">失败总数</div>
+              </div>
+              
+              <div style="background: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="font-size: 24px; margin-bottom: 4px;">🔄</div>
+                <div style="font-size: 20px; font-weight: 700; color: #7c3aed;">${duplicatesSkipped}</div>
+                <div style="font-size: 12px; color: #6d28d9;">重复跳过</div>
+              </div>
+              
+              <div style="background: white; padding: 12px; border-radius: 8px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                <div style="font-size: 24px; margin-bottom: 4px;">⏱️</div>
+                <div style="font-size: 20px; font-weight: 700; color: #2563eb;">${duration}</div>
+                <div style="font-size: 12px; color: #1d4ed8;">同步耗时</div>
+              </div>
+            </div>
+            
+            <div style="background: white; padding: 12px; border-radius: 8px; margin-bottom: 12px;">
+              <div style="font-size: 13px; color: #374151; line-height: 1.6;">
+                <div style="margin-bottom: 4px;">📁 <strong>创建文件夹:</strong> ${foldersCreated} 个</div>
+                <div style="margin-bottom: 4px;">🔗 <strong>新同步:</strong> ${result.bookmarksSynced || 0} 个</div>
+                <div>✅ <strong>已存在跳过:</strong> ${result.bookmarksAlreadySynced || 0} 个</div>
+              </div>
+            </div>
+            
+            ${failedDetails}
+            
+            <div style="margin-top: 16px; display: flex; gap: 12px;">
+              <button class="btn btn-primary" id="closeResultBtn" style="flex: 1;">
+                关闭
+              </button>
+              <button class="btn btn-secondary" id="refreshResultBtn" style="flex: 1;">
+                刷新列表
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      
       function showSyncResult(result, success) {
         isSyncing = false;
         syncResult.style.display = 'block';
+        syncErrorDetail.style.display = 'none';
         
         if (success) {
-          syncResult.className = 'alert alert-success';
-          let resultText = '同步完成！\n\n';
-          if (result) {
-            resultText += `📁 创建文件夹: ${result.foldersCreated || 0} 个\n`;
-            resultText += `🔗 同步书签: ${result.bookmarksSynced || 0} 个\n`;
-            resultText += `✅ 已存在: ${result.bookmarksAlreadySynced || 0} 个\n`;
-            resultText += `❌ 失败: ${result.bookmarksFailed || 0} 个`;
-          }
-          syncResult.textContent = resultText;
+          syncResult.innerHTML = renderSyncResultSummary(result, true);
           
           showToast('同步成功！', 'success');
           
-          setTimeout(() => {
-            closeSyncModalFunc();
-            loadStatus();
-          }, 3000);
+          const closeBtn = document.getElementById('closeResultBtn');
+          const refreshBtn = document.getElementById('refreshResultBtn');
+          
+          if (closeBtn) {
+            closeBtn.addEventListener('click', function() {
+              closeSyncModalFunc();
+            });
+          }
+          
+          if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+              closeSyncModalFunc();
+              loadStatus();
+            });
+          }
         } else {
           syncResult.className = 'alert alert-error';
-          syncResult.textContent = result || '同步失败，请稍后重试';
+          syncResult.innerHTML = `<div style="text-align: center; padding: 20px;">
+            <div style="font-size: 48px; margin-bottom: 12px;">❌</div>
+            <div style="font-size: 16px; font-weight: 600; color: #991b1b; margin-bottom: 8px;">同步失败</div>
+            <div style="font-size: 14px; color: #b91c1c;">${result || '未知错误，请稍后重试'}</div>
+          </div>`;
         }
         
         startSync.disabled = false;

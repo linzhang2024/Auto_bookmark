@@ -1,0 +1,54 @@
+{
+  "folderName": "会宁旅游",
+  "lastSyncTime": "2026-05-02T03:47:20.316Z",
+  "bookmarks": [
+    {
+      "title": "会宁旅游资讯网",
+      "url": "http://www.gshnzhly.com/#/",
+      "iconFileName": "会宁旅游资讯网.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:17.347Z"
+    },
+    {
+      "title": "会宁智慧文旅全域服务中心",
+      "url": "http://console.gshnzhly.com/enterPage",
+      "iconFileName": "会宁智慧文旅全域服务中心.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:17.771Z"
+    },
+    {
+      "title": "一部手机游会宁·旅游服务门户",
+      "url": "https://m.gshnzhly.com/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:17.538Z"
+    },
+    {
+      "title": "会宁县智慧文旅大数据分析平台",
+      "url": "http://data.gshnzhly.com/#/page_01?params=0-0",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:17.888Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.316Z",
+    "totalBookmarks": 4,
+    "completedBookmarks": 2,
+    "failedBookmarks": 2
+  }
+}

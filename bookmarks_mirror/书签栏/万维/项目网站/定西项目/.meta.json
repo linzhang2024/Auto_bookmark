@@ -1,0 +1,104 @@
+{
+  "folderName": "定西项目",
+  "lastSyncTime": "2026-05-02T03:44:41.055Z",
+  "bookmarks": [
+    {
+      "title": "文旅AI大数据平台",
+      "url": "https://www.travel189.com/city-saas/#/login",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:48.422Z"
+    },
+    {
+      "title": "集约管控平台",
+      "url": "http://125.74.88.124:8889/bms/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:52.432Z"
+    },
+    {
+      "title": "tjj.dingxi.gov.cn/col/col8707/index.html",
+      "url": "http://tjj.dingxi.gov.cn/col/col8707/index.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:48.307Z"
+    },
+    {
+      "title": "一部手机游定西·公共服务门户",
+      "url": "https://nav.tourgansu.com/dingxi/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "甘肃省智慧文旅云平台",
+      "url": "http://news.tourgansu.com/enterPage",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "console.tourgansu.com",
+      "url": "https://console.tourgansu.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "定西一机游",
+      "url": "https://docs.qq.com/sheet/DQ0Nka3F1dmpBSm9Q?tab=BB08J2",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "登录 | 和风天气",
+      "url": "https://id.qweather.com/#/login?redirect=https%3A%2F%2Fconsole.qweather.com%2F%23%2Fconsole&lang=zh",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "大数据-定西项目缺陷排查",
+      "url": "https://docs.qq.com/sheet/DQ1l4SE5mWU52WEhy?tab=BB08J2",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.055Z",
+    "totalBookmarks": 9,
+    "completedBookmarks": 6,
+    "failedBookmarks": 3
+  }
+}

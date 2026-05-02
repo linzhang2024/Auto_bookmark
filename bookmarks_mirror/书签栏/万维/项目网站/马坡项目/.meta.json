@@ -1,0 +1,54 @@
+{
+  "folderName": "马坡项目",
+  "lastSyncTime": "2026-05-02T03:44:41.057Z",
+  "bookmarks": [
+    {
+      "title": "智游云",
+      "url": "https://www.yzxmpxgl.cn/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:02.481Z"
+    },
+    {
+      "title": "弹性云主机 - 控制台",
+      "url": "https://console2.ctyun.cn/ecm/?region=cn-snxy1&locale=zh-cn#/ecs/manager/vmList",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:55.412Z"
+    },
+    {
+      "title": "ICP/IP地址/域名信息备案管理系统",
+      "url": "https://beian.miit.gov.cn/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:56.400Z"
+    },
+    {
+      "title": "马坡乡",
+      "url": "https://www.720yun.com/t/14aknwq9gqe?scene_id=114467705",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:56.694Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.057Z",
+    "totalBookmarks": 4,
+    "completedBookmarks": 0,
+    "failedBookmarks": 4
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "folderName": "西藏边坝",
+  "lastSyncTime": "2026-05-02T03:44:41.054Z",
+  "bookmarks": [
+    {
+      "title": "西藏昌都边坝",
+      "url": "http://113.62.131.132:8090/enterPage",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:44.739Z"
+    },
+    {
+      "title": "一机游",
+      "url": "http://113.62.131.132:8091/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:39.974Z"
+    },
+    {
+      "title": "一部手机游边坝-首页",
+      "url": "http://113.62.131.132:8091/0aeabefa/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:42.364Z"
+    },
+    {
+      "title": "边坝县文旅大数据中心",
+      "url": "http://113.62.131.132:9000/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:43:47.275Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.054Z",
+    "totalBookmarks": 4,
+    "completedBookmarks": 0,
+    "failedBookmarks": 4
+  }
+}

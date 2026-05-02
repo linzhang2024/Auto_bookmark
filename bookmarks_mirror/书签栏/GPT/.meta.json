@@ -1,0 +1,94 @@
+{
+  "folderName": "GPT",
+  "lastSyncTime": "2026-05-02T03:48:31.976Z",
+  "bookmarks": [
+    {
+      "title": "huggingface  AI community building the future.",
+      "url": "https://huggingface.co/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "New chat",
+      "url": "https://chat.openai.com/chat",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Bard",
+      "url": "https://bard.google.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Gemini",
+      "url": "https://www.gemini.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "• Discord | 好友",
+      "url": "https://discord.com/channels/@me",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Learning - DeepLearning.AI",
+      "url": "https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Google DeepMind",
+      "url": "https://deepmind.google/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Windows | FaceFusion",
+      "url": "https://docs.facefusion.io/installation/environment/windows",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693698956",
+    "startTime": "2026-05-02T03:48:18.956Z",
+    "endTime": "2026-05-02T03:48:31.976Z",
+    "totalBookmarks": 8,
+    "completedBookmarks": 8,
+    "failedBookmarks": 0
+  }
+}
