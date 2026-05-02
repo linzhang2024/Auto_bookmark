@@ -182,6 +182,62 @@ function initDatabase() {
         
         logInfo('documents 表已就绪');
 
+        await runAsync(`
+          CREATE TABLE IF NOT EXISTS sync_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sync_id TEXT NOT NULL UNIQUE,
+            executed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            browser_source TEXT,
+            total_count INTEGER DEFAULT 0,
+            success_count INTEGER DEFAULT 0,
+            failed_count INTEGER DEFAULT 0,
+            status TEXT DEFAULT 'completed',
+            error_message TEXT,
+            sync_dir TEXT,
+            total_folders INTEGER DEFAULT 0,
+            folders_created INTEGER DEFAULT 0,
+            duplicates_found INTEGER DEFAULT 0,
+            duration_ms INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        logInfo('sync_history 表已就绪');
+
+        await runAsync(`
+          CREATE TABLE IF NOT EXISTS sync_failure_details (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sync_id TEXT NOT NULL,
+            bookmark_title TEXT,
+            bookmark_url TEXT,
+            folder_path TEXT,
+            error_type TEXT,
+            error_message TEXT,
+            failed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sync_id) REFERENCES sync_history(sync_id)
+          )
+        `);
+        logInfo('sync_failure_details 表已就绪');
+
+        const hasSyncHistoryIndex = await getAsync(
+          "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_sync_history_sync_id'",
+          []
+        );
+        if (!hasSyncHistoryIndex) {
+          await runAsync('CREATE INDEX idx_sync_history_sync_id ON sync_history(sync_id)');
+          logInfo('已创建 idx_sync_history_sync_id 索引');
+        }
+
+        const hasFailureIndex = await getAsync(
+          "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_sync_failure_sync_id'",
+          []
+        );
+        if (!hasFailureIndex) {
+          await runAsync('CREATE INDEX idx_sync_failure_sync_id ON sync_failure_details(sync_id)');
+          logInfo('已创建 idx_sync_failure_sync_id 索引');
+        }
+
         await seedRoles();
 
         resolve(db);

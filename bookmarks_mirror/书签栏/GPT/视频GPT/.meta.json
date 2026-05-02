@@ -1,6 +1,6 @@
 {
   "folderName": "视频GPT",
-  "lastSyncTime": "2026-05-02T03:48:31.974Z",
+  "lastSyncTime": "2026-05-02T05:09:48.708Z",
   "bookmarks": [
     {
       "title": "音唇同步Wav2Lip 演示",
@@ -10,7 +10,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T03:48:26.230Z"
+      "lastSyncTime": "2026-05-02T05:09:41.488Z"
     },
     {
       "title": "Gradio",
@@ -20,7 +20,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T03:48:26.293Z"
+      "lastSyncTime": "2026-05-02T05:09:41.801Z"
     },
     {
       "title": "D-ID   Create Video",
@@ -84,9 +84,9 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777693698956",
-    "startTime": "2026-05-02T03:48:18.956Z",
-    "endTime": "2026-05-02T03:48:31.974Z",
+    "syncId": "sync_1777698579729",
+    "startTime": "2026-05-02T05:09:39.729Z",
+    "endTime": "2026-05-02T05:09:48.708Z",
     "totalBookmarks": 8,
     "completedBookmarks": 6,
     "failedBookmarks": 2
