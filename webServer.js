@@ -625,13 +625,26 @@ app.post('/api/sync', async (req, res) => {
       backupFilePath = await createBackupFromBookmarks(bookmarks, DEFAULT_BACKUP_DIR, {
         browserSource: 'manual_upload'
       });
-      console.log(`✓ 已创建备份文件: ${backupFilePath}`);
+      
+      if (backupFilePath && fs.existsSync(backupFilePath)) {
+        const stat = fs.statSync(backupFilePath);
+        console.log(`✓ 已创建备份文件: ${backupFilePath} (${stat.size} 字节)`);
+      } else {
+        console.warn(`创建备份文件失败或文件不存在: ${backupFilePath}`);
+        backupFilePath = null;
+      }
     } catch (backupError) {
       console.error('创建备份文件失败:', backupError.message);
+      backupFilePath = null;
     }
 
+    const resultWithSyncDir = {
+      ...result,
+      syncDir: targetSyncDir
+    };
+
     try {
-      await SyncHistory.updateSyncResult(taskInfo.taskId, result, 'manual_upload', backupFilePath);
+      await SyncHistory.updateSyncResult(taskInfo.taskId, resultWithSyncDir, 'manual_upload', backupFilePath);
     } catch (historyError) {
       console.error('保存同步历史失败:', historyError.message);
     }
@@ -1024,7 +1037,8 @@ app.post('/api/browser-sync', async (req, res) => {
 
       const resultWithDuplicates = {
         ...result,
-        duplicatesFound: duplicatesFound
+        duplicatesFound: duplicatesFound,
+        syncDir: targetSyncDir
       };
 
       let backupFilePath = null;
@@ -1032,9 +1046,17 @@ app.post('/api/browser-sync', async (req, res) => {
         backupFilePath = await createBackupFromBookmarks(bookmarksData, DEFAULT_BACKUP_DIR, {
           browserSource: browserType
         });
-        console.log(`✓ 已创建备份文件: ${backupFilePath}`);
+        
+        if (backupFilePath && fs.existsSync(backupFilePath)) {
+          const stat = fs.statSync(backupFilePath);
+          console.log(`✓ 已创建备份文件: ${backupFilePath} (${stat.size} 字节)`);
+        } else {
+          console.warn(`创建备份文件失败或文件不存在: ${backupFilePath}`);
+          backupFilePath = null;
+        }
       } catch (backupError) {
         console.error('创建备份文件失败:', backupError.message);
+        backupFilePath = null;
       }
 
       try {
