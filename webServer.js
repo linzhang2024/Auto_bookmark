@@ -1900,7 +1900,11 @@ app.get('/api/sync-history', async (req, res) => {
     const limit = parseInt(req.query.limit, 10) || 50;
     const offset = parseInt(req.query.offset, 10) || 0;
     
+    console.log(`[同步历史] 开始获取历史记录列表，limit=${limit}, offset=${offset}`);
+    
     const historyList = await SyncHistory.listAll(limit, offset);
+    
+    console.log(`[同步历史] 获取历史记录列表成功，共 ${historyList.length} 条记录`);
     
     res.json({
       success: true,
@@ -1912,7 +1916,7 @@ app.get('/api/sync-history', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取同步历史失败:', error);
+    console.error(`[同步历史] 获取历史记录列表失败: ${error.message}`);
     res.status(500).json({
       success: false,
       message: error.message || '获取同步历史失败'
@@ -1922,8 +1926,12 @@ app.get('/api/sync-history', async (req, res) => {
 
 app.get('/api/sync-history/stats', async (req, res) => {
   try {
+    console.log(`[同步历史] 开始获取统计信息`);
+    
     const stats = await SyncHistory.getStats();
     const errorDistribution = await SyncFailureDetail.getErrorDistribution();
+    
+    console.log(`[同步历史] 获取统计信息成功：总同步 ${stats.totalSyncs} 次，成功率 ${stats.successRate}%`);
     
     res.json({
       success: true,
@@ -1933,7 +1941,7 @@ app.get('/api/sync-history/stats', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取同步统计失败:', error);
+    console.error(`[同步历史] 获取统计信息失败: ${error.message}`);
     res.status(500).json({
       success: false,
       message: error.message || '获取同步统计失败'
@@ -1945,7 +1953,10 @@ app.get('/api/sync-history/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     
+    console.log(`[同步历史] 开始获取历史记录详情，id=${id}`);
+    
     if (isNaN(id)) {
+      console.warn(`[同步历史] 获取历史记录详情失败：无效的 ID ${req.params.id}`);
       return res.status(400).json({
         success: false,
         message: '无效的历史记录 ID'
@@ -1955,6 +1966,7 @@ app.get('/api/sync-history/:id', async (req, res) => {
     const history = await SyncHistory.findById(id);
     
     if (!history) {
+      console.warn(`[同步历史] 获取历史记录详情失败：记录不存在 id=${id}`);
       return res.status(404).json({
         success: false,
         message: '同步历史记录不存在'
@@ -1962,6 +1974,8 @@ app.get('/api/sync-history/:id', async (req, res) => {
     }
     
     const failures = await history.getFailures();
+    
+    console.log(`[同步历史] 获取历史记录详情成功 id=${id}，包含 ${failures.length} 条失败记录`);
     
     res.json({
       success: true,
@@ -1971,7 +1985,7 @@ app.get('/api/sync-history/:id', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取同步历史详情失败:', error);
+    console.error(`[同步历史] 获取历史记录详情失败 id=${req.params.id}: ${error.message}`);
     res.status(500).json({
       success: false,
       message: error.message || '获取同步历史详情失败'
@@ -1982,8 +1996,13 @@ app.get('/api/sync-history/:id', async (req, res) => {
 app.delete('/api/sync-history/:id', authMiddleware, async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
+    const userId = req.user?.id;
+    const username = req.user?.username || 'unknown';
+    
+    console.log(`[同步历史] 用户 ${username}(id=${userId}) 尝试删除历史记录 id=${id}`);
     
     if (isNaN(id)) {
+      console.warn(`[同步历史] 删除历史记录失败：无效的 ID ${req.params.id}`);
       return res.status(400).json({
         success: false,
         message: '无效的历史记录 ID'
@@ -1992,6 +2011,7 @@ app.delete('/api/sync-history/:id', authMiddleware, async (req, res) => {
     
     const isAdmin = await AuthMiddleware.isAdmin(req.user.id);
     if (!isAdmin) {
+      console.warn(`[同步历史] 用户 ${username}(id=${userId}) 无权限删除历史记录 id=${id}，非管理员`);
       return res.status(403).json({
         success: false,
         message: '仅管理员可以删除同步历史记录'
@@ -2001,18 +2021,20 @@ app.delete('/api/sync-history/:id', authMiddleware, async (req, res) => {
     const result = await SyncHistory.delete(id);
     
     if (result) {
+      console.log(`[同步历史] 用户 ${username}(id=${userId}) 成功删除历史记录 id=${id}`);
       res.json({
         success: true,
         message: '同步历史记录已删除'
       });
     } else {
+      console.warn(`[同步历史] 用户 ${username}(id=${userId}) 删除历史记录失败：记录不存在 id=${id}`);
       res.status(404).json({
         success: false,
         message: '同步历史记录不存在'
       });
     }
   } catch (error) {
-    console.error('删除同步历史失败:', error);
+    console.error(`[同步历史] 删除历史记录失败 id=${req.params.id}: ${error.message}`);
     res.status(500).json({
       success: false,
       message: error.message || '删除同步历史失败'
@@ -2022,22 +2044,34 @@ app.delete('/api/sync-history/:id', authMiddleware, async (req, res) => {
 
 app.delete('/api/sync-history', authMiddleware, async (req, res) => {
   try {
+    const userId = req.user?.id;
+    const username = req.user?.username || 'unknown';
+    
+    console.log(`[同步历史] 用户 ${username}(id=${userId}) 尝试清除所有同步历史记录`);
+    
     const isAdmin = await AuthMiddleware.isAdmin(req.user.id);
     if (!isAdmin) {
+      console.warn(`[同步历史] 用户 ${username}(id=${userId}) 无权限清除历史记录，非管理员`);
       return res.status(403).json({
         success: false,
         message: '仅管理员可以清除所有同步历史记录'
       });
     }
     
+    const stats = await SyncHistory.getStats();
+    const totalCount = stats.totalSyncs;
+    
     await SyncHistory.clearAll();
+    
+    console.log(`[同步历史] 用户 ${username}(id=${userId}) 成功清除所有同步历史记录，共清除 ${totalCount} 条`);
     
     res.json({
       success: true,
-      message: '所有同步历史记录已清除'
+      message: '所有同步历史记录已清除',
+      clearedCount: totalCount
     });
   } catch (error) {
-    console.error('清除同步历史失败:', error);
+    console.error(`[同步历史] 清除所有历史记录失败: ${error.message}`);
     res.status(500).json({
       success: false,
       message: error.message || '清除同步历史失败'

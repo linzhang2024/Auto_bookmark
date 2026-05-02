@@ -86,7 +86,7 @@ async function apiRequest(endpoint, options = {}) {
     } catch (parseError) {
       console.error('[API Response Parse Error] 无法解析响应为 JSON');
       console.dir(parseError);
-      data = { success: false, message: '响应解析失败' };
+      data = { success: false, message: '服务器响应异常，请稍后重试' };
     }
     
     if (response.status === 401) {

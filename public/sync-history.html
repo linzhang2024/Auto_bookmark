@@ -465,11 +465,39 @@
             throw new Error(result.data?.message || '加载失败');
           }
         } catch (error) {
+          const errorMsg = error.message || '请稍后重试';
+          const isNetworkError = errorMsg.includes('网络') || errorMsg.includes('网络请求');
+          const isServerError = errorMsg.includes('服务器') || errorMsg.includes('响应');
+          
+          let displayTitle, displayMsg, displayIcon;
+          
+          if (isNetworkError) {
+            displayIcon = '🌐';
+            displayTitle = '网络连接失败';
+            displayMsg = '无法连接到服务器，请检查网络连接后重试';
+          } else if (isServerError) {
+            displayIcon = '🔧';
+            displayTitle = '服务器响应异常';
+            displayMsg = '服务器暂时无法处理请求，请稍后重试';
+          } else {
+            displayIcon = '⚠️';
+            displayTitle = '加载失败';
+            displayMsg = errorMsg;
+          }
+          
           historyContainer.innerHTML = `
             <div class="empty-state">
-              <div class="empty-state-icon">⚠️</div>
-              <div class="empty-state-text">加载失败</div>
-              <div class="empty-state-hint">${escapeHtml(error.message || '请稍后重试')}</div>
+              <div class="empty-state-icon">${displayIcon}</div>
+              <div class="empty-state-text">${escapeHtml(displayTitle)}</div>
+              <div class="empty-state-hint" style="margin-bottom: 16px;">${escapeHtml(displayMsg)}</div>
+              <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-primary" onclick="loadHistory(); loadStats();" style="padding: 10px 24px;">
+                  🔄 刷新重试
+                </button>
+                <a href="/bookmarks.html" class="btn btn-secondary" style="text-decoration: none; padding: 10px 24px;">
+                  🏠 返回主页
+                </a>
+              </div>
             </div>
           `;
         }
@@ -551,7 +579,17 @@
           }
         } catch (error) {
           console.error('加载详情失败:', error);
-          detailEl.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 20px;">加载详情失败: ${escapeHtml(error.message)}</div>`;
+          const errorMsg = error.message || '请稍后重试';
+          detailEl.innerHTML = `
+            <div style="text-align: center; padding: 24px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">⚠️</div>
+              <div style="color: #dc2626; font-weight: 500; margin-bottom: 8px;">加载详情失败</div>
+              <div style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">${escapeHtml(errorMsg)}</div>
+              <button class="btn btn-secondary" onclick="loadHistoryDetail('${id}', this.closest('.history-item'));">
+                🔄 重新加载
+              </button>
+            </div>
+          `;
         }
       }
       
