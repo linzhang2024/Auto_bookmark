@@ -3,7 +3,8 @@ const db = require('./database');
 const SyncStatus = {
   COMPLETED: 'completed',
   FAILED: 'failed',
-  PARTIAL: 'partial'
+  PARTIAL: 'partial',
+  IN_PROGRESS: 'in_progress'
 };
 
 const ErrorType = {
@@ -210,47 +211,76 @@ class SyncHistory {
       ? SyncStatus.PARTIAL 
       : (failedCount > 0 ? SyncStatus.FAILED : SyncStatus.COMPLETED);
 
-    if (backup_file_path) {
-      await db.run(
-        `UPDATE sync_history 
-         SET total_count = ?, success_count = ?, failed_count = ?, 
-             status = ?, total_folders = ?, folders_created = ?, 
-             duplicates_found = ?, duration_ms = ?, executed_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP, backup_file_path = ?
-         WHERE sync_id = ?`,
-        [
-          totalCount,
-          successCount,
-          failedCount,
-          status,
-          result.totalFolders || 0,
-          result.foldersCreated || 0,
-          result.duplicatesFound || 0,
-          durationMs,
-          backup_file_path,
-          sync_id
-        ]
-      );
+    let actualBackupPath = backup_file_path;
+    if (actualBackupPath && actualBackupPath.trim()) {
+      const fs = require('fs');
+      if (!fs.existsSync(actualBackupPath)) {
+        console.warn(`[SyncHistory] 备份文件不存在: ${actualBackupPath}，不保存路径`);
+        actualBackupPath = null;
+      }
+    }
+
+    const existingRecord = await SyncHistory.findBySyncId(sync_id);
+    
+    if (existingRecord) {
+      if (actualBackupPath) {
+        await db.run(
+          `UPDATE sync_history 
+           SET total_count = ?, success_count = ?, failed_count = ?, 
+               status = ?, total_folders = ?, folders_created = ?, 
+               duplicates_found = ?, duration_ms = ?, executed_at = CURRENT_TIMESTAMP,
+               updated_at = CURRENT_TIMESTAMP, backup_file_path = ?
+           WHERE sync_id = ?`,
+          [
+            totalCount,
+            successCount,
+            failedCount,
+            status,
+            result.totalFolders || 0,
+            result.foldersCreated || 0,
+            result.duplicatesFound || 0,
+            durationMs,
+            actualBackupPath,
+            sync_id
+          ]
+        );
+      } else {
+        await db.run(
+          `UPDATE sync_history 
+           SET total_count = ?, success_count = ?, failed_count = ?, 
+               status = ?, total_folders = ?, folders_created = ?, 
+               duplicates_found = ?, duration_ms = ?, executed_at = CURRENT_TIMESTAMP,
+               updated_at = CURRENT_TIMESTAMP
+           WHERE sync_id = ?`,
+          [
+            totalCount,
+            successCount,
+            failedCount,
+            status,
+            result.totalFolders || 0,
+            result.foldersCreated || 0,
+            result.duplicatesFound || 0,
+            durationMs,
+            sync_id
+          ]
+        );
+      }
     } else {
-      await db.run(
-        `UPDATE sync_history 
-         SET total_count = ?, success_count = ?, failed_count = ?, 
-             status = ?, total_folders = ?, folders_created = ?, 
-             duplicates_found = ?, duration_ms = ?, executed_at = CURRENT_TIMESTAMP,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE sync_id = ?`,
-        [
-          totalCount,
-          successCount,
-          failedCount,
-          status,
-          result.totalFolders || 0,
-          result.foldersCreated || 0,
-          result.duplicatesFound || 0,
-          durationMs,
-          sync_id
-        ]
-      );
+      await SyncHistory.create({
+        sync_id: sync_id,
+        browser_source: browser_source,
+        total_count: totalCount,
+        success_count: successCount,
+        failed_count: failedCount,
+        status: status,
+        sync_dir: result.syncDir || null,
+        total_folders: result.totalFolders || 0,
+        folders_created: result.foldersCreated || 0,
+        duplicates_found: result.duplicatesFound || 0,
+        duration_ms: durationMs,
+        backup_file_path: actualBackupPath,
+        failures: result.failedBookmarks || []
+      });
     }
 
     if (result.failedBookmarks && Array.isArray(result.failedBookmarks) && result.failedBookmarks.length > 0) {
@@ -360,6 +390,22 @@ class SyncHistory {
   }
 
   toJSON() {
+    const fs = require('fs');
+    const actualBackupPath = this.backup_file_path;
+    
+    let effectiveBackupPath = actualBackupPath;
+    if (actualBackupPath && actualBackupPath.trim()) {
+      try {
+        if (!fs.existsSync(actualBackupPath)) {
+          console.warn(`[SyncHistory.toJSON] 备份文件不存在: ${actualBackupPath}`);
+          effectiveBackupPath = null;
+        }
+      } catch (e) {
+        console.warn(`[SyncHistory.toJSON] 检查备份文件存在性时出错: ${e.message}`);
+        effectiveBackupPath = null;
+      }
+    }
+    
     return {
       id: this.id,
       sync_id: this.sync_id,
@@ -375,7 +421,7 @@ class SyncHistory {
       folders_created: this.folders_created,
       duplicates_found: this.duplicates_found,
       duration_ms: this.duration_ms,
-      backup_file_path: this.backup_file_path,
+      backup_file_path: effectiveBackupPath,
       duration_formatted: this.getDurationFormatted(),
       success_rate: this.getSuccessRate(),
       created_at: this.created_at,
