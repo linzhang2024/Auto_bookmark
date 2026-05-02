@@ -71,6 +71,7 @@ class SyncHistory {
     folders_created,
     duplicates_found,
     duration_ms,
+    backup_file_path,
     created_at,
     updated_at
   ) {
@@ -88,6 +89,7 @@ class SyncHistory {
     this.folders_created = folders_created || 0;
     this.duplicates_found = duplicates_found || 0;
     this.duration_ms = duration_ms;
+    this.backup_file_path = backup_file_path;
     this.created_at = created_at;
     this.updated_at = updated_at;
     this._failures = null;
@@ -109,6 +111,7 @@ class SyncHistory {
       row.folders_created,
       row.duplicates_found,
       row.duration_ms,
+      row.backup_file_path,
       row.created_at,
       row.updated_at
     );
@@ -128,6 +131,7 @@ class SyncHistory {
       folders_created = 0,
       duplicates_found = 0,
       duration_ms = null,
+      backup_file_path = null,
       failures = []
     } = options;
 
@@ -143,8 +147,8 @@ class SyncHistory {
       `INSERT INTO sync_history 
        (sync_id, browser_source, total_count, success_count, failed_count, 
         status, error_message, sync_dir, total_folders, folders_created, 
-        duplicates_found, duration_ms) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        duplicates_found, duration_ms, backup_file_path) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         sync_id,
         browser_source,
@@ -157,7 +161,8 @@ class SyncHistory {
         total_folders,
         folders_created,
         duplicates_found,
-        duration_ms
+        duration_ms,
+        backup_file_path
       ]
     );
 
@@ -186,7 +191,7 @@ class SyncHistory {
     return SyncHistory.findById(result.lastID);
   }
 
-  static async updateSyncResult(sync_id, result, browser_source) {
+  static async updateSyncResult(sync_id, result, browser_source, backup_file_path = null) {
     const totalCount = (result.bookmarksSynced || 0) + 
                        (result.bookmarksAlreadySynced || 0) + 
                        (result.bookmarksFailed || 0);
@@ -205,25 +210,48 @@ class SyncHistory {
       ? SyncStatus.PARTIAL 
       : (failedCount > 0 ? SyncStatus.FAILED : SyncStatus.COMPLETED);
 
-    await db.run(
-      `UPDATE sync_history 
-       SET total_count = ?, success_count = ?, failed_count = ?, 
-           status = ?, total_folders = ?, folders_created = ?, 
-           duplicates_found = ?, duration_ms = ?, executed_at = CURRENT_TIMESTAMP,
-           updated_at = CURRENT_TIMESTAMP
-       WHERE sync_id = ?`,
-      [
-        totalCount,
-        successCount,
-        failedCount,
-        status,
-        result.totalFolders || 0,
-        result.foldersCreated || 0,
-        result.duplicatesFound || 0,
-        durationMs,
-        sync_id
-      ]
-    );
+    if (backup_file_path) {
+      await db.run(
+        `UPDATE sync_history 
+         SET total_count = ?, success_count = ?, failed_count = ?, 
+             status = ?, total_folders = ?, folders_created = ?, 
+             duplicates_found = ?, duration_ms = ?, executed_at = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP, backup_file_path = ?
+         WHERE sync_id = ?`,
+        [
+          totalCount,
+          successCount,
+          failedCount,
+          status,
+          result.totalFolders || 0,
+          result.foldersCreated || 0,
+          result.duplicatesFound || 0,
+          durationMs,
+          backup_file_path,
+          sync_id
+        ]
+      );
+    } else {
+      await db.run(
+        `UPDATE sync_history 
+         SET total_count = ?, success_count = ?, failed_count = ?, 
+             status = ?, total_folders = ?, folders_created = ?, 
+             duplicates_found = ?, duration_ms = ?, executed_at = CURRENT_TIMESTAMP,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE sync_id = ?`,
+        [
+          totalCount,
+          successCount,
+          failedCount,
+          status,
+          result.totalFolders || 0,
+          result.foldersCreated || 0,
+          result.duplicatesFound || 0,
+          durationMs,
+          sync_id
+        ]
+      );
+    }
 
     if (result.failedBookmarks && Array.isArray(result.failedBookmarks) && result.failedBookmarks.length > 0) {
       for (const failure of result.failedBookmarks) {
@@ -347,11 +375,35 @@ class SyncHistory {
       folders_created: this.folders_created,
       duplicates_found: this.duplicates_found,
       duration_ms: this.duration_ms,
+      backup_file_path: this.backup_file_path,
       duration_formatted: this.getDurationFormatted(),
       success_rate: this.getSuccessRate(),
       created_at: this.created_at,
       updated_at: this.updated_at
     };
+  }
+
+  static async updateBackupFilePath(sync_id, backup_file_path) {
+    if (!sync_id) {
+      throw new Error('sync_id 不能为空');
+    }
+
+    const result = await db.run(
+      `UPDATE sync_history 
+       SET backup_file_path = ?, updated_at = CURRENT_TIMESTAMP 
+       WHERE sync_id = ?`,
+      [backup_file_path, sync_id]
+    );
+
+    return result.changes > 0;
+  }
+
+  async updateBackupPath(backup_file_path) {
+    const success = await SyncHistory.updateBackupFilePath(this.sync_id, backup_file_path);
+    if (success) {
+      this.backup_file_path = backup_file_path;
+    }
+    return success;
   }
 }
 

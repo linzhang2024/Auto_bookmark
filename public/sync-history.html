@@ -394,6 +394,77 @@
       font-size: 12px;
       color: #6b7280;
     }
+    
+    .backup-info-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      color: white;
+    }
+    
+    .backup-info-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .backup-info-card .backup-dir {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.15);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      word-break: break-all;
+    }
+    
+    .backup-info-card .backup-dir-icon {
+      font-size: 16px;
+    }
+    
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    
+    .download-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    
+    .download-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .download-btn-small {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+    
+    .no-backup-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      background: #f3f4f6;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #6b7280;
+    }
   </style>
 </head>
 <body>
@@ -410,6 +481,8 @@
         </button>
       </div>
     </div>
+    
+    <div id="backupInfoCard"></div>
     
     <div id="statsContainer" class="history-stats"></div>
     
@@ -433,12 +506,39 @@
       const historyContainer = document.getElementById('historyContainer');
       const errorDistribution = document.getElementById('errorDistribution');
       const errorTypeList = document.getElementById('errorTypeList');
+      const backupInfoCard = document.getElementById('backupInfoCard');
       const refreshBtn = document.getElementById('refreshBtn');
       
       let expandedIds = new Set();
       let ws = null;
       let isRetrying = false;
       let retryProgressEl = null;
+      
+      async function loadBackupConfig() {
+        try {
+          const result = await apiRequest('/api/backups/config', { method: 'GET' });
+          
+          if (result.data && result.data.success) {
+            const data = result.data.data;
+            backupInfoCard.innerHTML = `
+              <div class="backup-info-card">
+                <h4>📁 备份文件存储目录</h4>
+                <div class="backup-dir">
+                  <span class="backup-dir-icon">📂</span>
+                  <span>${escapeHtml(data.backupDir)}</span>
+                </div>
+              </div>
+            `;
+          }
+        } catch (error) {
+          console.error('加载备份配置失败:', error);
+        }
+      }
+      
+      function downloadBackup(id) {
+        window.location.href = `/api/sync-history/${id}/download`;
+        showToast('开始下载备份文件...', 'info');
+      }
       
       function connectWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -839,6 +939,7 @@
         const totalCount = item.total_count || 0;
         const successCount = item.success_count || 0;
         const failedCount = item.failed_count || 0;
+        const hasBackup = item.backup_file_path && item.backup_file_path.trim() !== '';
         
         return `
           <div class="history-item ${expandedIds.has(item.id) ? 'expanded' : ''}" data-id="${item.id}">
@@ -848,6 +949,7 @@
                 <div class="history-title">
                   ${formatDate(item.executed_at)}
                   <span class="history-badge ${status}">${statusLabel}</span>
+                  ${hasBackup ? `<span class="history-badge" style="background: #059669; color: white;">📦 已备份</span>` : ''}
                 </div>
                 <div class="history-meta">
                   <span>📁 ${getBrowserName(item.browser_source)}</span>
@@ -858,6 +960,17 @@
               <div class="history-stats-bar">
                 <span class="stat-badge success">✅ ${successCount}</span>
                 <span class="stat-badge failed">❌ ${failedCount}</span>
+                ${hasBackup ? `
+                  <button class="download-btn download-btn-small download-backup-btn" data-id="${item.id}" onclick="event.stopPropagation(); downloadBackup(${item.id});">
+                    <span>📥</span>
+                    <span>下载备份</span>
+                  </button>
+                ` : `
+                  <span class="no-backup-badge">
+                    <span>📭</span>
+                    <span>无备份</span>
+                  </span>
+                `}
               </div>
               <span class="expand-icon">▼</span>
             </div>
@@ -912,12 +1025,14 @@
       refreshBtn.addEventListener('click', function() {
         loadStats();
         loadHistory();
+        loadBackupConfig();
         showToast('已刷新', 'success');
       });
       
       connectWebSocket();
       loadStats();
       loadHistory();
+      loadBackupConfig();
     });
   </script>
 </body>
