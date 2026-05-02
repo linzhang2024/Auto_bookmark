@@ -1,0 +1,94 @@
+{
+  "folderName": "旅游资料",
+  "lastSyncTime": "2026-05-02T03:47:20.319Z",
+  "bookmarks": [
+    {
+      "title": "全国一至四星级饭店名录_中国旅游饭店业协会",
+      "url": "http://www.ctha.com.cn/detail-23-58-3312.html",
+      "iconFileName": "全国一至四星级饭店名录_中国旅游饭店业协会.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:40.243Z"
+    },
+    {
+      "title": "中国国家博物馆京东自营旗舰店 - 京东",
+      "url": "https://mall.jd.com/index-11676078.html",
+      "iconFileName": "中国国家博物馆京东自营旗舰店 - 京东.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:40.855Z"
+    },
+    {
+      "title": "数字敦煌开放素材库 - 藏经洞文献",
+      "url": "https://ip.e-dunhuang.com/sutracave.html?collection=all&texture=all&unearthed=all&currentpage=33&language=all",
+      "iconFileName": "数字敦煌开放素材库 - 藏经洞文献.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:41.405Z"
+    },
+    {
+      "title": "智慧文旅事业部-产品复用收集",
+      "url": "https://docs.qq.com/sheet/DTXJMRHlKeG5QSFJu?tab=BB08J2",
+      "iconFileName": "智慧文旅事业部-产品复用收集.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:41.329Z"
+    },
+    {
+      "title": "技术部jira接入梳理_v1.2",
+      "url": "https://docs.qq.com/doc/DTVV2bXJOaklWSUJn",
+      "iconFileName": "技术部jira接入梳理_v1.2.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:41.615Z"
+    },
+    {
+      "title": "中华人民共和国文化和旅游部",
+      "url": "https://www.mct.gov.cn/",
+      "iconFileName": "中华人民共和国文化和旅游部.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:41.709Z"
+    },
+    {
+      "title": "甘肃省A级旅游景区名录（截至2024年1月31日） - 甘肃省文化和旅游厅网站",
+      "url": "https://wlt.gansu.gov.cn/wlt/c108639/202401/173835873.shtml",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:37.011Z"
+    },
+    {
+      "title": "中国国家博物馆官方网站",
+      "url": "https://www.chnmuseum.cn/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:42.154Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.319Z",
+    "totalBookmarks": 8,
+    "completedBookmarks": 6,
+    "failedBookmarks": 2
+  }
+}

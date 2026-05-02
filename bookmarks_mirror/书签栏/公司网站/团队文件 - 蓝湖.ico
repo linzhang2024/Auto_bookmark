@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="Content-Security-Policy" content="script-src 'self' *.lanhuapp.com *.soboten.com *.sobot.com *.alicdn.com *.aliyun.com *.aliyuncs.com *.baidu.com *.qq.com *.userview.net *.gtimg.cn 'unsafe-inline' 'unsafe-eval';">
+        <title id="seo-title">蓝湖 - 高效的产品设计协作平台</title>
+        <!-- handleTitle.js在官网项目中 -->
+        <script src="/handleTitle.js?v=1"></script>
+        <meta
+            name="viewport"
+            content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"
+        />
+        <meta
+            id="seo-des"
+            name="description"
+            content="   蓝湖是一款产品文档和设计图的共享平台，帮助互联网团队更好地管理文档和设计图。蓝湖可以在线展示Axure，自动生成设计图标注，与团队共享设计图，展示页面之间的跳转关系。蓝湖支持从Sketch、Ps一键共享、在线讨论，而且蓝湖只需简单几步就能将设计图变成一个可以点击的演示原型，蓝湖还支持分享给同事，让他也可以在手机中查看设计效果。蓝湖已经成为新一代产品设计的工作方式。"
+        />
+        <meta
+            id="seo-key"
+            name="keywords"
+            content="蓝湖,lanhu,自动标注,切图,协作,产品设计,蓝湖设计协作,蓝湖设计,协作平台,蓝湖app,Axure,rp,设计图管理,设计师协作,产品设计协作,sketch,sketch共享设计图,sketch切图,sketch标注,热气球,Zeplin,zeplin,sketch measure,measure,marketch,invision,invisionapp,marvel,marvelapp,交互,交互原型,原型,axure 托管,蓝狐,adobe xd,ps切图,切片,标注插件,交互文档"
+        />
+        <meta
+            name="360-site-verification"
+            content="283e4b5f0ec3e34270a48b45a1f0ecf7"
+        />
+        <meta name="baidu-site-verification" content="code-oopfvCsZ3s" />
+        <link rel="icon" href="data:image/x-icon;base64,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+f/4uqb/8XNL//FySf/xckn/8XJJ//FySf/xckn5/4CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPFySc/xckn/8XJJ//FySf/xckn/+sq7///////////////////////////////////////6yrv/8XJJ//FySf/xckn/8XJJ//FySeUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8XJJxfFySf/xckn/8XJJ//adgf///////////////////////////+jm5v/U0dH/9/b2///////1nYD/8XJJ//FySf/xckn/8XJJ2QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADxckm98XJJ//FySf/xckn/+9jM//////////////////////+Rioj/QTUy/0E1Mv9SR0T/0s/P//vXy//xckn/8XJJ//FySf/xcknTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPFySbfxckn/8XJJ//FySf/+9fL/////////////////xcHA/0E1Mv9BNTL/QTUy/0E1Mv9YTkv//vTx//FySf/xckn/8XJJ//FySc8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8XJJpfFySf/xckn/8XJJ//749v////////////////+clpT/QTUy/0E1Mv9BNTL/QTUy/0E1Mv/t5OH/8XJJ//FySf/xckn/8XJJuwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADxckmJ8XJJ//FySf/xckn//OPb/////////////////7q2tf9BNTL/QTUy/0E1Mv9BNTL/T0RB//vg1//xckn/8XJJ//FySf/xckmhAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPJzSkzxckn/8XJJ//FySf/3s5z//////////////////Pz8/3dubP9BNTL/QTUy/0Y7OP/Avbz/966X//FySf/xckn/8XJJ//FzSmQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA9nZMDvFySfXxckn/8XJJ//F3UP/95+D//////////////////v7+/83Kyf+5tLP/5+Xl//zl3f/xd0//8XJJ//FySf/xckn98nNLHgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8XJJk/FySf/xckn/8XJJ//KCXf/849v////////////////////////////84dj/8oFd//FySf/xckn/8XJJ//FySasAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADxc0oc8XJJ7/FySf/xckn/8XJJ//F0S//2o4n/+s2+//vaz//6yrv/9qGF//F0TP/xckn/8XJJ//FySf/xckn583RLLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADxc0pm8XJJ//FySf/xckn/8XJJ//FySf/xckn/8XJJ//FySf/xckn/8XJJ//FySf/xckn/8XJJ//JySXQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPFySavxckn/8XJJ//FySf/xckn/8XJJ//FySf/xckn/8XJJ//FySf/xckn/8XJJ//FySf/xckn/8XJJhwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADxc0ou8XJJ//FySf/xckn58XJJ7fFySf/xckn/8XJJ//FySf/xckn/8XJJ//FySf/xckn18XJJ/fFySf/xckn18XVLEgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPFzSo/xckn/8XJJ7fN0SjLyc00O8XJKdPFyScfxckn58XJJ//FySfvxcknN8XJJfPNzTBTxc0pK8XJJ9/FySf/xckpqAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA8XJJx/FySf3yc0lEAAAAAAAAAAAAAAAAAAAAAP+AgADzeU8K/5lmAAAAAAAAAAAAAAAAAAAAAADycklk8XJJ//FySaMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADxckmt8XJJcAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADxckmR8XJKjQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/////////////B////AH//CAAYfwAAAH8AAAB/gAAA/8AAAf/AAAH/4AAD/+AAA//gAAP/4AAD/+AAA//gAAP/4AAD/+AAA//gAAP/4AAD//AAB//wAAf/8AAH//gAD//8AB//+AAP//gAD//xwc//8//n//f/5///////////8=" type="image/x-icon" />
+        <style>
+            html {
+                font-family: Apple System, "SF Pro SC", "SF Pro Display",
+                    "Helvetica Neue", "Arial", "PingFang SC", "Hiragino Sans GB",
+                    "STHeiti", "Microsoft YaHei", "Microsoft JhengHei",
+                    "Source Han Sans SC", "Noto Sans CJK SC",
+                    "Source Han Sans CN", sans-serif;
+                /* text-rendering: optimizeLegibility;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: antialiased; */
+                font-size: 15px;
+                height: 100%;
+                width: 100%;
+            }
+            img {
+                display: block;
+            }
+            #MEIQIA-PANEL-HOLDER {
+                left: auto !important;
+                right: 0 !important;
+            }
+            .kf5-supportBox {
+                right: 24px !important;
+                bottom: 24px !important;
+            }
+            #kf5-support-btn {
+                width: 40px !important;
+                height: 40px !important;
+                line-height: 30px !important;
+                display: none !important;
+                opacity: 0;
+                bottom: 3% !important;
+                right: 40px !important;
+            }
+        </style>
+    <link href="https://lhcdn.lanhuapp.com/home/main.8145bef5f606c2205187.css" rel="stylesheet"></head>
+    <body>
+        <div id="app"></div>
+        <script>
+            //判断是否跳转到项目
+            var arr = [
+                "baiduzhidao",
+                "behance",
+                "dribbble",
+                "item",
+                "home",
+                "zeplin",
+                "ps",
+                "invision",
+                "markman",
+                "sketch",
+                "sketch1",
+                "sketch2",
+                "invision1",
+                "markman",
+                "bnm",
+                "ued",
+                "bz",
+                "qt",
+                "markman360",
+                "zeplin360",
+                "invision360",
+                "sketch360",
+                "ps360",
+                "bnm360",
+                "dribble360",
+                "behance360",
+                "ued360",
+                "bz360",
+                "qt360",
+                "cutterman360",
+                "pxcook360",
+                "pm360",
+                "zh1",
+                "zh2",
+                "zh3",
+                "zh4",
+                "zh5",
+                "zh6",
+                "zh7",
+                "zh8",
+                "file-preview",
+            ];
+            var ref = location.search.slice(1);
+
+            var pathArr = [
+                "ps",
+                "mac",
+                "app",
+                "sync",
+                "about",
+                "introduction",
+                "xd",
+                "meeting",
+                "wp",
+                "story",
+                "prd",
+                "dsm",
+                "pay-consulation",
+                "pricing",
+                "oss",
+                "edu"
+            ];
+            var pathname = location.pathname.slice(1);
+
+            window.ga = new Function();
+        </script>
+        <script src="version.static.js"></script>
+    <script type="text/javascript" src="https://lhcdn.lanhuapp.com/home/main.8145bef5f606c2205187.js"></script><script type="text/javascript" src="https://lhcdn.lanhuapp.com/home/vendor.8145bef5f606c2205187.js"></script></body>
+</html>

@@ -1,0 +1,34 @@
+{
+  "folderName": "舟曲",
+  "lastSyncTime": "2026-05-02T03:47:20.315Z",
+  "bookmarks": [
+    {
+      "title": "舟曲县乡村振兴数字服务平台",
+      "url": "https://zqxxczx.com/#/ccx-manage/messageCenter/gzt-sir",
+      "iconFileName": "舟曲县乡村振兴数字服务平台.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:16.154Z"
+    },
+    {
+      "title": "舟曲后台",
+      "url": "https://xcyconsole.zqxxczx.com/main/O/newsCatalogList",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:18.592Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.315Z",
+    "totalBookmarks": 2,
+    "completedBookmarks": 1,
+    "failedBookmarks": 1
+  }
+}

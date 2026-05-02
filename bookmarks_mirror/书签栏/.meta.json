@@ -1,10 +1,30 @@
 {
   "folderName": "书签栏",
-  "lastSyncTime": "2026-04-29T07:21:15.453Z",
+  "lastSyncTime": "2026-05-02T03:48:31.973Z",
   "bookmarks": [
     {
-      "title": "Google",
-      "url": "https://www.google.com",
+      "title": "综合办公",
+      "url": "http://www.ctnma.cn/",
+      "iconFileName": "综合办公.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:48:20.171Z"
+    },
+    {
+      "title": "-中国期货市场监控中心",
+      "url": "https://investorservice.cfmmc.com/logout.do",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:27.306Z"
+    },
+    {
+      "title": "Gmail",
+      "url": "https://accounts.google.com/b/0/AddMailService",
       "iconFileName": null,
       "urlStatus": "unknown",
       "lastVisited": null,
@@ -13,8 +33,108 @@
       "lastSyncTime": null
     },
     {
-      "title": "GitHub",
-      "url": "https://www.github.com",
+      "title": "Bing",
+      "url": "https://cn.bing.com/?FORM=Z9FD1",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Quora",
+      "url": "https://www.quora.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "登录QQ邮箱",
+      "url": "https://mail.qq.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Google",
+      "url": "https://www.google.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "地图",
+      "url": "https://maps.google.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "哔哩哔哩 (゜-゜)つロ 干杯~-bilibili",
+      "url": "https://www.bilibili.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "百度一下，你就知道",
+      "url": "https://www.baidu.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "网易云音乐",
+      "url": "https://music.163.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "领导留言板-人民网",
+      "url": "http://liuyan.people.com.cn/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Google DeepMind",
+      "url": "https://www.deepmind.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "在线模型训练-AI模型-LiblibAI",
+      "url": "https://www.liblib.art/pretrain",
       "iconFileName": null,
       "urlStatus": "unknown",
       "lastVisited": null,
@@ -24,11 +144,11 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777447275449",
-    "startTime": "2026-04-29T07:21:15.449Z",
-    "endTime": "2026-04-29T07:21:15.453Z",
-    "totalBookmarks": 2,
-    "completedBookmarks": 2,
-    "failedBookmarks": 0
+    "syncId": "sync_1777693698956",
+    "startTime": "2026-05-02T03:48:18.956Z",
+    "endTime": "2026-05-02T03:48:31.973Z",
+    "totalBookmarks": 14,
+    "completedBookmarks": 13,
+    "failedBookmarks": 1
   }
 }

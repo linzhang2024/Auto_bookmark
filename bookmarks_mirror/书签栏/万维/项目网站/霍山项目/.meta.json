@@ -1,0 +1,84 @@
+{
+  "folderName": "霍山项目",
+  "lastSyncTime": "2026-05-02T03:44:41.058Z",
+  "bookmarks": [
+    {
+      "title": "霍山县城市大脑",
+      "url": "http://59.203.223.130:10002/ump/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:18.870Z"
+    },
+    {
+      "title": "视频融合平台",
+      "url": "http://114.104.61.247:10000/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:21.405Z"
+    },
+    {
+      "title": "视频融合NVR",
+      "url": "http://114.104.61.247:10800/#/about",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:25.450Z"
+    },
+    {
+      "title": "智慧城市大屏数据导入系统",
+      "url": "http://59.203.223.130:2002/dataprocess/#/login",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:23.980Z"
+    },
+    {
+      "title": "登录-文旅",
+      "url": "http://223.243.96.27:8082/doc/page/login.asp?_1647996857634&page=config",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:23.997Z"
+    },
+    {
+      "title": "配 置",
+      "url": "http://60.173.185.76:85/doc/page/config.asp",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:44:26.626Z"
+    },
+    {
+      "title": "海康开放平台",
+      "url": "https://open.hikvision.com/docs/docId?productId=5c67f1e2f05948198c909700&curNodeId=16741aecc05944a6b0cd1341d68e4546",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693396606",
+    "startTime": "2026-05-02T03:43:16.606Z",
+    "endTime": "2026-05-02T03:44:41.058Z",
+    "totalBookmarks": 7,
+    "completedBookmarks": 1,
+    "failedBookmarks": 6
+  }
+}

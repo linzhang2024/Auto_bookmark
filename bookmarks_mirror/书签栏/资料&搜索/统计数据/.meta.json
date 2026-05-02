@@ -1,0 +1,54 @@
+{
+  "folderName": "统计数据",
+  "lastSyncTime": "2026-05-02T03:47:20.326Z",
+  "bookmarks": [
+    {
+      "title": "世界银行",
+      "url": "https://www.shihang.org/zh/home",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Tracking SDG 7 | Progress Towards Sustainable Energy",
+      "url": "https://trackingsdg7.esmap.org/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "世卫组织冠状病毒 (COVID-19) 仪表板 | 带有疫苗接种数据的 WHO 冠状病毒 (COVID-19) 仪表板",
+      "url": "https://covid19.who.int/data",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "COVID-19 资源中心",
+      "url": "https://www.thelancet.com/coronavirus",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.326Z",
+    "totalBookmarks": 4,
+    "completedBookmarks": 4,
+    "failedBookmarks": 0
+  }
+}

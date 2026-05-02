@@ -1,0 +1,24 @@
+{
+  "folderName": "莽山",
+  "lastSyncTime": "2026-05-02T03:47:20.313Z",
+  "bookmarks": [
+    {
+      "title": "莽山旅游区",
+      "url": "https://www.hnmangshan.com/#/",
+      "iconFileName": "莽山旅游区.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:05.459Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.313Z",
+    "totalBookmarks": 1,
+    "completedBookmarks": 1,
+    "failedBookmarks": 0
+  }
+}

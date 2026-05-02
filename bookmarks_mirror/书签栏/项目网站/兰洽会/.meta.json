@@ -1,0 +1,44 @@
+{
+  "folderName": "兰洽会",
+  "lastSyncTime": "2026-05-02T03:47:20.314Z",
+  "bookmarks": [
+    {
+      "title": "兰洽会",
+      "url": "http://www.lanzhoufair.cn/#/wellcom-home",
+      "iconFileName": "兰洽会.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:05.767Z"
+    },
+    {
+      "title": "新网登录，新网知名的互联网基础应用服务提供商",
+      "url": "https://login.xinnet.com/",
+      "iconFileName": "新网登录，新网知名的互联网基础应用服务提供商.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:06.301Z"
+    },
+    {
+      "title": "兰洽会智游云",
+      "url": "http://gl.lanzhoufair.cn/#/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:05.892Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.314Z",
+    "totalBookmarks": 3,
+    "completedBookmarks": 2,
+    "failedBookmarks": 1
+  }
+}

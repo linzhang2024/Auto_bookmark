@@ -1,0 +1,64 @@
+{
+  "folderName": "工具下载",
+  "lastSyncTime": "2026-05-02T03:47:20.325Z",
+  "bookmarks": [
+    {
+      "title": "Perl Source - www.cpan.org",
+      "url": "https://www.cpan.org/src/README.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:56.362Z"
+    },
+    {
+      "title": "redis  tribution Index of /releases/",
+      "url": "http://download.redis.io/releases/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:46:58.171Z"
+    },
+    {
+      "title": "Notepad++ Plugins - Browse Files at SourceForge.net",
+      "url": "https://sourceforge.net/projects/npp-plugins/files/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "nginx: download",
+      "url": "http://nginx.org/en/download.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "centos镜像_centos下载地址_centos安装教程-阿里巴巴开源镜像站",
+      "url": "https://developer.aliyun.com/mirror/centos?spm=a2c6h.13651102.0.0.3e221b11zD78e9",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.325Z",
+    "totalBookmarks": 5,
+    "completedBookmarks": 3,
+    "failedBookmarks": 2
+  }
+}

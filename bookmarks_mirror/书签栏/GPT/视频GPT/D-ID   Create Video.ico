@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <script>
+            if (window.location.host.startsWith('create')) {
+                window.alert('D-ID STUDIO has moved to a new domain, redirecting you to studio.d-id.com...');
+                window.location.replace(location.href.replace('create', 'studio'));
+            }
+        </script>
+        <!-- Google Recaptcha V3 - Keep in head as it may be needed early for forms -->
+        <script src="https://www.google.com/recaptcha/api.js?render=6LcwuPEpAAAAAElk15EFSyS6d11FUZpJBesO-cIj" defer></script>
+        <!-- End Google Recaptcha V3 -->
+
+        <meta charset="UTF-8" />
+        <link rel="apple-touch-icon" sizes="57x57" href="/favicon/apple-icon-57x57.png" />
+        <link rel="apple-touch-icon" sizes="60x60" href="/favicon/apple-icon-60x60.png" />
+        <link rel="apple-touch-icon" sizes="72x72" href="/favicon/apple-icon-72x72.png" />
+        <link rel="apple-touch-icon" sizes="76x76" href="/favicon/apple-icon-76x76.png" />
+        <link rel="apple-touch-icon" sizes="114x114" href="/favicon/apple-icon-114x114.png" />
+        <link rel="apple-touch-icon" sizes="120x120" href="/favicon/apple-icon-120x120.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/favicon/apple-icon-144x144.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/favicon/apple-icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-icon-180x180.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/favicon/favicon-192x192.png" />
+        <meta name="theme-color" content="#ffffff" />
+        <meta name="description" content="Create professional videos using just a still image with text or audio powered by AI." />
+
+        <!-- Resource Hints - Critical domains (preconnect for faster connection) -->
+        <link rel="preconnect" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://www.google.com" />
+
+        <!-- Resource Hints - Non-critical domains (dns-prefetch for DNS lookup only) -->
+        <link rel="dns-prefetch" href="https://sdk.noticeable.io" />
+        <link rel="dns-prefetch" href="https://assets.churnkey.co" />
+        <link rel="dns-prefetch" href="https://static.hotjar.com" />
+        <link rel="dns-prefetch" href="https://js-eu1.hs-scripts.com" />
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>D-ID Creative Reality Studio</title>
+
+        <meta property="og:title" content="D-ID Studio" />
+        <meta property="og:description" content="Create professional videos using just a still image with text or audio powered by AI." />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" itemprop="image" content="https://create-images-results.d-id.com/share/share.jpg" />
+      <script type="module" crossorigin src="/assets/index-5ad13e61.js"></script>
+      <link rel="stylesheet" href="/assets/index-19b349bb.css">
+    </head>
+
+    <body>
+        <!-- Google Tag Manager (noscript) -->
+        <noscript>
+            <iframe
+                src="https://www.googletagmanager.com/ns.html?id=GTM-56QZG2M"
+                height="0"
+                width="0"
+                style="display: none; visibility: hidden"></iframe>
+        </noscript>
+        <!-- End Google Tag Manager (noscript) -->
+        <div id="root"></div>
+        
+
+        <!-- Google Tag Manager - Deferred for better initial page load -->
+        <script>
+            (function (w, d, s, l, i) {
+                w[l] = w[l] || [];
+                w[l].push({
+                    'gtm.start': new Date().getTime(),
+                    event: 'gtm.js',
+                });
+                var f = d.getElementsByTagName(s)[0],
+                    j = d.createElement(s),
+                    dl = l != 'dataLayer' ? '&l=' + l : '';
+                j.async = true;
+                j.defer = true;
+                j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
+                f.parentNode.insertBefore(j, f);
+            })(window, document, 'script', 'dataLayer', 'GTM-56QZG2M');
+        </script>
+        <!-- End Google Tag Manager -->
+
+        <!-- Noticeable - Deferred for better initial page load -->
+        <script>
+            !(function () {
+                'use strict';
+                var e = ['debug', 'destroy', 'do', 'help', 'identify', 'is', 'off', 'on', 'ready', 'render', 'reset', 'safe', 'set'];
+                if (window.noticeable) console.warn('Noticeable SDK code snippet loaded more than once');
+                else {
+                    var n = function (e) {
+                            return function () {
+                                var n = Array.prototype.slice.call(arguments);
+                                return n.unshift(e), t.push(n), t;
+                            };
+                        },
+                        t = (window.noticeable = window.noticeable || []);
+                    !(function () {
+                        for (var o = 0; o < e.length; o++) {
+                            var r = e[o];
+                            t[r] = n(r);
+                        }
+                    })(),
+                        (function () {
+                            var e = document.createElement('script');
+                            e.async = !0;
+                            e.defer = true;
+                            e.src = 'https://sdk.noticeable.io/l.js';
+                            var n = document.head;
+                            n.insertBefore(e, n.firstChild);
+                        })();
+                }
+            })();
+        </script>
+        <!-- End Noticeable -->
+
+        <!-- Churnkey - Deferred for better initial page load -->
+        <script>
+            !(function () {
+                if (!window.churnkey || !window.churnkey.created) {
+                    window.churnkey = { created: true };
+                    const a = document.createElement('script');
+                    a.src = 'https://assets.churnkey.co/js/app.js?appId=pwu25aa2j';
+                    a.async = true;
+                    a.defer = true;
+                    const b = document.getElementsByTagName('script')[0];
+                    b.parentNode.insertBefore(a, b);
+                }
+            })();
+        </script>
+        <!-- End Churnkey -->
+
+        <!-- Hotjar Tracking Code - Deferred for better initial page load -->
+        <script>
+            (function (h, o, t, j, a, r) {
+                h.hj =
+                    h.hj ||
+                    function () {
+                        (h.hj.q = h.hj.q || []).push(arguments);
+                    };
+                h._hjSettings = { hjid: 3045711, hjsv: 6 };
+                a = o.getElementsByTagName('head')[0];
+                r = o.createElement('script');
+                r.async = 1;
+                r.defer = true;
+                r.src = t + h._hjSettings.hjid + j + h._hjSettings.hjsv;
+                a.appendChild(r);
+            })(window, document, 'https://static.hotjar.com/c/hotjar-', '.js?sv=');
+        </script>
+        <!-- End Hotjar -->
+
+        <script type="text/javascript" id="hs-script-loader" async defer src="//js-eu1.hs-scripts.com/25480953.js"></script>
+    </body>
+</html>

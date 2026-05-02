@@ -1,0 +1,44 @@
+{
+  "folderName": "VPN",
+  "lastSyncTime": "2026-05-02T03:48:31.975Z",
+  "bookmarks": [
+    {
+      "title": "西瓜-发布页",
+      "url": "http://43.161.230.111:23579/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:48:30.233Z"
+    },
+    {
+      "title": "仪表盘 | 三月七",
+      "url": "https://syq.tw/#/dashboard",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "三月七の公告栏 机场 VPN AI加速 流媒体解锁 ChatGPT 三月七机场官方通知频道 – Telegram",
+      "url": "https://log.syq.tw/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693698956",
+    "startTime": "2026-05-02T03:48:18.956Z",
+    "endTime": "2026-05-02T03:48:31.975Z",
+    "totalBookmarks": 3,
+    "completedBookmarks": 2,
+    "failedBookmarks": 1
+  }
+}

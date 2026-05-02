@@ -1,0 +1,94 @@
+{
+  "folderName": "项目搭建",
+  "lastSyncTime": "2026-05-02T03:47:20.327Z",
+  "bookmarks": [
+    {
+      "title": "SSR自建教程",
+      "url": "https://github.com/Alvin9999/new-pac/wiki/%E8%87%AA%E5%BB%BAss%E6%9C%8D%E5%8A%A1%E5%99%A8%E6%95%99%E7%A8%8B",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "linux安装部署shadowsocks | 小柒博客",
+      "url": "https://www.yangxingzhen.com/7352.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Nginx负载均衡配置-嗨客网",
+      "url": "https://haicoder.net/nginx/nginx-load-balancing.html",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "mysql的主从配置_好大的月亮的博客-CSDN博客",
+      "url": "https://blog.csdn.net/weixin_43944305/article/details/109302945?ops_request_misc=%257B%2522request%255Fid%2522%253A%2522166001155916781647592071%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=166001155916781647592071&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_click~default-3-109302945-null-null.142^v39^pc_rank_34_queryrelevant25,185^v2^control&utm_term=MySQL%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5&spm=1018.2226.3001.4187",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "nginx升级(直接升级，在线升级)_om林mo的博客-CSDN博客_nginx 升级",
+      "url": "https://blog.csdn.net/qq_45255414/article/details/106654849",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "MySQL数据库主从搭建（详细图文）_圣代老大爷的博客-CSDN博客_mysql主从搭建",
+      "url": "https://blog.csdn.net/Unparalleled1004/article/details/110428388",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Linux超详细gcc升级全过程_Linux_脚本之家",
+      "url": "https://www.jb51.net/article/230581.htm",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "CentOS 7下载安装Redis教程 - Taeyeon-IU的个人空间 - OSCHINA - 中文开源技术交流社区",
+      "url": "https://my.oschina.net/u/3986411/blog/4715948?hmsr=kaifa_aladdin",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.327Z",
+    "totalBookmarks": 8,
+    "completedBookmarks": 8,
+    "failedBookmarks": 0
+  }
+}

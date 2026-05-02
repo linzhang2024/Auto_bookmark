@@ -1,0 +1,84 @@
+{
+  "folderName": "Github",
+  "lastSyncTime": "2026-05-02T03:48:31.976Z",
+  "bookmarks": [
+    {
+      "title": "GitHub",
+      "url": "https://github.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "machine-learning-book: Code Repository for Machine Learning with PyTorch and Scikit-Learn",
+      "url": "https://github.com/rasbt/machine-learning-book",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "GitHub - facefusion/facefusion: Next generation face swapper and enhancer",
+      "url": "https://github.com/facefusion/facefusion",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Windows | FaceFusion 手册",
+      "url": "https://docs.facefusion.io/installation/accelerator/windows",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Deepfake Webcam | FaceFusion",
+      "url": "https://docs.facefusion.io/usage/deepfake-webcam",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "GitHub - facefusion/facefusion-assets: Next generation face swapper and enhancer",
+      "url": "https://github.com/facefusion/facefusion-assets",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "GitHub - iperov/DeepFaceLive: Real-time face swap for PC streaming or video calls",
+      "url": "https://github.com/iperov/DeepFaceLive?tab=readme-ov-file",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693698956",
+    "startTime": "2026-05-02T03:48:18.956Z",
+    "endTime": "2026-05-02T03:48:31.976Z",
+    "totalBookmarks": 7,
+    "completedBookmarks": 7,
+    "failedBookmarks": 0
+  }
+}

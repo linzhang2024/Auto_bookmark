@@ -1,0 +1,64 @@
+{
+  "folderName": "电子书获取",
+  "lastSyncTime": "2026-05-02T03:47:20.320Z",
+  "bookmarks": [
+    {
+      "title": "持续更新电子书下载网站zlibrary最新（永久）地址，白嫖更多下载次数小技巧 - 知乎",
+      "url": "https://zhuanlan.zhihu.com/p/517862493",
+      "iconFileName": "持续更新电子书下载网站zlibrary最新（永久）地址，白嫖更多下载次数小技巧 - 知乎.ico",
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": "2026-05-02T03:46:54.561Z"
+    },
+    {
+      "title": "FreeMbook Search",
+      "url": "https://freembook.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:47:01.313Z"
+    },
+    {
+      "title": "Z-Library – 世界上最大的电子书图书馆。 您通往知识的大门",
+      "url": "https://lib-tvnfmkx73stulzfkhlyhdkt2.mean.ws/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:47:03.071Z"
+    },
+    {
+      "title": "Z-Library – 世界上最大的电子图书馆。自由访问知识和文化。",
+      "url": "https://zh.z-library.se/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:47:01.714Z"
+    },
+    {
+      "title": "Z-Library 登录",
+      "url": "https://zh.1lib.domains/?redirectUrl=%252F",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "failed",
+      "lastSyncTime": "2026-05-02T03:47:02.618Z"
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.321Z",
+    "totalBookmarks": 5,
+    "completedBookmarks": 1,
+    "failedBookmarks": 4
+  }
+}

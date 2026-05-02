@@ -1,0 +1,44 @@
+{
+  "folderName": "操作系统",
+  "lastSyncTime": "2026-05-02T03:47:20.326Z",
+  "bookmarks": [
+    {
+      "title": "Windows下载",
+      "url": "https://www.microsoft.com/zh-cn/software-download",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "Ubuntu.com",
+      "url": "https://ubuntu.com/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    },
+    {
+      "title": "balenaEtcher -乌班图安装介质 to SD cards & USB drives",
+      "url": "https://www.balena.io/etcher/",
+      "iconFileName": null,
+      "urlStatus": "unknown",
+      "lastVisited": null,
+      "isInvalid": false,
+      "syncStatus": "completed",
+      "lastSyncTime": null
+    }
+  ],
+  "syncInfo": {
+    "syncId": "sync_1777693519347",
+    "startTime": "2026-05-02T03:45:19.347Z",
+    "endTime": "2026-05-02T03:47:20.326Z",
+    "totalBookmarks": 3,
+    "completedBookmarks": 3,
+    "failedBookmarks": 0
+  }
+}
