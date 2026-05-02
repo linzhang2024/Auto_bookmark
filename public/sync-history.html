@@ -332,6 +332,68 @@
       color: #6b7280;
       margin-top: 4px;
     }
+    
+    .retry-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .retry-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .retry-btn.primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .retry-btn.primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .retry-btn-small {
+      padding: 4px 8px;
+      font-size: 11px;
+    }
+    
+    .retry-progress {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      z-index: 10000;
+      max-width: 400px;
+    }
+    
+    .retry-progress h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #1f2937;
+    }
+    
+    .retry-progress .progress-container {
+      margin-bottom: 8px;
+    }
+    
+    .retry-progress .progress-text {
+      margin: 0;
+      font-size: 12px;
+      color: #6b7280;
+    }
   </style>
 </head>
 <body>
@@ -374,6 +436,155 @@
       const refreshBtn = document.getElementById('refreshBtn');
       
       let expandedIds = new Set();
+      let ws = null;
+      let isRetrying = false;
+      let retryProgressEl = null;
+      
+      function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}`;
+        
+        try {
+          ws = new WebSocket(wsUrl);
+          
+          ws.onopen = function() {
+            console.log('WebSocket 连接已建立');
+          };
+          
+          ws.onmessage = function(event) {
+            try {
+              const data = JSON.parse(event.data);
+              handleWebSocketMessage(data);
+            } catch (e) {
+              console.error('解析 WebSocket 消息失败:', e);
+            }
+          };
+          
+          ws.onclose = function() {
+            console.log('WebSocket 连接已关闭');
+            setTimeout(connectWebSocket, 5000);
+          };
+          
+          ws.onerror = function(error) {
+            console.error('WebSocket 错误:', error);
+          };
+        } catch (e) {
+          console.error('建立 WebSocket 连接失败:', e);
+        }
+      }
+      
+      function handleWebSocketMessage(data) {
+        if (!data.type) return;
+        
+        switch (data.type) {
+          case 'retry_started':
+            if (data.data) {
+              showRetryProgress(data.data.taskId, data.data.totalToRetry);
+            }
+            break;
+            
+          case 'retry_progress':
+            if (data.data && retryProgressEl) {
+              updateRetryProgress(
+                data.data.current,
+                data.data.total,
+                data.data.message
+              );
+            }
+            break;
+            
+          case 'retry_completed':
+            if (data.data) {
+              hideRetryProgress();
+              const result = data.data.result;
+              const successCount = result.newSuccessCount || 0;
+              const failedCount = result.stillFailedCount || 0;
+              
+              if (successCount > 0) {
+                showToast(`重试成功：${successCount} 个书签已修复`, 'success');
+              }
+              if (failedCount > 0) {
+                showToast(`仍有 ${failedCount} 个书签重试失败`, 'warning');
+              }
+              if (successCount === 0 && failedCount === 0) {
+                showToast('重试完成', 'info');
+              }
+              
+              loadStats();
+              loadHistory();
+            }
+            break;
+            
+          case 'retry_failed':
+            hideRetryProgress();
+            showToast('重试任务失败: ' + (data.data?.error || '未知错误'), 'error');
+            break;
+        }
+      }
+      
+      function showRetryProgress(taskId, totalToRetry) {
+        isRetrying = true;
+        
+        if (retryProgressEl) {
+          retryProgressEl.remove();
+        }
+        
+        retryProgressEl = document.createElement('div');
+        retryProgressEl.className = 'retry-progress';
+        retryProgressEl.innerHTML = `
+          <h4>🔄 正在重试失败的书签...</h4>
+          <div class="progress-container">
+            <div class="progress-bar" style="width: 0%;"></div>
+          </div>
+          <p class="progress-text">准备中 (0/${totalToRetry})</p>
+        `;
+        document.body.appendChild(retryProgressEl);
+      }
+      
+      function updateRetryProgress(current, total, message) {
+        if (!retryProgressEl) return;
+        
+        const progress = total > 0 ? Math.round((current / total) * 100) : 0;
+        const progressBar = retryProgressEl.querySelector('.progress-bar');
+        const progressText = retryProgressEl.querySelector('.progress-text');
+        
+        if (progressBar) {
+          progressBar.style.width = `${progress}%`;
+        }
+        if (progressText) {
+          progressText.textContent = `${message || '处理中'} (${current}/${total})`;
+        }
+      }
+      
+      function hideRetryProgress() {
+        isRetrying = false;
+        if (retryProgressEl) {
+          retryProgressEl.remove();
+          retryProgressEl = null;
+        }
+      }
+      
+      async function retryBatch(sync_id) {
+        if (isRetrying) {
+          showToast('已有重试任务进行中', 'warning');
+          return;
+        }
+        
+        try {
+          const result = await apiRequest('/api/sync-history/retry-batch', {
+            method: 'POST',
+            body: { sync_id }
+          });
+          
+          if (result.data && result.data.success) {
+            showToast('重试任务已启动', 'info');
+          } else {
+            showToast(result.data?.message || '启动重试失败', 'error');
+          }
+        } catch (error) {
+          showToast('启动重试失败: ' + error.message, 'error');
+        }
+      }
       
       async function loadStats() {
         try {
@@ -408,7 +619,9 @@
                 <div class="error-type-card">
                   <div class="error-type-header">
                     <span class="error-type-name">${escapeHtml(type.error_type)}</span>
-                    <span class="error-type-count">${type.count} 次</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span class="error-type-count">${type.count} 次</span>
+                    </div>
                   </div>
                   <div class="error-type-desc">${escapeHtml(type.description)}</div>
                 </div>
@@ -515,6 +728,7 @@
           
           if (result.data && result.data.success) {
             const data = result.data.data;
+            const hasFailures = data.failures && data.failures.length > 0;
             
             detailEl.innerHTML = `
               <div class="detail-section">
@@ -547,7 +761,19 @@
                 </div>
               </div>
               
-              ${data.failures && data.failures.length > 0 ? `
+              ${hasFailures ? `
+              <div class="detail-section">
+                <div class="detail-title">
+                  🔧 快捷操作
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                  <button class="retry-btn primary retry-batch-btn" data-sync-id="${data.sync_id}">
+                    <span>🔄</span>
+                    <span>一键重试该批次所有失败书签</span>
+                  </button>
+                </div>
+              </div>
+              
               <div class="detail-section">
                 <div class="detail-title">❌ 失败详情 (${data.failures.length} 个)</div>
                 <div class="failures-list">
@@ -576,6 +802,19 @@
               </div>
               `}
             `;
+            
+            if (hasFailures) {
+              const retryBtn = detailEl.querySelector('.retry-batch-btn');
+              if (retryBtn) {
+                retryBtn.addEventListener('click', function(e) {
+                  e.stopPropagation();
+                  const syncId = this.dataset.syncId;
+                  if (syncId) {
+                    retryBatch(syncId);
+                  }
+                });
+              }
+            }
           }
         } catch (error) {
           console.error('加载详情失败:', error);
@@ -676,6 +915,7 @@
         showToast('已刷新', 'success');
       });
       
+      connectWebSocket();
       loadStats();
       loadHistory();
     });

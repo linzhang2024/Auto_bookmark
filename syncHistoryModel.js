@@ -459,6 +459,30 @@ class SyncFailureDetail {
     }));
   }
 
+  static async getBatchFailures(sync_id) {
+    const rows = await db.all(
+      'SELECT * FROM sync_failure_details WHERE sync_id = ? ORDER BY id ASC',
+      [sync_id]
+    );
+    return rows.map(row => SyncFailureDetail.fromRow(row));
+  }
+
+  static async getFailuresByErrorType(error_type) {
+    const rows = await db.all(
+      'SELECT * FROM sync_failure_details WHERE error_type = ? ORDER BY failed_at DESC',
+      [error_type]
+    );
+    return rows.map(row => SyncFailureDetail.fromRow(row));
+  }
+
+  static async deleteBySyncId(sync_id) {
+    const result = await db.run(
+      'DELETE FROM sync_failure_details WHERE sync_id = ?',
+      [sync_id]
+    );
+    return result.changes;
+  }
+
   getErrorDescription() {
     return getErrorTypeDescription(this.error_type);
   }

@@ -235,3 +235,123 @@ function checkAuth() {
 
 AppState.init();
 addGlobalStyles();
+
+let globalWs = null;
+let wsReconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_INTERVAL = 3000;
+
+function connectGlobalWebSocket() {
+  if (globalWs && globalWs.readyState === WebSocket.OPEN) {
+    return;
+  }
+  
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}`;
+  
+  try {
+    globalWs = new WebSocket(wsUrl);
+    
+    globalWs.onopen = function() {
+      console.log('全局 WebSocket 连接已建立');
+      wsReconnectAttempts = 0;
+    };
+    
+    globalWs.onmessage = function(event) {
+      try {
+        const data = JSON.parse(event.data);
+        handleGlobalWebSocketMessage(data);
+      } catch (e) {
+        console.error('解析全局 WebSocket 消息失败:', e);
+      }
+    };
+    
+    globalWs.onclose = function() {
+      console.log('全局 WebSocket 连接已关闭');
+      attemptReconnect();
+    };
+    
+    globalWs.onerror = function(error) {
+      console.error('全局 WebSocket 错误:', error);
+    };
+  } catch (e) {
+    console.error('建立全局 WebSocket 连接失败:', e);
+    attemptReconnect();
+  }
+}
+
+function attemptReconnect() {
+  if (wsReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+    wsReconnectAttempts++;
+    console.log(`尝试重新连接 WebSocket (${wsReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+    setTimeout(connectGlobalWebSocket, RECONNECT_INTERVAL);
+  } else {
+    console.error('WebSocket 重连次数已达上限，停止重连');
+  }
+}
+
+function handleGlobalWebSocketMessage(data) {
+  if (!data.type) return;
+  
+  switch (data.type) {
+    case 'document_uploaded':
+      if (data.data) {
+        const doc = data.data.document;
+        showToast(`文档 "${doc.filename}" 上传成功`, 'success');
+      }
+      break;
+      
+    case 'document_ready':
+      if (data.data) {
+        const doc = data.data.document;
+        showToast(`文档 "${doc.filename}" 解析完成`, 'success');
+      }
+      break;
+      
+    case 'document_failed':
+      if (data.data) {
+        const doc = data.data.document;
+        const error = data.data.error || '未知错误';
+        showToast(`文档 "${doc.filename}" 解析失败: ${error}`, 'error');
+      }
+      break;
+      
+    case 'notification':
+      if (data.data) {
+        const message = data.data.message || '通知';
+        const type = data.data.type || 'info';
+        showToast(message, type);
+      }
+      break;
+      
+    case 'retry_started':
+    case 'retry_progress':
+    case 'retry_completed':
+    case 'retry_failed':
+      break;
+      
+    case 'sync_started':
+    case 'sync_progress':
+    case 'sync_completed':
+    case 'sync_failed':
+    case 'browser_sync_started':
+    case 'browser_sync_status':
+    case 'browser_sync_completed':
+    case 'browser_sync_failed':
+      break;
+      
+    case 'status':
+    case 'config':
+    case 'recent_icons':
+      break;
+      
+    case 'pong':
+      break;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  if (AppState.isLoggedIn()) {
+    connectGlobalWebSocket();
+  }
+});
