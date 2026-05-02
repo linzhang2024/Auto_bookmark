@@ -1469,6 +1469,13 @@ app.post('/api/documents/upload', async (req, res) => {
     console.log('[Document Upload] 返回响应:', JSON.stringify(response, null, 2));
     console.log('═══════════════════════════════════════════\n');
 
+    broadcast({
+      type: 'document_ready',
+      data: {
+        document: result.document.toJSON()
+      }
+    });
+
     res.status(201).json(response);
 
   } catch (error) {
@@ -2078,6 +2085,262 @@ app.delete('/api/sync-history', authMiddleware, async (req, res) => {
     });
   }
 });
+
+app.post('/api/sync-history/retry-batch', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const username = req.user?.username || 'unknown';
+    const { sync_id } = req.body;
+    
+    console.log(`[重试同步] 用户 ${username}(id=${userId}) 尝试重试同步批次 sync_id=${sync_id}`);
+    
+    if (!sync_id) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少 sync_id 参数'
+      });
+    }
+    
+    if (isSyncing) {
+      return res.status(400).json({
+        success: false,
+        message: '同步任务正在进行中，请稍后重试'
+      });
+    }
+    
+    const history = await SyncHistory.findBySyncId(sync_id);
+    if (!history) {
+      return res.status(404).json({
+        success: false,
+        message: '同步历史记录不存在'
+      });
+    }
+    
+    const failures = await SyncFailureDetail.getBatchFailures(sync_id);
+    
+    if (!failures || failures.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '该批次没有失败的书签'
+      });
+    }
+    
+    const bookmarksToRetry = failures.map(failure => ({
+      type: 'link',
+      title: failure.bookmark_title,
+      url: failure.bookmark_url,
+      folderPath: failure.folder_path || ''
+    }));
+    
+    console.log(`[重试同步] 准备重试 ${bookmarksToRetry.length} 个失败的书签`);
+    
+    const retryTaskId = `retry_${Date.now()}`;
+    
+    isSyncing = true;
+    currentSyncTask = {
+      taskId: retryTaskId,
+      startTime: new Date().toISOString(),
+      sync_id: sync_id,
+      retryCount: bookmarksToRetry.length
+    };
+    
+    res.json({
+      success: true,
+      message: '重试任务已启动',
+      taskInfo: {
+        taskId: retryTaskId,
+        totalToRetry: bookmarksToRetry.length
+      }
+    });
+    
+    (async () => {
+      try {
+        broadcast({
+          type: 'retry_started',
+          data: {
+            taskId: retryTaskId,
+            originalSyncId: sync_id,
+            totalToRetry: bookmarksToRetry.length
+          }
+        });
+        
+        const folderStructure = buildFolderStructureFromFailures(failures);
+        
+        let completedCount = 0;
+        let lastProgressTime = Date.now();
+        
+        const result = await syncToLocalMirror(folderStructure, history.sync_dir || currentSyncDir, {
+          maxConcurrent: config.maxConcurrency,
+          timeout: config.iconTimeout,
+          skipIconDownload: false,
+          forceUpdate: true,
+          onProgress: (current, total, message) => {
+            const now = Date.now();
+            if (now - lastProgressTime > 500 || current === total) {
+              broadcast({
+                type: 'retry_progress',
+                data: {
+                  current,
+                  total,
+                  message,
+                  originalSyncId: sync_id
+                }
+              });
+              lastProgressTime = now;
+            }
+          }
+        });
+        
+        const updatedFailures = await SyncFailureDetail.getBatchFailures(sync_id);
+        const remainingFailures = updatedFailures.filter(f => 
+          !result.failedBookmarks.some(rf => rf.url === f.bookmark_url)
+        );
+        
+        const stillFailedCount = result.bookmarksFailed;
+        const newSuccessCount = bookmarksToRetry.length - stillFailedCount;
+        
+        if (newSuccessCount > 0) {
+          const toDeleteUrls = bookmarksToRetry
+            .filter(bm => !result.failedBookmarks.some(rf => rf.url === bm.url))
+            .map(bm => bm.url);
+          
+          for (const url of toDeleteUrls) {
+            const failures = updatedFailures.filter(f => f.bookmark_url === url);
+            for (const failure of failures) {
+              await db.run('DELETE FROM sync_failure_details WHERE id = ?', [failure.id]);
+            }
+          }
+          
+          const currentSuccessCount = history.success_count + newSuccessCount;
+          const currentFailedCount = history.failed_count - newSuccessCount;
+          const currentStatus = currentFailedCount > 0 
+            ? (currentSuccessCount > 0 ? SyncStatus.PARTIAL : SyncStatus.FAILED)
+            : SyncStatus.COMPLETED;
+          
+          await db.run(
+            `UPDATE sync_history 
+             SET success_count = ?, failed_count = ?, status = ?, updated_at = CURRENT_TIMESTAMP 
+             WHERE sync_id = ?`,
+            [currentSuccessCount, Math.max(currentFailedCount, 0), currentStatus, sync_id]
+          );
+        }
+        
+        broadcast({
+          type: 'retry_completed',
+          data: {
+            taskId: retryTaskId,
+            originalSyncId: sync_id,
+            result: {
+              ...result,
+              newSuccessCount,
+              stillFailedCount,
+              endTime: new Date().toISOString()
+            }
+          }
+        });
+        
+        const status = checkSyncStatus(currentSyncDir);
+        broadcast(formatSyncStatusForClient(status));
+        
+      } catch (error) {
+        console.error('[重试同步] 任务失败:', error);
+        
+        broadcast({
+          type: 'retry_failed',
+          data: {
+            taskId: retryTaskId,
+            originalSyncId: sync_id,
+            error: error.message
+          }
+        });
+      } finally {
+        isSyncing = false;
+        currentSyncTask = null;
+      }
+    })();
+    
+  } catch (error) {
+    console.error(`[重试同步] 启动任务失败: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      message: error.message || '启动重试任务失败'
+    });
+  }
+});
+
+function buildFolderStructureFromFailures(failures) {
+  const folderMap = new Map();
+  
+  for (const failure of failures) {
+    const folderPath = failure.folder_path || '';
+    const pathParts = folderPath.split('/').filter(p => p);
+    
+    let currentLevel = folderMap;
+    let currentPath = '';
+    
+    for (let i = 0; i < pathParts.length; i++) {
+      const part = pathParts[i];
+      currentPath = currentPath ? `${currentPath}/${part}` : part;
+      
+      if (!currentLevel.has(part)) {
+        currentLevel.set(part, {
+          type: 'folder',
+          name: part,
+          children: new Map()
+        });
+      }
+      
+      if (i === pathParts.length - 1) {
+        const folder = currentLevel.get(part);
+        if (!folder.children.has('__bookmarks')) {
+          folder.children.set('__bookmarks', []);
+        }
+        folder.children.get('__bookmarks').push({
+          type: 'link',
+          title: failure.bookmark_title,
+          url: failure.bookmark_url,
+          addDate: new Date().toISOString()
+        });
+      } else {
+        currentLevel = currentLevel.get(part).children;
+      }
+    }
+    
+    if (pathParts.length === 0) {
+      if (!folderMap.has('__bookmarks')) {
+        folderMap.set('__bookmarks', []);
+      }
+      folderMap.get('__bookmarks').push({
+        type: 'link',
+        title: failure.bookmark_title,
+        url: failure.bookmark_url,
+        addDate: new Date().toISOString()
+      });
+    }
+  }
+  
+  function convertMapToArray(map) {
+    const result = [];
+    
+    if (map.has('__bookmarks')) {
+      result.push(...map.get('__bookmarks'));
+    }
+    
+    for (const [key, value] of map) {
+      if (key !== '__bookmarks') {
+        result.push({
+          type: 'folder',
+          name: value.name,
+          children: convertMapToArray(value.children)
+        });
+      }
+    }
+    
+    return result;
+  }
+  
+  return convertMapToArray(folderMap);
+}
 
 wss.on('connection', (ws) => {
   console.log('新的 WebSocket 客户端连接');

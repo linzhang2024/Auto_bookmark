@@ -169,6 +169,114 @@
       border-top: 1px solid #fecaca;
       color: #7f1d1d;
     }
+    .folder-tree {
+      border-left: 2px solid #e5e7eb;
+      margin-left: 12px;
+      padding-left: 16px;
+    }
+    .folder-tree-item {
+      margin-bottom: 8px;
+    }
+    .folder-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .folder-header:hover {
+      border-color: #667eea;
+      background: #f8fafc;
+    }
+    .folder-header.with-children {
+      cursor: pointer;
+    }
+    .folder-header.collapsed {
+      margin-bottom: 4px;
+    }
+    .folder-toggle {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .folder-toggle:hover {
+      background: #e0e7ff;
+    }
+    .folder-toggle-icon {
+      transition: transform 0.2s ease;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .folder-toggle.expanded .folder-toggle-icon {
+      transform: rotate(90deg);
+    }
+    .folder-toggle.leaf {
+      visibility: hidden;
+    }
+    .folder-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .folder-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .folder-name {
+      font-weight: 600;
+      font-size: 15px;
+      color: #1a1a2e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .folder-meta {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 2px;
+    }
+    .folder-stats {
+      display: flex;
+      gap: 16px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .folder-stat {
+      min-width: 50px;
+    }
+    .folder-stat-value {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .folder-stat-label {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .folder-stat-value.total { color: #3b82f6; }
+    .folder-stat-value.completed { color: #10b981; }
+    .folder-stat-value.failed { color: #ef4444; }
+    .folder-children {
+      display: block;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .folder-children.collapsed {
+      display: none;
+    }
+    .folder-depth-0 { margin-left: 0; }
+    .folder-depth-1 { margin-left: 20px; }
+    .folder-depth-2 { margin-left: 40px; }
+    .folder-depth-3 { margin-left: 60px; }
+    .folder-depth-4 { margin-left: 80px; }
+    .folder-depth-multi { margin-left: 20px; }
   </style>
 </head>
 <body>
@@ -1043,6 +1151,135 @@
         document.getElementById('failedBookmarks').textContent = syncStatus.failedBookmarks || 0;
       }
       
+      function buildFolderTree(folders) {
+        const roots = [];
+        const folderMap = new Map();
+        const pathToFolder = new Map();
+        
+        folders.forEach(folder => {
+          const folderCopy = { ...folder, children: [] };
+          pathToFolder.set(folderCopy.path, folderCopy);
+          folderMap.set(folderCopy.path, folderCopy);
+        });
+        
+        folders.forEach(folder => {
+          const current = pathToFolder.get(folder.path);
+          if (!current) return;
+          
+          let isRoot = true;
+          folders.forEach(other => {
+            if (other.path !== folder.path && folder.path.startsWith(other.path + '\\')) {
+              isRoot = false;
+              const parent = pathToFolder.get(other.path);
+              if (parent) {
+                parent.children.push(current);
+              }
+            }
+          });
+          
+          if (isRoot) {
+            roots.push(current);
+          }
+        });
+        
+        function sortByPath(foldersArray) {
+          return foldersArray.sort((a, b) => {
+            const aPath = a.path || '';
+            const bPath = b.path || '';
+            const aDepth = (aPath.match(/[\\\/]/g) || []).length;
+            const bDepth = (bPath.match(/[\\\/]/g) || []).length;
+            
+            if (aDepth !== bDepth) {
+              return aDepth - bDepth;
+            }
+            return aPath.localeCompare(bPath);
+          });
+        }
+        
+        function sortRecursively(foldersArray) {
+          sortByPath(foldersArray);
+          foldersArray.forEach(f => {
+            if (f.children && f.children.length > 0) {
+              sortRecursively(f.children);
+            }
+          });
+        }
+        
+        sortRecursively(roots);
+        
+        return roots;
+      }
+      
+      function renderFolderItem(folder, depth = 0) {
+        const hasChildren = folder.children && folder.children.length > 0;
+        const folderId = 'folder-' + (folder.path || Math.random().toString(36).substr(2, 9)).replace(/[^a-zA-Z0-9_-]/g, '-');
+        
+        return `
+          <div class="folder-tree-item folder-depth-${Math.min(depth, 4)}" data-folder-id="${folderId}">
+            <div class="folder-header ${hasChildren ? 'with-children' : ''}" 
+                 data-folder='${escapeHtml(JSON.stringify(folder))}'>
+              <div class="folder-toggle ${hasChildren ? 'expanded' : 'leaf'}" 
+                   onclick="toggleFolder(event, '${folderId}')">
+                <span class="folder-toggle-icon">${hasChildren ? '▶' : ''}</span>
+              </div>
+              <div class="folder-icon">📁</div>
+              <div class="folder-info">
+                <div class="folder-name">${escapeHtml(folder.name)}</div>
+                <div class="folder-meta">
+                  ${folder.lastSyncTime ? '最后同步: ' + formatDate(folder.lastSyncTime) : '未同步'}
+                  ${hasChildren ? ` | 子文件夹: ${folder.children.length}` : ''}
+                </div>
+              </div>
+              <div class="folder-stats">
+                <div class="folder-stat">
+                  <div class="folder-stat-value total">${folder.totalBookmarks || 0}</div>
+                  <div class="folder-stat-label">总数</div>
+                </div>
+                <div class="folder-stat">
+                  <div class="folder-stat-value completed">${folder.completedBookmarks || 0}</div>
+                  <div class="folder-stat-label">已同步</div>
+                </div>
+                <div class="folder-stat">
+                  <div class="folder-stat-value failed">${folder.failedBookmarks || 0}</div>
+                  <div class="folder-stat-label">失败</div>
+                </div>
+              </div>
+            </div>
+            ${hasChildren ? `
+              <div class="folder-children" id="${folderId}-children">
+                ${folder.children.map(child => renderFolderItem(child, depth + 1)).join('')}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }
+      
+      function toggleFolder(event, folderId) {
+        event.stopPropagation();
+        
+        const toggleEl = event.currentTarget;
+        const childrenEl = document.getElementById(folderId + '-children');
+        const folderHeader = toggleEl.closest('.folder-header');
+        
+        if (toggleEl.classList.contains('expanded')) {
+          toggleEl.classList.remove('expanded');
+          if (childrenEl) {
+            childrenEl.classList.add('collapsed');
+          }
+          if (folderHeader) {
+            folderHeader.classList.add('collapsed');
+          }
+        } else {
+          toggleEl.classList.add('expanded');
+          if (childrenEl) {
+            childrenEl.classList.remove('collapsed');
+          }
+          if (folderHeader) {
+            folderHeader.classList.remove('collapsed');
+          }
+        }
+      }
+      
       function renderFolders() {
         if (!syncStatus || !syncStatus.folders || syncStatus.folders.length === 0) {
           folderList.innerHTML = `
@@ -1055,46 +1292,56 @@
           return;
         }
         
-        folderList.innerHTML = syncStatus.folders.map(folder => `
-          <div class="card" style="margin-bottom: 16px; cursor: pointer;" data-folder='${escapeHtml(JSON.stringify(folder))}'>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 16px;">
-                <div style="font-size: 32px;">📁</div>
-                <div>
-                  <div style="font-weight: 600; font-size: 16px; color: #1a1a2e;">
-                    ${escapeHtml(folder.name)}
+        const folderTree = buildFolderTree(syncStatus.folders);
+        
+        if (folderTree.length === 0) {
+          folderList.innerHTML = syncStatus.folders.map(folder => `
+            <div class="card" style="margin-bottom: 16px; cursor: pointer;" data-folder='${escapeHtml(JSON.stringify(folder))}'>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                  <div style="font-size: 32px;">📁</div>
+                  <div>
+                    <div style="font-weight: 600; font-size: 16px; color: #1a1a2e;">
+                      ${escapeHtml(folder.name)}
+                    </div>
+                    <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                      ${folder.lastSyncTime ? '最后同步: ' + formatDate(folder.lastSyncTime) : '未同步'}
+                    </div>
                   </div>
-                  <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
-                    ${folder.lastSyncTime ? '最后同步: ' + formatDate(folder.lastSyncTime) : '未同步'}
+                </div>
+                <div style="display: flex; gap: 16px; text-align: right;">
+                  <div>
+                    <div style="font-weight: 600; color: #3b82f6;">${folder.totalBookmarks || 0}</div>
+                    <div style="font-size: 12px; color: #9ca3af;">总数</div>
                   </div>
+                  <div>
+                    <div style="font-weight: 600; color: #10b981;">${folder.completedBookmarks || 0}</div>
+                    <div style="font-size: 12px; color: #9ca3af;">已同步</div>
+                  </div>
+                  <div>
+                    <div style="font-weight: 600; color: #ef4444;">${folder.failedBookmarks || 0}</div>
+                    <div style="font-size: 12px; color: #9ca3af;">失败</div>
+                  </div>
+                  <div style="font-size: 20px; color: #9ca3af;">›</div>
                 </div>
-              </div>
-              <div style="display: flex; gap: 16px; text-align: right;">
-                <div>
-                  <div style="font-weight: 600; color: #3b82f6;">${folder.totalBookmarks || 0}</div>
-                  <div style="font-size: 12px; color: #9ca3af;">总数</div>
-                </div>
-                <div>
-                  <div style="font-weight: 600; color: #10b981;">${folder.completedBookmarks || 0}</div>
-                  <div style="font-size: 12px; color: #9ca3af;">已同步</div>
-                </div>
-                <div>
-                  <div style="font-weight: 600; color: #ef4444;">${folder.failedBookmarks || 0}</div>
-                  <div style="font-size: 12px; color: #9ca3af;">失败</div>
-                </div>
-                <div style="font-size: 20px; color: #9ca3af;">›</div>
               </div>
             </div>
-          </div>
-        `).join('');
+          `).join('');
+        } else {
+          folderList.innerHTML = folderTree.map(folder => renderFolderItem(folder, 0)).join('');
+        }
         
-        folderList.querySelectorAll('[data-folder]').forEach(el => {
-          el.addEventListener('click', function() {
+        folderList.querySelectorAll('.folder-header').forEach(el => {
+          el.addEventListener('click', function(e) {
+            if (e.target.closest('.folder-toggle')) {
+              return;
+            }
+            
             try {
               const folder = JSON.parse(this.dataset.folder);
               openFolderDetail(folder);
-            } catch (e) {
-              console.error('解析文件夹数据失败:', e);
+            } catch (err) {
+              console.error('解析文件夹数据失败:', err);
             }
           });
         });
