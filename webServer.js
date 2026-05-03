@@ -1616,6 +1616,11 @@ app.post('/api/documents/upload', async (req, res) => {
 });
 
 app.get('/api/documents/search', async (req, res) => {
+  const startTime = Date.now();
+  console.log('========================================');
+  console.log('[文档搜索] 收到请求');
+  console.log('[文档搜索] 原始查询参数:', JSON.stringify(req.query, null, 2));
+  
   try {
     const { 
       keyword, 
@@ -1629,20 +1634,60 @@ app.get('/api/documents/search', async (req, res) => {
       highlight_keyword
     } = req.query;
 
-    const searchParams = {};
-    if (keyword) searchParams.keyword = keyword;
-    if (status) searchParams.status = status;
-    if (uploader_id) searchParams.uploader_id = uploader_id;
-    if (owner_id) searchParams.owner_id = owner_id;
-    if (date_from) searchParams.date_from = date_from;
-    if (date_to) searchParams.date_to = date_to;
-    if (limit !== undefined) searchParams.limit = parseInt(limit, 10);
-    if (offset !== undefined) searchParams.offset = parseInt(offset, 10);
+    console.log('[文档搜索] 解析后参数:');
+    console.log('  - keyword:', keyword ? `"${keyword}"` : '(未提供)');
+    console.log('  - status:', status ? `"${status}"` : '(未提供)');
+    console.log('  - date_from:', date_from ? `"${date_from}"` : '(未提供)');
+    console.log('  - date_to:', date_to ? `"${date_to}"` : '(未提供)');
+    console.log('  - limit:', limit);
+    console.log('  - offset:', offset);
+    console.log('  - highlight_keyword:', highlight_keyword);
 
+    const searchParams = {};
+    if (keyword !== undefined && keyword !== null && keyword.trim() !== '') {
+      searchParams.keyword = keyword;
+    }
+    if (status !== undefined && status !== null && status !== '') {
+      searchParams.status = status;
+    }
+    if (uploader_id !== undefined && uploader_id !== null && uploader_id !== '') {
+      const uid = parseInt(uploader_id, 10);
+      if (!isNaN(uid)) searchParams.uploader_id = uid;
+    }
+    if (owner_id !== undefined && owner_id !== null && owner_id !== '') {
+      const oid = parseInt(owner_id, 10);
+      if (!isNaN(oid)) searchParams.owner_id = oid;
+    }
+    if (date_from !== undefined && date_from !== null && date_from !== '') {
+      searchParams.date_from = date_from;
+    }
+    if (date_to !== undefined && date_to !== null && date_to !== '') {
+      searchParams.date_to = date_to;
+    }
+    if (limit !== undefined && limit !== null && limit !== '') {
+      const limitNum = parseInt(limit, 10);
+      if (!isNaN(limitNum)) {
+        searchParams.limit = limitNum;
+      }
+    }
+    if (offset !== undefined && offset !== null && offset !== '') {
+      const offsetNum = parseInt(offset, 10);
+      if (!isNaN(offsetNum)) {
+        searchParams.offset = offsetNum;
+      }
+    }
+
+    console.log('[文档搜索] 实际搜索参数:', JSON.stringify(searchParams, null, 2));
+
+    console.log('[文档搜索] 开始查询数据库...');
     const [documents, total] = await Promise.all([
       Document.search(searchParams),
       Document.countSearch(searchParams)
     ]);
+    console.log('[文档搜索] 查询完成:');
+    console.log('  - 总匹配数:', total);
+    console.log('  - 返回文档数:', documents.length);
+    console.log('  - 耗时:', Date.now() - startTime, 'ms');
 
     const documentResults = documents.map(doc => {
       const docJson = doc.toJSON();
@@ -1658,7 +1703,7 @@ app.get('/api/documents/search', async (req, res) => {
         if (docJson.metadata && typeof docJson.metadata === 'object') {
           const metadataStr = JSON.stringify(docJson.metadata).toLowerCase();
           if (metadataStr.includes(searchTerm)) {
-            docJson.highlights.metadata = extractMatchingFields(docJson.metadata, searchTerm);
+            docJson.highlights.matchingFields = extractMatchingFields(docJson.metadata, searchTerm);
           }
         }
       }
@@ -1666,24 +1711,28 @@ app.get('/api/documents/search', async (req, res) => {
       return docJson;
     });
 
+    console.log('[文档搜索] 响应成功发送');
+    console.log('========================================');
+
     res.json({
       success: true,
-      data: {
-        documents: documentResults,
-        total,
-        searchParams: {
-          keyword,
-          status,
-          date_from,
-          date_to
-        }
+      documents: documentResults,
+      total,
+      searchParams: {
+        keyword,
+        status,
+        date_from,
+        date_to
       }
     });
   } catch (error) {
-    console.error('文档搜索失败:', error);
+    console.error('========================================');
+    console.error('[文档搜索] 严重错误:', error);
+    console.error('[文档搜索] 错误堆栈:', error.stack);
+    console.error('========================================');
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message || '搜索文档失败'
     });
   }
 });
@@ -2613,6 +2662,11 @@ app.get('/api/backups/config', async (req, res) => {
 });
 
 app.get('/api/bookmarks/search', async (req, res) => {
+  const startTime = Date.now();
+  console.log('========================================');
+  console.log('[书签搜索] 收到请求');
+  console.log('[书签搜索] 原始查询参数:', JSON.stringify(req.query, null, 2));
+  
   try {
     const { 
       keyword, 
@@ -2622,9 +2676,18 @@ app.get('/api/bookmarks/search', async (req, res) => {
       highlight_keyword
     } = req.query;
 
+    console.log('[书签搜索] 解析后参数:');
+    console.log('  - keyword:', keyword ? `"${keyword}"` : '(未提供)');
+    console.log('  - sync_status:', sync_status ? `"${sync_status}"` : '(未提供)');
+    console.log('  - limit:', limit);
+    console.log('  - offset:', offset);
+    console.log('  - highlight_keyword:', highlight_keyword);
+
     const mirrorPath = currentSyncDir || DEFAULT_SYNC_DIR;
+    console.log('[书签搜索] 镜像目录:', mirrorPath);
     
     if (!fs.existsSync(mirrorPath)) {
+      console.error('[书签搜索] 错误: 本地镜像目录不存在:', mirrorPath);
       return res.status(404).json({
         success: false,
         message: '本地镜像目录不存在，请先同步书签'
@@ -2632,16 +2695,37 @@ app.get('/api/bookmarks/search', async (req, res) => {
     }
 
     const searchParams = {};
-    if (keyword) searchParams.keyword = keyword;
-    if (sync_status) searchParams.syncStatus = sync_status;
-    if (limit !== undefined) searchParams.limit = parseInt(limit, 10);
-    if (offset !== undefined) searchParams.offset = parseInt(offset, 10);
+    if (keyword !== undefined && keyword !== null && keyword.trim() !== '') {
+      searchParams.keyword = keyword;
+    }
+    if (sync_status !== undefined && sync_status !== null && sync_status !== '') {
+      searchParams.syncStatus = sync_status;
+    }
+    if (limit !== undefined && limit !== null && limit !== '') {
+      const limitNum = parseInt(limit, 10);
+      if (!isNaN(limitNum)) {
+        searchParams.limit = limitNum;
+      }
+    }
+    if (offset !== undefined && offset !== null && offset !== '') {
+      const offsetNum = parseInt(offset, 10);
+      if (!isNaN(offsetNum)) {
+        searchParams.offset = offsetNum;
+      }
+    }
+
+    console.log('[书签搜索] 实际搜索参数:', JSON.stringify(searchParams, null, 2));
 
     const result = searchBookmarks(mirrorPath, searchParams);
+    console.log('[书签搜索] 搜索完成:');
+    console.log('  - 总匹配数:', result.total);
+    console.log('  - 返回结果数:', result.bookmarks.length);
+    console.log('  - 耗时:', Date.now() - startTime, 'ms');
 
     let bookmarkResults = result.bookmarks;
     
     if (highlight_keyword && keyword && keyword.trim()) {
+      console.log('[书签搜索] 启用关键词高亮');
       const searchTerm = keyword.trim().toLowerCase();
       bookmarkResults = result.bookmarks.map(bm => {
         const bmJson = { ...bm };
@@ -2659,6 +2743,9 @@ app.get('/api/bookmarks/search', async (req, res) => {
       });
     }
 
+    console.log('[书签搜索] 响应成功发送');
+    console.log('========================================');
+
     res.json({
       success: true,
       data: {
@@ -2668,7 +2755,10 @@ app.get('/api/bookmarks/search', async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('[书签搜索] 失败:', error);
+    console.error('========================================');
+    console.error('[书签搜索] 严重错误:', error);
+    console.error('[书签搜索] 错误堆栈:', error.stack);
+    console.error('========================================');
     res.status(500).json({
       success: false,
       message: error.message || '搜索书签失败'
