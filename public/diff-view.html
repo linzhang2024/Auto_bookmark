@@ -518,13 +518,36 @@
         const v1Id = parseInt(version1Select.value, 10);
         const v2Id = parseInt(version2Select.value, 10);
         
-        if (isNaN(v1Id) || isNaN(v2Id)) {
-          showToast('请选择两个版本进行比对', 'warning');
+        if (!version1Select.value || isNaN(v1Id)) {
+          showToast('请选择第一个要比对的版本', 'warning');
+          return;
+        }
+        
+        if (!version2Select.value || isNaN(v2Id)) {
+          showToast('请选择第二个要比对的版本', 'warning');
+          return;
+        }
+        
+        if (v1Id <= 0 || v2Id <= 0) {
+          showToast('版本 ID 必须是有效的正整数', 'warning');
           return;
         }
         
         if (v1Id === v2Id) {
-          showToast('请选择不同的版本进行比对', 'warning');
+          showToast('两个版本 ID 相同，请选择不同的版本进行比对', 'warning');
+          return;
+        }
+        
+        const version1Exists = versions.some(v => v.id === v1Id);
+        const version2Exists = versions.some(v => v.id === v2Id);
+        
+        if (!version1Exists) {
+          showToast('第一个版本不存在或已被删除，请重新选择', 'warning');
+          return;
+        }
+        
+        if (!version2Exists) {
+          showToast('第二个版本不存在或已被删除，请重新选择', 'warning');
           return;
         }
         

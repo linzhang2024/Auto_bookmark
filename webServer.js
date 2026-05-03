@@ -2558,37 +2558,86 @@ app.get('/api/documents/compare', async (req, res) => {
   try {
     const { version_id1, version_id2, diff_type = 'line', format = 'unified', ignore_whitespace, ignore_case, context_lines = 3 } = req.query;
     
-    if (!version_id1 || !version_id2) {
+    if (!version_id1) {
       return res.status(400).json({
         success: false,
-        message: '缺少版本 ID 参数（version_id1 和 version_id2 都需要）'
+        message: '缺少第一个版本 ID 参数（version_id1）'
+      });
+    }
+    
+    if (!version_id2) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少第二个版本 ID 参数（version_id2）'
       });
     }
 
     const v1 = parseInt(version_id1, 10);
     const v2 = parseInt(version_id2, 10);
 
-    if (isNaN(v1) || isNaN(v2)) {
+    if (isNaN(v1) || v1 <= 0) {
       return res.status(400).json({
         success: false,
-        message: '无效的版本 ID'
+        message: `第一个版本 ID 无效：version_id1 = ${version_id1}，必须是有效的正整数`
+      });
+    }
+    
+    if (isNaN(v2) || v2 <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: `第二个版本 ID 无效：version_id2 = ${version_id2}，必须是有效的正整数`
+      });
+    }
+
+    if (v1 === v2) {
+      return res.status(400).json({
+        success: false,
+        message: `两个版本 ID 相同（version_id1 = version_id2 = ${v1}），请选择不同的版本进行比对`
       });
     }
 
     const version1 = await DocumentVersion.findById(v1);
     const version2 = await DocumentVersion.findById(v2);
 
-    if (!version1 || !version2) {
+    if (!version1 && !version2) {
       return res.status(404).json({
         success: false,
-        message: '版本不存在'
+        message: `两个版本都不存在：version_id1 = ${v1}，version_id2 = ${v2}`
+      });
+    }
+    
+    if (!version1) {
+      return res.status(404).json({
+        success: false,
+        message: `第一个版本不存在：version_id1 = ${v1}，该版本可能已被删除或 ID 无效`
+      });
+    }
+    
+    if (!version2) {
+      return res.status(404).json({
+        success: false,
+        message: `第二个版本不存在：version_id2 = ${v2}，该版本可能已被删除或 ID 无效`
+      });
+    }
+
+    if (version1.status !== VersionStatus.ACTIVE) {
+      return res.status(400).json({
+        success: false,
+        message: `第一个版本状态无效：version_id1 = ${v1}，当前状态为 "${version1.status}"，需要 "active" 状态`
+      });
+    }
+    
+    if (version2.status !== VersionStatus.ACTIVE) {
+      return res.status(400).json({
+        success: false,
+        message: `第二个版本状态无效：version_id2 = ${v2}，当前状态为 "${version2.status}"，需要 "active" 状态`
       });
     }
 
     if (version1.document_id !== version2.document_id) {
       return res.status(400).json({
         success: false,
-        message: '两个版本必须属于同一文档'
+        message: `两个版本必须属于同一文档：version_id1 属于文档 ${version1.document_id}，version_id2 属于文档 ${version2.document_id}`
       });
     }
 

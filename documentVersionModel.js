@@ -201,11 +201,54 @@ class DocumentVersion {
   static async getDiffBetweenVersions(versionId1, versionId2, options = {}) {
     const { diffType = 'line', format = 'unified' } = options;
     
-    const version1 = await DocumentVersion.findById(versionId1);
-    const version2 = await DocumentVersion.findById(versionId2);
+    if (versionId1 === undefined || versionId1 === null) {
+      throw new Error('缺少第一个版本 ID 参数（versionId1）');
+    }
+    
+    if (versionId2 === undefined || versionId2 === null) {
+      throw new Error('缺少第二个版本 ID 参数（versionId2）');
+    }
+    
+    const v1 = parseInt(versionId1, 10);
+    const v2 = parseInt(versionId2, 10);
+    
+    if (isNaN(v1) || v1 <= 0) {
+      throw new Error(`第一个版本 ID 无效：versionId1 = ${versionId1}，必须是有效的正整数`);
+    }
+    
+    if (isNaN(v2) || v2 <= 0) {
+      throw new Error(`第二个版本 ID 无效：versionId2 = ${versionId2}，必须是有效的正整数`);
+    }
+    
+    if (v1 === v2) {
+      throw new Error(`两个版本 ID 相同（versionId1 = versionId2 = ${v1}），请选择不同的版本进行比对`);
+    }
+    
+    const version1 = await DocumentVersion.findById(v1);
+    const version2 = await DocumentVersion.findById(v2);
 
-    if (!version1 || !version2) {
-      throw new Error('版本不存在');
+    if (!version1 && !version2) {
+      throw new Error(`两个版本都不存在：versionId1 = ${v1}，versionId2 = ${v2}`);
+    }
+    
+    if (!version1) {
+      throw new Error(`第一个版本不存在：versionId1 = ${v1}，该版本可能已被删除或 ID 无效`);
+    }
+    
+    if (!version2) {
+      throw new Error(`第二个版本不存在：versionId2 = ${v2}，该版本可能已被删除或 ID 无效`);
+    }
+    
+    if (version1.status !== VersionStatus.ACTIVE) {
+      throw new Error(`第一个版本状态无效：versionId1 = ${v1}，当前状态为 "${version1.status}"，需要 "active" 状态`);
+    }
+    
+    if (version2.status !== VersionStatus.ACTIVE) {
+      throw new Error(`第二个版本状态无效：versionId2 = ${v2}，当前状态为 "${version2.status}"，需要 "active" 状态`);
+    }
+    
+    if (version1.document_id !== version2.document_id) {
+      throw new Error(`两个版本必须属于同一文档：versionId1 属于文档 ${version1.document_id}，versionId2 属于文档 ${version2.document_id}`);
     }
 
     const text1 = readTextContent(version1.storage_path);
