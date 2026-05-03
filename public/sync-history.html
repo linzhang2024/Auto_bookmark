@@ -619,6 +619,12 @@
             hideRetryProgress();
             showToast('重试任务失败: ' + (data.data?.error || '未知错误'), 'error');
             break;
+            
+          case 'unified_stats':
+            if (data.data) {
+              loadStats();
+            }
+            break;
         }
       }
       
@@ -688,30 +694,81 @@
       
       async function loadStats() {
         try {
-          const result = await apiRequest('/api/sync-history/stats', { method: 'GET' });
+          const result = await apiRequest('/api/stats', { method: 'GET' });
           
           if (result.data && result.data.success) {
-            const stats = result.data.data.stats;
-            const errorDist = result.data.data.errorDistribution;
+            const unifiedStats = result.data.data;
+            const historyStats = unifiedStats.history;
+            const currentStats = unifiedStats.current;
+            const errorDist = historyStats.errorDistribution;
             
-            statsContainer.innerHTML = `
-              <div class="stat-item blue">
-                <div class="stat-value">${stats.totalSyncs}</div>
-                <div class="stat-label">总同步次数</div>
-              </div>
-              <div class="stat-item green">
-                <div class="stat-value">${stats.totalBookmarks}</div>
-                <div class="stat-label">总处理书签</div>
-              </div>
-              <div class="stat-item red">
-                <div class="stat-value">${stats.totalFailures}</div>
-                <div class="stat-label">失败总数</div>
-              </div>
-              <div class="stat-item orange">
-                <div class="stat-value">${stats.successRate}%</div>
-                <div class="stat-label">成功率</div>
+            let historyStatsHtml = '';
+            
+            if (historyStats.totalSyncs > 0) {
+              historyStatsHtml = `
+                <div class="stats-section">
+                  <div class="stats-section-header">
+                    <h3>📈 历史累计统计</h3>
+                    <span class="stats-hint">数据为所有同步批次的累计值</span>
+                  </div>
+                  <div class="history-stats">
+                    <div class="stat-item blue">
+                      <div class="stat-value">${historyStats.totalSyncs}</div>
+                      <div class="stat-label">累计同步次数</div>
+                    </div>
+                    <div class="stat-item green">
+                      <div class="stat-value">${historyStats.totalBookmarks}</div>
+                      <div class="stat-label">累计处理书签</div>
+                    </div>
+                    <div class="stat-item purple">
+                      <div class="stat-value">${historyStats.totalSuccesses}</div>
+                      <div class="stat-label">累计成功</div>
+                    </div>
+                    <div class="stat-item red">
+                      <div class="stat-value">${historyStats.totalFailures}</div>
+                      <div class="stat-label">累计失败</div>
+                    </div>
+                    <div class="stat-item orange">
+                      <div class="stat-value">${historyStats.successRate}%</div>
+                      <div class="stat-label">历史成功率</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }
+            
+            const currentStatsHtml = `
+              <div class="stats-section">
+                <div class="stats-section-header">
+                  <h3>📊 当前书签状态</h3>
+                  <span class="stats-hint">数据为本地镜像中的当前实际数量</span>
+                </div>
+                <div class="history-stats">
+                  <div class="stat-item blue">
+                    <div class="stat-value">${currentStats.totalFolders || 0}</div>
+                    <div class="stat-label">当前总文件夹</div>
+                  </div>
+                  <div class="stat-item green">
+                    <div class="stat-value">${currentStats.totalBookmarks || 0}</div>
+                    <div class="stat-label">当前书签总数</div>
+                  </div>
+                  <div class="stat-item purple">
+                    <div class="stat-value">${currentStats.completedBookmarks || 0}</div>
+                    <div class="stat-label">当前已同步</div>
+                  </div>
+                  <div class="stat-item red">
+                    <div class="stat-value">${currentStats.failedBookmarks || 0}</div>
+                    <div class="stat-label">当前失败</div>
+                  </div>
+                  <div class="stat-item orange">
+                    <div class="stat-value">${currentStats.successRate || 0}%</div>
+                    <div class="stat-label">当前成功率</div>
+                  </div>
+                </div>
               </div>
             `;
+            
+            statsContainer.innerHTML = historyStatsHtml + currentStatsHtml;
             
             if (errorDist && errorDist.length > 0) {
               errorDistribution.style.display = 'block';
@@ -730,6 +787,58 @@
           }
         } catch (error) {
           console.error('加载统计信息失败:', error);
+          try {
+            const result = await apiRequest('/api/sync-history/stats', { method: 'GET' });
+            
+            if (result.data && result.data.success) {
+              const stats = result.data.data.stats;
+              const errorDist = result.data.data.errorDistribution;
+              
+              statsContainer.innerHTML = `
+                <div class="stats-section">
+                  <div class="stats-section-header">
+                    <h3>📈 历史累计统计</h3>
+                    <span class="stats-hint">数据为所有同步批次的累计值</span>
+                  </div>
+                  <div class="history-stats">
+                    <div class="stat-item blue">
+                      <div class="stat-value">${stats.totalSyncs}</div>
+                      <div class="stat-label">累计同步次数</div>
+                    </div>
+                    <div class="stat-item green">
+                      <div class="stat-value">${stats.totalBookmarks}</div>
+                      <div class="stat-label">累计处理书签</div>
+                    </div>
+                    <div class="stat-item red">
+                      <div class="stat-value">${stats.totalFailures}</div>
+                      <div class="stat-label">累计失败</div>
+                    </div>
+                    <div class="stat-item orange">
+                      <div class="stat-value">${stats.successRate}%</div>
+                      <div class="stat-label">历史成功率</div>
+                    </div>
+                  </div>
+                </div>
+              `;
+              
+              if (errorDist && errorDist.length > 0) {
+                errorDistribution.style.display = 'block';
+                errorTypeList.innerHTML = errorDist.map(type => `
+                  <div class="error-type-card">
+                    <div class="error-type-header">
+                      <span class="error-type-name">${escapeHtml(type.error_type)}</span>
+                      <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="error-type-count">${type.count} 次</span>
+                      </div>
+                    </div>
+                    <div class="error-type-desc">${escapeHtml(type.description)}</div>
+                  </div>
+                `).join('');
+              }
+            }
+          } catch (e) {
+            console.error('备用统计加载也失败:', e);
+          }
         }
       }
       

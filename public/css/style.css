@@ -693,3 +693,200 @@ tr:last-child td {
 .stat-card-change.negative {
   color: #ef4444;
 }
+
+.stats-section {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.stats-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.stats-section-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a2e;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stats-section-header .stats-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.stats-grid-unified {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.stat-card-unified {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.stat-card-unified:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.stat-card-unified.blue {
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  border-color: #c7d2fe;
+}
+
+.stat-card-unified.green {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  border-color: #a7f3d0;
+}
+
+.stat-card-unified.red {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border-color: #fecaca;
+}
+
+.stat-card-unified.orange {
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: #fed7aa;
+}
+
+.stat-card-unified.purple {
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+  border-color: #e9d5ff;
+}
+
+.stat-card-unified-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.stat-card-unified-icon {
+  font-size: 24px;
+}
+
+.stat-card-unified-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.stat-card-unified-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.stat-card-unified.blue .stat-card-unified-value {
+  color: #4338ca;
+}
+
+.stat-card-unified.green .stat-card-unified-value {
+  color: #059669;
+}
+
+.stat-card-unified.red .stat-card-unified-value {
+  color: #dc2626;
+}
+
+.stat-card-unified.orange .stat-card-unified-value {
+  color: #d97706;
+}
+
+.stat-card-unified.purple .stat-card-unified-value {
+  color: #7c3aed;
+}
+
+.history-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  border: 1px solid #e2e8f0;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item.blue {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.stat-item.green {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  border: none;
+}
+
+.stat-item.red {
+  background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+  border: none;
+}
+
+.stat-item.orange {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border: none;
+}
+
+.stat-item.purple {
+  background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+  border: none;
+}
+
+.stat-item .stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 4px;
+}
+
+.stat-item .stat-label {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.stat-item.blue .stat-value,
+.stat-item.green .stat-value,
+.stat-item.red .stat-value,
+.stat-item.orange .stat-value,
+.stat-item.purple .stat-value {
+  color: white;
+}
+
+.stat-item.blue .stat-label,
+.stat-item.green .stat-label,
+.stat-item.red .stat-label,
+.stat-item.orange .stat-label,
+.stat-item.purple .stat-label {
+  color: rgba(255, 255, 255, 0.9);
+}
