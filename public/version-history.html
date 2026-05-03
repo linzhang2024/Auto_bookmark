@@ -792,10 +792,29 @@
       }
       
       function showConfirmModal(versionId, versionNumber) {
-        pendingRestoreVersion = { id: versionId, number: versionNumber };
+        const idNum = parseInt(versionId, 10);
         
-        document.getElementById('modalTitle').textContent = `确认恢复到 v${versionNumber}`;
-        document.getElementById('modalMessage').textContent = `确定要将当前书签恢复到版本 v${versionNumber} 吗？`;
+        if (!versionId || isNaN(idNum) || idNum <= 0) {
+          console.error('无效的版本 ID:', versionId);
+          showToast('无效的版本 ID，请刷新页面后重试', 'error');
+          return;
+        }
+        
+        const vNum = parseInt(versionNumber, 10);
+        if (!versionNumber || isNaN(vNum) || vNum <= 0) {
+          console.error('无效的版本号:', versionNumber);
+          showToast('无效的版本号，请刷新页面后重试', 'error');
+          return;
+        }
+        
+        pendingRestoreVersion = { 
+          id: versionId, 
+          idNum: idNum,
+          number: vNum 
+        };
+        
+        document.getElementById('modalTitle').textContent = `确认恢复到 v${vNum}`;
+        document.getElementById('modalMessage').textContent = `确定要将当前书签恢复到版本 v${vNum} 吗？`;
         
         confirmModal.classList.remove('hidden');
       }
@@ -806,21 +825,38 @@
       }
       
       async function confirmRestore() {
-        if (!pendingRestoreVersion) return;
+        if (!pendingRestoreVersion) {
+          console.error('pendingRestoreVersion 为 null');
+          return;
+        }
+        
+        if (!pendingRestoreVersion.id || !pendingRestoreVersion.idNum || pendingRestoreVersion.idNum <= 0) {
+          console.error('无效的 pendingRestoreVersion:', pendingRestoreVersion);
+          showToast('版本 ID 无效，请刷新页面后重试', 'error');
+          hideConfirmModal();
+          return;
+        }
         
         hideConfirmModal();
         
         try {
+          console.log('准备恢复版本, ID:', pendingRestoreVersion.id, '版本号:', pendingRestoreVersion.number);
+          
           const result = await apiRequest(`/api/bookmark-versions/${pendingRestoreVersion.id}/restore`, {
             method: 'POST'
           });
           
+          console.log('恢复 API 响应:', result);
+          
           if (result.data && result.data.success) {
             showToast(result.data.message || '恢复任务已启动', 'info');
           } else {
-            showToast(result.data?.message || '启动恢复失败', 'error');
+            const errorMsg = result.data?.message || '启动恢复失败';
+            console.error('恢复失败:', errorMsg, result);
+            showToast(errorMsg, 'error');
           }
         } catch (error) {
+          console.error('恢复请求异常:', error);
           showToast('启动恢复失败: ' + error.message, 'error');
         }
       }
@@ -829,6 +865,19 @@
         const detailEl = itemEl.querySelector('.version-detail');
         
         if (detailEl.querySelector('.detail-section')) {
+          return;
+        }
+        
+        const idNum = parseInt(id, 10);
+        if (!id || isNaN(idNum) || idNum <= 0) {
+          console.error('无效的版本 ID:', id);
+          detailEl.innerHTML = `
+            <div style="text-align: center; padding: 24px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">❌</div>
+              <div style="color: #dc2626; font-weight: 500; margin-bottom: 8px;">无效的版本 ID</div>
+              <div style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">请刷新页面后重试</div>
+            </div>
+          `;
           return;
         }
         
@@ -843,13 +892,15 @@
             const bookmarksData = bookmarksResult.data.data;
             const diffStats = version.diff_statistics || {};
             
+            const bookmarks = bookmarksData && bookmarksData.bookmarks ? bookmarksData.bookmarks : [];
+            
             detailEl.innerHTML = `
               <div class="detail-section">
                 <div class="detail-title">📋 版本详情</div>
                 <div class="summary-grid">
                   <div class="summary-item">
                     <span class="summary-label">版本号</span>
-                    <span class="summary-value">v${version.version_number}</span>
+                    <span class="summary-value">v${version.version_number || '-'}</span>
                   </div>
                   <div class="summary-item">
                     <span class="summary-label">创建时间</span>
@@ -892,11 +943,13 @@
                 <div class="detail-title">🔖 书签预览</div>
                 <div class="bookmarks-preview">
                   <div class="bookmark-tree">
-                    ${renderBookmarkTree(bookmarksData.bookmarks)}
+                    ${renderBookmarkTree(bookmarks)}
                   </div>
                 </div>
               </div>
             `;
+          } else {
+            throw new Error('API 返回失败');
           }
         } catch (error) {
           console.error('加载版本详情失败:', error);
