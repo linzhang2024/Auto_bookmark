@@ -344,10 +344,13 @@ class BookmarkSnapshot {
 
     return {
       totalVersions,
-      latestVersion: latest ? latest.version_number : 0,
+      latestVersion: latest ? latest.id : 0,
+      latestVersionNumber: latest ? latest.version_number : 0,
       latestCreatedAt: latest ? latest.created_at : null,
       currentBookmarks: latest ? latest.total_bookmarks : 0,
-      currentFolders: latest ? latest.total_folders : 0
+      currentFolders: latest ? latest.total_folders : 0,
+      latestBookmarks: latest ? latest.total_bookmarks : 0,
+      latestFolders: latest ? latest.total_folders : 0
     };
   }
 
