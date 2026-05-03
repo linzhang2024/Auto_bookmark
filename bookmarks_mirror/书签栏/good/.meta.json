@@ -1,6 +1,6 @@
 {
   "folderName": "good",
-  "lastSyncTime": "2026-05-02T15:32:52.794Z",
+  "lastSyncTime": "2026-05-03T06:29:16.298Z",
   "bookmarks": [
     {
       "title": "账户与交易 — TianQin Python SDK 1.0.0 文档",
@@ -10,7 +10,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T15:32:45.098Z"
+      "lastSyncTime": "2026-05-03T06:29:04.885Z"
     },
     {
       "title": "合约, 行情和历史数据 — TianQin Python SDK 3.8.6 文档",
@@ -20,7 +20,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T15:32:45.254Z"
+      "lastSyncTime": "2026-05-03T06:29:04.880Z"
     },
     {
       "title": "账号管理",
@@ -34,9 +34,9 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777735964173",
-    "startTime": "2026-05-02T15:32:44.173Z",
-    "endTime": "2026-05-02T15:32:52.794Z",
+    "syncId": "sync_1777789743894",
+    "startTime": "2026-05-03T06:29:03.894Z",
+    "endTime": "2026-05-03T06:29:16.298Z",
     "totalBookmarks": 3,
     "completedBookmarks": 1,
     "failedBookmarks": 2

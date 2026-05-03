@@ -37,6 +37,7 @@ const {
 const { BookmarkDeduplicator } = require('./BookmarkDeduplicator');
 const { SyncHistory, SyncFailureDetail } = require('./syncHistoryModel');
 const { DocumentVersion, VersionStatus } = require('./documentVersionModel');
+const { BookmarkSnapshot } = require('./bookmarkSnapshotModel');
 const diffEngine = require('./diffEngine');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'auto-bookmark-jwt-secret-key-2024';
@@ -714,6 +715,19 @@ app.post('/api/sync', async (req, res) => {
       console.error('保存同步历史失败:', historyError.message);
     }
 
+    try {
+      await BookmarkSnapshot.create({
+        sync_id: taskInfo.taskId,
+        browser_source: 'manual_upload',
+        bookmarks: bookmarks,
+        total_bookmarks: totalBookmarks,
+        total_folders: totalFolders
+      });
+      console.log(`✓ 已创建书签快照，sync_id: ${taskInfo.taskId}`);
+    } catch (snapshotError) {
+      console.error('创建书签快照失败:', snapshotError.message);
+    }
+
     broadcast({
       type: 'sync_completed',
       data: {
@@ -1127,6 +1141,19 @@ app.post('/api/browser-sync', async (req, res) => {
         await SyncHistory.updateSyncResult(taskInfo.taskId, resultWithDuplicates, browserType, backupFilePath);
       } catch (historyError) {
         console.error('保存同步历史失败:', historyError.message);
+      }
+
+      try {
+        await BookmarkSnapshot.create({
+          sync_id: taskInfo.taskId,
+          browser_source: browserType,
+          bookmarks: bookmarksData,
+          total_bookmarks: totalBookmarks,
+          total_folders: totalFolders
+        });
+        console.log(`✓ 已创建书签快照，sync_id: ${taskInfo.taskId}`);
+      } catch (snapshotError) {
+        console.error('创建书签快照失败:', snapshotError.message);
       }
 
       broadcast({
@@ -3394,6 +3421,428 @@ app.get('/api/bookmarks/export', async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || '导出书签失败'
+    });
+  }
+});
+
+app.get('/api/bookmark-versions', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    
+    const versions = await BookmarkSnapshot.listAll({
+      limit: parseInt(limit, 10),
+      offset: parseInt(offset, 10)
+    });
+    
+    const total = await BookmarkSnapshot.countAll();
+    
+    res.json({
+      success: true,
+      data: {
+        versions: versions.map(v => v.toJSON()),
+        total,
+        limit: parseInt(limit, 10),
+        offset: parseInt(offset, 10)
+      }
+    });
+    
+  } catch (error) {
+    console.error('[书签版本] 获取版本列表失败:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取版本列表失败'
+    });
+  }
+});
+
+app.get('/api/bookmark-versions/stats', async (req, res) => {
+  try {
+    const stats = await BookmarkSnapshot.getStats();
+    
+    res.json({
+      success: true,
+      data: stats
+    });
+    
+  } catch (error) {
+    console.error('[书签版本] 获取版本统计失败:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取版本统计失败'
+    });
+  }
+});
+
+app.get('/api/bookmark-versions/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的版本 ID'
+      });
+    }
+    
+    const version = await BookmarkSnapshot.findById(id);
+    
+    if (!version) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: version.toJSON()
+    });
+    
+  } catch (error) {
+    console.error('[书签版本] 获取版本详情失败:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取版本详情失败'
+    });
+  }
+});
+
+app.get('/api/bookmark-versions/:id/bookmarks', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的版本 ID'
+      });
+    }
+    
+    const version = await BookmarkSnapshot.findById(id);
+    
+    if (!version) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        version: version.version_number,
+        version_label: `v${version.version_number}`,
+        total_bookmarks: version.total_bookmarks,
+        total_folders: version.total_folders,
+        bookmarks: version.getBookmarks()
+      }
+    });
+    
+  } catch (error) {
+    console.error('[书签版本] 获取版本书签失败:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取版本书签失败'
+    });
+  }
+});
+
+app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的版本 ID'
+      });
+    }
+    
+    if (isSyncing) {
+      return res.status(400).json({
+        success: false,
+        message: '同步任务正在进行中，请稍后再试'
+      });
+    }
+    
+    const version = await BookmarkSnapshot.findById(id);
+    
+    if (!version) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+    
+    const bookmarks = version.getBookmarks();
+    
+    if (!bookmarks || bookmarks.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '该版本没有书签数据'
+      });
+    }
+    
+    isSyncing = true;
+    
+    const taskInfo = {
+      taskId: `restore_v${version.version_number}_${Date.now()}`,
+      startTime: new Date().toISOString(),
+      version_number: version.version_number
+    };
+    
+    currentSyncTask = taskInfo;
+    
+    broadcast({
+      type: 'restore_started',
+      data: {
+        ...taskInfo,
+        version_number: version.version_number
+      }
+    });
+    
+    (async () => {
+      try {
+        const totalBookmarks = version.total_bookmarks;
+        const totalFolders = version.total_folders;
+        
+        broadcast({
+          type: 'sync_progress',
+          data: {
+            current: 0,
+            total: totalBookmarks,
+            message: `正在恢复 v${version.version_number} 版本的书签...`,
+            phase: 'analyzing'
+          }
+        });
+        
+        let completedCount = 0;
+        let lastProgressTime = Date.now();
+        
+        const result = await syncToLocalMirror(bookmarks, currentSyncDir, {
+          maxConcurrent: config.maxConcurrency,
+          timeout: config.iconTimeout,
+          skipIconDownload: false,
+          forceUpdate: true,
+          onProgress: (current, total, message) => {
+            const now = Date.now();
+            if (now - lastProgressTime > 500 || current === total) {
+              broadcast({
+                type: 'sync_progress',
+                data: {
+                  current,
+                  total,
+                  message,
+                  phase: 'syncing'
+                }
+              });
+              lastProgressTime = now;
+            }
+          }
+        });
+        
+        let backupFilePath = null;
+        try {
+          backupFilePath = await createBackupFromBookmarks(bookmarks, DEFAULT_BACKUP_DIR, {
+            browserSource: `restore_v${version.version_number}`
+          });
+          
+          if (backupFilePath && fs.existsSync(backupFilePath)) {
+            const stat = fs.statSync(backupFilePath);
+            console.log(`✓ 已创建恢复备份文件: ${backupFilePath} (${stat.size} 字节)`);
+          }
+        } catch (backupError) {
+          console.error('创建恢复备份文件失败:', backupError.message);
+        }
+        
+        const resultWithSyncDir = {
+          ...result,
+          syncDir: currentSyncDir
+        };
+        
+        try {
+          await SyncHistory.updateSyncResult(taskInfo.taskId, resultWithSyncDir, `restore_v${version.version_number}`, backupFilePath);
+        } catch (historyError) {
+          console.error('保存恢复同步历史失败:', historyError.message);
+        }
+        
+        try {
+          await BookmarkSnapshot.create({
+            sync_id: taskInfo.taskId,
+            browser_source: `restore_from_v${version.version_number}`,
+            bookmarks: bookmarks,
+            total_bookmarks: totalBookmarks,
+            total_folders: totalFolders
+          });
+          console.log(`✓ 已创建恢复后的新快照，sync_id: ${taskInfo.taskId}`);
+        } catch (snapshotError) {
+          console.error('创建恢复快照失败:', snapshotError.message);
+        }
+        
+        broadcast({
+          type: 'restore_completed',
+          data: {
+            taskId: taskInfo.taskId,
+            version_number: version.version_number,
+            result: {
+              ...result,
+              backupFilePath: backupFilePath,
+              endTime: new Date().toISOString()
+            }
+          }
+        });
+        
+        await broadcastUnifiedStats();
+        
+        console.log(`✓ 成功恢复到版本 v${version.version_number}`);
+        
+      } catch (error) {
+        console.error('恢复书签版本失败:', error);
+        
+        try {
+          await SyncHistory.create({
+            sync_id: taskInfo.taskId,
+            browser_source: `restore_v${version.version_number}`,
+            status: 'failed',
+            error_message: error.message,
+            sync_dir: currentSyncDir
+          });
+        } catch (historyError) {
+          console.error('保存恢复历史失败:', historyError.message);
+        }
+        
+        broadcast({
+          type: 'restore_failed',
+          data: {
+            taskId: taskInfo.taskId,
+            version_number: version.version_number,
+            error: error.message
+          }
+        });
+        
+      } finally {
+        isSyncing = false;
+        currentSyncTask = null;
+      }
+    })();
+    
+    res.json({
+      success: true,
+      message: `恢复到版本 v${version.version_number} 的任务已启动`,
+      taskInfo: {
+        ...taskInfo,
+        version_number: version.version_number,
+        total_bookmarks: version.total_bookmarks,
+        total_folders: version.total_folders
+      }
+    });
+    
+  } catch (error) {
+    isSyncing = false;
+    console.error('[书签版本] 启动恢复任务失败:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || '启动恢复任务失败'
+    });
+  }
+});
+
+app.get('/api/bookmark-versions/:id/export', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    const { format = 'html' } = req.query;
+    
+    if (isNaN(id) || id <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的版本 ID'
+      });
+    }
+    
+    const version = await BookmarkSnapshot.findById(id);
+    
+    if (!version) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+    
+    const bookmarks = version.getBookmarks();
+    
+    if (format !== 'html') {
+      return res.status(400).json({
+        success: false,
+        message: '仅支持 HTML 格式导出'
+      });
+    }
+    
+    const htmlContent = convertToHtml(bookmarks, {
+      browserSource: `Version v${version.version_number}`
+    });
+    
+    const fileName = `bookmarks_v${version.version_number}_${version.created_at
+      .replace(/[-:]/g, '')
+      .replace('T', '_')
+      .substring(0, 15)}.html`;
+    
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+    res.send(htmlContent);
+    
+    console.log(`[书签版本] 导出版本 v${version.version_number} 成功`);
+    
+  } catch (error) {
+    console.error('[书签版本] 导出版本失败:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || '导出版本失败'
+    });
+  }
+});
+
+app.get('/api/bookmark-versions/compare/:oldId/:newId', async (req, res) => {
+  try {
+    const oldId = parseInt(req.params.oldId, 10);
+    const newId = parseInt(req.params.newId, 10);
+    
+    if (isNaN(oldId) || isNaN(newId) || oldId <= 0 || newId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的版本 ID'
+      });
+    }
+    
+    const oldVersion = await BookmarkSnapshot.findById(oldId);
+    const newVersion = await BookmarkSnapshot.findById(newId);
+    
+    if (!oldVersion || !newVersion) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+    
+    const diffStats = await BookmarkSnapshot.compareSnapshots(oldVersion, {
+      bookmarks: newVersion.getBookmarks(),
+      total_bookmarks: newVersion.total_bookmarks,
+      total_folders: newVersion.total_folders
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        old_version: oldVersion.toJSON(),
+        new_version: newVersion.toJSON(),
+        diff_statistics: diffStats
+      }
+    });
+    
+  } catch (error) {
+    console.error('[书签版本] 比较版本失败:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || '比较版本失败'
     });
   }
 });

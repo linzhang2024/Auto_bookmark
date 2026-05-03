@@ -209,6 +209,12 @@ function initDatabase() {
           await runAsync('ALTER TABLE sync_history ADD COLUMN backup_file_path TEXT');
           logInfo('已添加 backup_file_path 列到 sync_history 表');
         }
+
+        const hasVersionNumber = await columnExists('sync_history', 'version_number');
+        if (!hasVersionNumber) {
+          await runAsync('ALTER TABLE sync_history ADD COLUMN version_number INTEGER DEFAULT 0');
+          logInfo('已添加 version_number 列到 sync_history 表');
+        }
         
         logInfo('sync_history 表已就绪');
 
@@ -227,6 +233,43 @@ function initDatabase() {
           )
         `);
         logInfo('sync_failure_details 表已就绪');
+
+        await runAsync(`
+          CREATE TABLE IF NOT EXISTS bookmark_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sync_id TEXT NOT NULL UNIQUE,
+            version_number INTEGER NOT NULL,
+            browser_source TEXT,
+            total_bookmarks INTEGER DEFAULT 0,
+            total_folders INTEGER DEFAULT 0,
+            bookmarks_data TEXT NOT NULL,
+            diff_statistics TEXT DEFAULT '{}',
+            change_summary TEXT DEFAULT '',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (sync_id) REFERENCES sync_history(sync_id)
+          )
+        `);
+        
+        const hasBookmarkSnapshotsIndex = await getAsync(
+          "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_bookmark_snapshots_sync_id'",
+          []
+        );
+        if (!hasBookmarkSnapshotsIndex) {
+          await runAsync('CREATE INDEX idx_bookmark_snapshots_sync_id ON bookmark_snapshots(sync_id)');
+          logInfo('已创建 idx_bookmark_snapshots_sync_id 索引');
+        }
+        
+        const hasBookmarkSnapshotsVersionIndex = await getAsync(
+          "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_bookmark_snapshots_version_number'",
+          []
+        );
+        if (!hasBookmarkSnapshotsVersionIndex) {
+          await runAsync('CREATE INDEX idx_bookmark_snapshots_version_number ON bookmark_snapshots(version_number)');
+          logInfo('已创建 idx_bookmark_snapshots_version_number 索引');
+        }
+        
+        logInfo('bookmark_snapshots 表已就绪');
 
         await runAsync(`
           CREATE TABLE IF NOT EXISTS document_versions (
