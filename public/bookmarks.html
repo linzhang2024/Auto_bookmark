@@ -1709,7 +1709,26 @@
         const keyword = bookmarkSearchInput.value.trim();
         const syncStatus = bookmarkStatusFilter.value;
         
-        if (!keyword && !syncStatus) {
+        console.log('========================================');
+        console.log('[前端] 书签搜索开始');
+        console.log('[前端] 输入值:');
+        console.log('  - keyword (原始输入):', `"${keyword}"`);
+        console.log('  - keyword 长度:', keyword.length);
+        console.log('  - syncStatus (原始输入):', `"${syncStatus}"`);
+        console.log('  - syncStatus 是否为空字符串:', syncStatus === '');
+        console.log('  - syncStatus 类型:', typeof syncStatus);
+        
+        const hasKeyword = keyword && keyword.length > 0;
+        const hasStatusFilter = syncStatus && syncStatus.length > 0;
+        
+        console.log('[前端] 条件判断:');
+        console.log('  - hasKeyword:', hasKeyword);
+        console.log('  - hasStatusFilter:', hasStatusFilter);
+        console.log('  - 两个都为空:', !hasKeyword && !hasStatusFilter);
+        
+        if (!hasKeyword && !hasStatusFilter) {
+          console.log('[前端] 关键词和状态筛选都为空，清除搜索');
+          console.log('========================================');
           clearBookmarkSearch();
           return;
         }
@@ -1723,13 +1742,47 @@
         
         try {
           const params = new URLSearchParams();
-          if (keyword) params.append('keyword', keyword);
-          if (syncStatus) params.append('sync_status', syncStatus);
-          params.append('highlight_keyword', 'true');
           
-          const result = await apiRequest(`/api/bookmarks/search?${params.toString()}`, {
+          console.log('[前端] 构建 URL 参数:');
+          
+          if (hasKeyword) {
+            params.append('keyword', keyword);
+            console.log('  - 添加 keyword:', `"${keyword}"`);
+          }
+          
+          if (hasStatusFilter) {
+            params.append('sync_status', syncStatus);
+            console.log('  - 添加 sync_status:', `"${syncStatus}"`);
+          }
+          
+          params.append('highlight_keyword', 'true');
+          console.log('  - 添加 highlight_keyword: "true"');
+          
+          const queryString = params.toString();
+          const fullUrl = `/api/bookmarks/search?${queryString}`;
+          
+          console.log('[前端] 完整请求 URL:');
+          console.log('  - URL:', fullUrl);
+          console.log('  - URL 编码后的 queryString:', queryString);
+          
+          console.log('[前端] URL 参数解码后:');
+          params.forEach((value, key) => {
+            console.log(`  - ${key}: "${value}"`);
+          });
+          
+          console.log('[前端] 发送请求...');
+          console.log('========================================');
+          
+          const result = await apiRequest(fullUrl, {
             method: 'GET'
           });
+          
+          console.log('========================================');
+          console.log('[前端] 收到响应:');
+          console.log('  - success:', result.data?.success);
+          console.log('  - total:', result.data?.data?.total);
+          console.log('  - bookmarks 数量:', result.data?.data?.bookmarks?.length);
+          console.log('========================================');
           
           if (result.data && result.data.success) {
             searchResults = result.data.bookmarks || [];

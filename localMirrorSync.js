@@ -1055,12 +1055,27 @@ function searchBookmarks(outputDir, options = {}) {
     offset = null 
   } = options;
 
+  console.log('[localMirrorSync] searchBookmarks 开始执行');
+  console.log('[localMirrorSync]   - outputDir:', safeOutputDir);
+  console.log('[localMirrorSync]   - keyword:', keyword ? `"${keyword}"` : '(空)');
+  console.log('[localMirrorSync]   - syncStatus:', syncStatus ? `"${syncStatus}"` : '(未设置)');
+  console.log('[localMirrorSync]   - limit:', limit);
+  console.log('[localMirrorSync]   - offset:', offset);
+
   const results = [];
   const searchTerm = keyword && typeof keyword === 'string' ? keyword.trim().toLowerCase() : '';
   const filterStatus = syncStatus && typeof syncStatus === 'string' ? syncStatus.toLowerCase() : null;
 
+  console.log('[localMirrorSync] 处理后搜索条件:');
+  console.log('[localMirrorSync]   - searchTerm (小写):', searchTerm ? `"${searchTerm}"` : '(空)');
+  console.log('[localMirrorSync]   - filterStatus (小写):', filterStatus ? `"${filterStatus}"` : '(未设置)');
+
+  let scannedFolders = 0;
+  let foundMetaFiles = 0;
+
   function scanDirectory(dir) {
     if (!isValidString(dir)) {
+      console.warn('[localMirrorSync] 无效目录:', dir);
       return;
     }
 
@@ -1068,7 +1083,9 @@ function searchBookmarks(outputDir, options = {}) {
       let entries = [];
       try {
         entries = fs.readdirSync(dir, { withFileTypes: true });
-      } catch {
+        scannedFolders++;
+      } catch (err) {
+        console.warn(`[localMirrorSync] 读取目录失败 ${dir}:`, err.message);
         return;
       }
 
@@ -1076,35 +1093,44 @@ function searchBookmarks(outputDir, options = {}) {
       const meta = readExistingMeta(metaPath);
 
       if (meta && Array.isArray(meta.bookmarks)) {
+        foundMetaFiles++;
         const folderName = meta.folderName || (isValidString(dir) ? path.basename(dir) : 'unknown');
         const relativePath = safeExistsSync(safeOutputDir) ? path.relative(safeOutputDir, dir) : dir;
+        
+        const matchedInFolder = [];
 
         for (const bookmark of meta.bookmarks) {
           if (!bookmark || typeof bookmark !== 'object') {
             continue;
           }
 
+          let passStatus = true;
+          let passKeyword = true;
+
           if (filterStatus) {
             const bookmarkStatus = (bookmark.syncStatus || '').toLowerCase();
-            if (bookmarkStatus !== filterStatus) {
-              continue;
-            }
+            passStatus = (bookmarkStatus === filterStatus);
           }
 
           if (searchTerm) {
             const title = (bookmark.title || '').toLowerCase();
             const url = (bookmark.url || '').toLowerCase();
-            if (!title.includes(searchTerm) && !url.includes(searchTerm)) {
-              continue;
-            }
+            passKeyword = title.includes(searchTerm) || url.includes(searchTerm);
           }
 
-          results.push({
-            ...bookmark,
-            folderPath: dir,
-            folderName: folderName,
-            relativeFolderPath: relativePath
-          });
+          if (passStatus && passKeyword) {
+            matchedInFolder.push(bookmark);
+            results.push({
+              ...bookmark,
+              folderPath: dir,
+              folderName: folderName,
+              relativeFolderPath: relativePath
+            });
+          }
+        }
+
+        if (matchedInFolder.length > 0) {
+          console.log(`[localMirrorSync] 文件夹 "${folderName}" 中找到 ${matchedInFolder.length} 个匹配书签`);
         }
       }
 
@@ -1117,15 +1143,25 @@ function searchBookmarks(outputDir, options = {}) {
         }
       }
     } catch (error) {
-      console.warn(`扫描目录时发生错误 ${dir}: ${error.message}`);
+      console.error(`[localMirrorSync] 扫描目录时发生严重错误 ${dir}:`, error);
+      console.error('[localMirrorSync] 错误堆栈:', error.stack);
     }
   }
 
   if (safeExistsSync(safeOutputDir)) {
+    console.log('[localMirrorSync] 开始扫描目录:', safeOutputDir);
     scanDirectory(safeOutputDir);
+  } else {
+    console.warn('[localMirrorSync] 目录不存在:', safeOutputDir);
   }
 
   const total = results.length;
+
+  console.log('========================================');
+  console.log('[localMirrorSync] 搜索完成统计:');
+  console.log('  - 扫描目录数:', scannedFolders);
+  console.log('  - 找到 .meta.json 文件数:', foundMetaFiles);
+  console.log('  - 匹配书签总数:', total);
 
   let paginatedResults = results;
   if (limit !== null && offset !== null) {
@@ -1133,13 +1169,17 @@ function searchBookmarks(outputDir, options = {}) {
     const offsetNum = parseInt(offset, 10);
     if (!isNaN(limitNum) && !isNaN(offsetNum)) {
       paginatedResults = results.slice(offsetNum, offsetNum + limitNum);
+      console.log('  - 分页: offset', offsetNum, ', limit', limitNum, ', 返回', paginatedResults.length, '条');
     }
   } else if (limit !== null) {
     const limitNum = parseInt(limit, 10);
     if (!isNaN(limitNum)) {
       paginatedResults = results.slice(0, limitNum);
+      console.log('  - 限制: 只返回前', limitNum, '条');
     }
   }
+
+  console.log('========================================');
 
   return {
     total,
