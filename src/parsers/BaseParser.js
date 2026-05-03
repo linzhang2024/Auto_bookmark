@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { Parser } = require('htmlparser2');
-const config = require('./config');
+const config = require('../services/config');
 
 const BrowserType = {
   CHROME: 'chrome',

@@ -1,5 +1,5 @@
-const User = require('./userModel');
-const Document = require('./documentModel');
+const User = require('../models/userModel');
+const Document = require('../models/documentModel');
 
 const ADMIN_PERMISSION = 'admin:access';
 const ADMIN_STATS_PERMISSION = 'admin:stats';

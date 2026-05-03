@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { BaseParser, BrowserType, parseTimestamp, chromeTimestampToDate, dateToChromeTimestamp } = require('./BaseParser');
-const { ChromiumParser, ChromeParser, EdgeParser, detectBrowserType, autoParse, ICON_PATTERNS } = require('./ChromiumParsers');
+const { BaseParser, BrowserType, parseTimestamp, chromeTimestampToDate, dateToChromeTimestamp } = require('../src/parsers/BaseParser');
+const { ChromiumParser, ChromeParser, EdgeParser, detectBrowserType, autoParse, ICON_PATTERNS } = require('../src/parsers/ChromiumParsers');
 
 const CHROME_HTML_PATH = path.join(__dirname, 'test_fixtures', 'chrome_bookmarks.html');
 const EDGE_HTML_PATH = path.join(__dirname, 'test_fixtures', 'edge_bookmarks.html');

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { BaseParser, BrowserType, parseTimestamp, extractDomainFromUrl } = require('./BaseParser');
+const { BaseParser, BrowserType, parseTimestamp, extractDomainFromUrl } = require('../src/parsers/BaseParser');
 
 describe('BaseParser - 基础功能测试', () => {
   describe('parseTimestamp', () => {

@@ -1,6 +1,6 @@
-const Document = require('./documentModel');
-const User = require('./userModel');
-const { initDatabase, closeDatabase, getDb, run } = require('./database');
+const Document = require('../src/models/documentModel');
+const User = require('../src/models/userModel');
+const { initDatabase, closeDatabase, getDb, run } = require('../src/services/database');
 
 describe('Document Model - 输入验证测试', () => {
   describe('文件名验证', () => {
@@ -383,7 +383,7 @@ describe('Document Model - CRUD 操作测试', () => {
 });
 
 describe('Document Model - 跨表查询与关联测试', () => {
-  const { initDatabase, closeDatabase, run } = require('./database');
+  const { initDatabase, closeDatabase, run } = require('../src/services/database');
   let db;
 
   beforeAll(async () => {
@@ -468,7 +468,7 @@ describe('Document Model - 跨表查询与关联测试', () => {
 });
 
 describe('Document Model - JSON 元数据读写测试', () => {
-  const { initDatabase, closeDatabase, run } = require('./database');
+  const { initDatabase, closeDatabase, run } = require('../src/services/database');
   let db;
 
   beforeAll(async () => {

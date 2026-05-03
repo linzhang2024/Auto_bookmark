@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const db = require('./database');
+const db = require('../services/database');
 const Role = require('./roleModel');
 
 const SALT_ROUNDS = 10;

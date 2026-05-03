@@ -1,6 +1,6 @@
-const Role = require('../../roleModel');
-const User = require('../../userModel');
-const { initDatabase, closeDatabase, run } = require('../../database');
+const Role = require('../../src/models/roleModel');
+const User = require('../../src/models/userModel');
+const { initDatabase, closeDatabase, run } = require('../../src/services/database');
 
 describe('权限管理集成测试 - 完整业务闭环', () => {
   let db;

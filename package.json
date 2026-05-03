@@ -7,8 +7,8 @@
   "scripts": {
     "test": "jest",
     "start": "node index.js",
-    "web": "node webServer.js",
-    "server": "node webServer.js"
+    "web": "node src/services/webServer.js",
+    "server": "node src/services/webServer.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

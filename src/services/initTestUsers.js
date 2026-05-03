@@ -1,6 +1,6 @@
 const db = require('./database');
-const User = require('./userModel');
-const Role = require('./roleModel');
+const User = require('../models/userModel');
+const Role = require('../models/roleModel');
 
 async function initTestUsers() {
   try {

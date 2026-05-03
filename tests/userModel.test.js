@@ -1,5 +1,5 @@
-const User = require('./userModel');
-const { initDatabase, closeDatabase, getDb } = require('./database');
+const User = require('../src/models/userModel');
+const { initDatabase, closeDatabase, getDb } = require('../src/services/database');
 const bcrypt = require('bcryptjs');
 
 describe('User Model - 输入验证测试', () => {
@@ -446,8 +446,8 @@ describe('User Model - CRUD 操作测试', () => {
 });
 
 describe('User Model - 权限检查测试', () => {
-  const Role = require('./roleModel');
-  const { initDatabase, closeDatabase, run } = require('./database');
+  const Role = require('../src/models/roleModel');
+  const { initDatabase, closeDatabase, run } = require('../src/services/database');
   let db;
 
   beforeAll(async () => {

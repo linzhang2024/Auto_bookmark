@@ -13,7 +13,7 @@ const {
   getPublicConfig,
   shouldFilter,
   reload
-} = require('../../config');
+} = require('../../src/services/config');
 
 describe('集成测试 - 配置解析函数测试', () => {
   describe('parseNumber', () => {

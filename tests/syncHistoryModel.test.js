@@ -4,8 +4,8 @@ const {
   mapSyncErrorToType, 
   getErrorTypeDescription,
   SyncStatus
-} = require('./syncHistoryModel');
-const { initDatabase, closeDatabase, getDb } = require('./database');
+} = require('../src/models/syncHistoryModel');
+const { initDatabase, closeDatabase, getDb } = require('../src/services/database');
 
 describe('SyncHistory Model - 错误类型映射测试', () => {
   describe('mapSyncErrorToType 函数', () => {

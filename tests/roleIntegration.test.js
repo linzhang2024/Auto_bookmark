@@ -1,6 +1,6 @@
-const Role = require('./roleModel');
-const User = require('./userModel');
-const { initDatabase, closeDatabase, getDb, run } = require('./database');
+const Role = require('../src/models/roleModel');
+const User = require('../src/models/userModel');
+const { initDatabase, closeDatabase, getDb, run } = require('../src/services/database');
 
 describe('角色管理集成测试 - 完整业务链路', () => {
   let db;

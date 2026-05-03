@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
-const { BaseParser, BrowserType } = require('./BaseParser');
-const { FirefoxParser, detectBrowserType, autoParse } = require('./ChromiumParsers');
+const { BaseParser, BrowserType } = require('../src/parsers/BaseParser');
+const { FirefoxParser, detectBrowserType, autoParse } = require('../src/parsers/ChromiumParsers');
 
 const FIREFOX_HTML_PATH = path.join(__dirname, 'test_fixtures', 'firefox_bookmarks.html');
 

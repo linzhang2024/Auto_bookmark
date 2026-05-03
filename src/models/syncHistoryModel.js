@@ -1,4 +1,4 @@
-const db = require('./database');
+const db = require('../services/database');
 
 const SyncStatus = {
   COMPLETED: 'completed',

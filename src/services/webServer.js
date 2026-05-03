@@ -23,9 +23,9 @@ const {
   createBackupFromBookmarks,
   generateBackupFilename
 } = require('./bookmarkExporter');
-const User = require('./userModel');
-const Role = require('./roleModel');
-const Document = require('./documentModel');
+const User = require('../models/userModel');
+const Role = require('../models/roleModel');
+const Document = require('../models/documentModel');
 const { AuthMiddleware, DOC_WRITE_PERMISSION, ADMIN_PERMISSION, USER_LIST_PERMISSION, USER_UPDATE_PERMISSION } = require('./authMiddleware');
 const { initDatabase, DocumentStatus } = require('./database');
 const { 
@@ -35,9 +35,9 @@ const {
   BrowserType 
 } = require('./browserBookmarkFinder');
 const { BookmarkDeduplicator } = require('./BookmarkDeduplicator');
-const { SyncHistory, SyncFailureDetail } = require('./syncHistoryModel');
-const { DocumentVersion, VersionStatus } = require('./documentVersionModel');
-const { BookmarkSnapshot } = require('./bookmarkSnapshotModel');
+const { SyncHistory, SyncFailureDetail } = require('../models/syncHistoryModel');
+const { DocumentVersion, VersionStatus } = require('../models/documentVersionModel');
+const { BookmarkSnapshot } = require('../models/bookmarkSnapshotModel');
 const diffEngine = require('./diffEngine');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'auto-bookmark-jwt-secret-key-2024';
