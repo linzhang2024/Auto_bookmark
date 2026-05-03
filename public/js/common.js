@@ -176,6 +176,8 @@ function renderNav() {
     </div>
     <ul class="nav-menu">
       <li><a href="/bookmarks.html" class="nav-item"><span>🔖</span> 书签管理</a></li>
+      <li><a href="/sync-history.html" class="nav-item"><span>📊</span> 同步历史</a></li>
+      <li><a href="/version-history.html" class="nav-item"><span>📚</span> 版本管理</a></li>
       <li><a href="/documents.html" class="nav-item"><span>📁</span> 文档管理</a></li>
       ${AppState.isAdmin() ? '<li><a href="/admin/users.html" class="nav-item"><span>👥</span> 用户管理</a></li>' : ''}
     </ul>

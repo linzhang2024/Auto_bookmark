@@ -1,6 +1,6 @@
 {
   "folderName": "绘图GPT",
-  "lastSyncTime": "2026-05-02T15:32:52.794Z",
+  "lastSyncTime": "2026-05-03T06:29:16.298Z",
   "bookmarks": [
     {
       "title": "线稿  |  Petalica Paint",
@@ -10,7 +10,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T15:32:45.381Z"
+      "lastSyncTime": "2026-05-03T06:29:09.511Z"
     },
     {
       "title": "Segment Anything | Meta AI",
@@ -20,7 +20,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T15:32:45.161Z"
+      "lastSyncTime": "2026-05-03T06:29:09.503Z"
     },
     {
       "title": "DALL·E",
@@ -30,7 +30,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T15:32:44.998Z"
+      "lastSyncTime": "2026-05-03T06:29:04.721Z"
     },
     {
       "title": "Dream by WOMBO",
@@ -154,9 +154,9 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777735964173",
-    "startTime": "2026-05-02T15:32:44.173Z",
-    "endTime": "2026-05-02T15:32:52.794Z",
+    "syncId": "sync_1777789743894",
+    "startTime": "2026-05-03T06:29:03.894Z",
+    "endTime": "2026-05-03T06:29:16.299Z",
     "totalBookmarks": 15,
     "completedBookmarks": 12,
     "failedBookmarks": 3

@@ -1,6 +1,6 @@
 {
   "folderName": "移动设备书签",
-  "lastSyncTime": "2026-05-02T15:32:52.795Z",
+  "lastSyncTime": "2026-05-03T06:29:16.300Z",
   "bookmarks": [
     {
       "title": "可莉 - 世界触手可及",
@@ -10,7 +10,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T15:32:47.041Z"
+      "lastSyncTime": "2026-05-03T06:29:16.113Z"
     },
     {
       "title": "https://www.cognosys.ai/sign-up",
@@ -20,7 +20,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T15:32:46.921Z"
+      "lastSyncTime": "2026-05-03T06:29:16.297Z"
     },
     {
       "title": "Bandwagon Host - Client Area",
@@ -30,7 +30,7 @@
       "lastVisited": null,
       "isInvalid": false,
       "syncStatus": "failed",
-      "lastSyncTime": "2026-05-02T15:32:47.584Z"
+      "lastSyncTime": "2026-05-03T06:29:12.943Z"
     },
     {
       "title": "Quora",
@@ -84,9 +84,9 @@
     }
   ],
   "syncInfo": {
-    "syncId": "sync_1777735964173",
-    "startTime": "2026-05-02T15:32:44.173Z",
-    "endTime": "2026-05-02T15:32:52.795Z",
+    "syncId": "sync_1777789743894",
+    "startTime": "2026-05-03T06:29:03.894Z",
+    "endTime": "2026-05-03T06:29:16.300Z",
     "totalBookmarks": 8,
     "completedBookmarks": 5,
     "failedBookmarks": 3

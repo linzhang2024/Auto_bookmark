@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>版本管理 - 书签管理系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .version-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .version-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-item {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+    }
+    
+    .stat-item.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-item.green { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .stat-item.red { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); }
+    .stat-item.orange { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .stat-item.purple { background: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%); }
+    
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    
+    .version-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .version-item {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    
+    .version-item:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    }
+    
+    .version-item.current-version {
+      border: 2px solid #10b981;
+    }
+    
+    .version-summary {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+    }
+    
+    .version-badge {
+      width: 60px;
+      height: 60px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      color: white;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .version-badge.initial { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+    .version-badge.restore { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .version-badge.latest { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+    
+    .version-badge .v-number {
+      font-size: 20px;
+      line-height: 1;
+    }
+    
+    .version-badge .v-label {
+      font-size: 10px;
+      opacity: 0.9;
+      margin-top: 2px;
+    }
+    
+    .version-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .version-title {
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .version-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    
+    .version-tag.current { background: #d1fae5; color: #065f46; }
+    .version-tag.initial { background: #dbeafe; color: #1e40af; }
+    .version-tag.restore { background: #fdf2f8; color: #9d174d; }
+    
+    .version-meta {
+      font-size: 12px;
+      color: #6b7280;
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    
+    .change-summary {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #f9fafb;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #374151;
+    }
+    
+    .diff-stats {
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    
+    .diff-stat {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
+    .diff-stat.added { background: #d1fae5; color: #065f46; }
+    .diff-stat.removed { background: #fee2e2; color: #991b1b; }
+    .diff-stat.unchanged { background: #e5e7eb; color: #4b5563; }
+    
+    .version-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .action-btn.primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .action-btn.primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    
+    .action-btn.secondary {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .action-btn.secondary:hover:not(:disabled) {
+      background: #e5e7eb;
+    }
+    
+    .action-btn.small {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    
+    .action-btn.restore {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    
+    .action-btn.restore:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    
+    .expand-icon {
+      font-size: 20px;
+      color: #9ca3af;
+      transition: transform 0.3s ease;
+    }
+    
+    .version-item.expanded .expand-icon {
+      transform: rotate(180deg);
+    }
+    
+    .version-detail {
+      display: none;
+      border-top: 1px solid #f3f4f6;
+      padding: 16px 20px;
+      background: #fafbfc;
+    }
+    
+    .version-item.expanded .version-detail {
+      display: block;
+    }
+    
+    .detail-section {
+      margin-bottom: 20px;
+    }
+    
+    .detail-section:last-child {
+      margin-bottom: 0;
+    }
+    
+    .detail-title {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    
+    .empty-state-text {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+    
+    .empty-state-hint {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+    
+    .refresh-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    
+    .summary-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .summary-label {
+      color: #6b7280;
+      font-size: 13px;
+    }
+    
+    .summary-value {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 14px;
+    }
+    
+    .restore-progress {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      z-index: 10000;
+      max-width: 500px;
+    }
+    
+    .restore-progress h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      color: #1f2937;
+    }
+    
+    .restore-progress .progress-container {
+      margin-bottom: 8px;
+    }
+    
+    .restore-progress .progress-text {
+      margin: 0;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .bookmarks-preview {
+      max-height: 400px;
+      overflow-y: auto;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .bookmark-tree {
+      padding: 12px;
+    }
+    
+    .bookmark-folder {
+      margin-bottom: 8px;
+    }
+    
+    .folder-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      background: #f3f4f6;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      font-weight: 500;
+      color: #374151;
+    }
+    
+    .bookmark-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      margin-left: 24px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    
+    .bookmark-item:hover {
+      background: #f9fafb;
+    }
+    
+    .bookmark-item a {
+      color: #3b82f6;
+      text-decoration: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 400px;
+    }
+    
+    .bookmark-item a:hover {
+      text-decoration: underline;
+    }
+    
+    .confirm-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+    }
+    
+    .confirm-modal.hidden {
+      display: none;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 12px;
+    }
+    
+    .modal-message {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    
+    .modal-warning {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 12px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 20px;
+      font-size: 13px;
+      color: #92400e;
+    }
+    
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .modal-btn {
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+    
+    .modal-btn.cancel {
+      background: #f3f4f6;
+      color: #374151;
+    }
+    
+    .modal-btn.cancel:hover {
+      background: #e5e7eb;
+    }
+    
+    .modal-btn.confirm {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+    
+    .modal-btn.confirm:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    }
+    
+    .current-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-content">
+    <div class="version-header">
+      <div>
+        <h1>📚 书签版本管理</h1>
+        <p style="color: #6b7280; margin-top: 4px; font-size: 14px;">管理所有书签版本快照，支持一键恢复历史版本</p>
+      </div>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn btn-secondary refresh-btn" id="refreshBtn">
+          <span>🔄</span>
+          <span>刷新</span>
+        </button>
+      </div>
+    </div>
+    
+    <div id="statsContainer" class="version-stats"></div>
+    
+    <div id="versionContainer">
+      <div class="loading">⏳ 加载中...</div>
+    </div>
+  </div>
+  
+  <div id="confirmModal" class="confirm-modal hidden">
+    <div class="modal-content">
+      <h3 class="modal-title" id="modalTitle">确认恢复</h3>
+      <p class="modal-message" id="modalMessage">确定要将书签恢复到此版本吗？</p>
+      <div class="modal-warning">
+        <strong>⚠️ 注意：</strong>此操作将覆盖当前所有书签，并生成一个新的恢复版本。当前状态会被保存为新的版本快照，您可以随时回滚。
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn cancel" id="cancelRestoreBtn">取消</button>
+        <button class="modal-btn confirm" id="confirmRestoreBtn">确认恢复</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      renderNav();
+      
+      const statsContainer = document.getElementById('statsContainer');
+      const versionContainer = document.getElementById('versionContainer');
+      const refreshBtn = document.getElementById('refreshBtn');
+      const confirmModal = document.getElementById('confirmModal');
+      const cancelRestoreBtn = document.getElementById('cancelRestoreBtn');
+      const confirmRestoreBtn = document.getElementById('confirmRestoreBtn');
+      
+      let expandedIds = new Set();
+      let ws = null;
+      let pendingRestoreVersion = null;
+      let restoreProgressEl = null;
+      let latestVersion = null;
+      
+      function connectWebSocket() {
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}`;
+        
+        try {
+          ws = new WebSocket(wsUrl);
+          
+          ws.onopen = function() {
+            console.log('WebSocket 连接已建立');
+          };
+          
+          ws.onmessage = function(event) {
+            try {
+              const data = JSON.parse(event.data);
+              handleWebSocketMessage(data);
+            } catch (e) {
+              console.error('解析 WebSocket 消息失败:', e);
+            }
+          };
+          
+          ws.onclose = function() {
+            console.log('WebSocket 连接已关闭');
+            setTimeout(connectWebSocket, 5000);
+          };
+          
+          ws.onerror = function(error) {
+            console.error('WebSocket 错误:', error);
+          };
+        } catch (e) {
+          console.error('建立 WebSocket 连接失败:', e);
+        }
+      }
+      
+      function handleWebSocketMessage(data) {
+        if (!data.type) return;
+        
+        switch (data.type) {
+          case 'restore_started':
+            if (data.data) {
+              showRestoreProgress(data.data.version_number);
+            }
+            break;
+            
+          case 'sync_progress':
+            if (data.data && restoreProgressEl) {
+              updateRestoreProgress(
+                data.data.current,
+                data.data.total,
+                data.data.message
+              );
+            }
+            break;
+            
+          case 'restore_completed':
+            if (data.data) {
+              hideRestoreProgress();
+              const result = data.data.result;
+              showToast(`成功恢复到版本 v${data.data.version_number}`, 'success');
+              loadStats();
+              loadVersions();
+            }
+            break;
+            
+          case 'restore_failed':
+            hideRestoreProgress();
+            showToast('恢复失败: ' + (data.data?.error || '未知错误'), 'error');
+            break;
+            
+          case 'unified_stats':
+            if (data.data) {
+              loadStats();
+            }
+            break;
+        }
+      }
+      
+      function showRestoreProgress(versionNumber) {
+        if (restoreProgressEl) {
+          restoreProgressEl.remove();
+        }
+        
+        restoreProgressEl = document.createElement('div');
+        restoreProgressEl.className = 'restore-progress';
+        restoreProgressEl.innerHTML = `
+          <h4>🔄 正在恢复到版本 v${versionNumber}...</h4>
+          <div class="progress-container">
+            <div class="progress-bar" style="width: 0%;"></div>
+          </div>
+          <p class="progress-text">准备中 (0/0)</p>
+        `;
+        document.body.appendChild(restoreProgressEl);
+      }
+      
+      function updateRestoreProgress(current, total, message) {
+        if (!restoreProgressEl) return;
+        
+        const progress = total > 0 ? Math.round((current / total) * 100) : 0;
+        const progressBar = restoreProgressEl.querySelector('.progress-bar');
+        const progressText = restoreProgressEl.querySelector('.progress-text');
+        
+        if (progressBar) {
+          progressBar.style.width = `${progress}%`;
+        }
+        if (progressText) {
+          progressText.textContent = `${message || '处理中'} (${current}/${total})`;
+        }
+      }
+      
+      function hideRestoreProgress() {
+        if (restoreProgressEl) {
+          restoreProgressEl.remove();
+          restoreProgressEl = null;
+        }
+      }
+      
+      async function loadStats() {
+        try {
+          const result = await apiRequest('/api/bookmark-versions/stats', { method: 'GET' });
+          
+          if (result.data && result.data.success) {
+            const stats = result.data.data;
+            latestVersion = stats.latestVersion;
+            
+            statsContainer.innerHTML = `
+              <div class="stat-item blue">
+                <div class="stat-value">${stats.totalVersions || 0}</div>
+                <div class="stat-label">总版本数</div>
+              </div>
+              <div class="stat-item green">
+                <div class="stat-value">${stats.latestBookmarks || 0}</div>
+                <div class="stat-label">当前书签数</div>
+              </div>
+              <div class="stat-item orange">
+                <div class="stat-value">${stats.latestFolders || 0}</div>
+                <div class="stat-label">当前文件夹数</div>
+              </div>
+              <div class="stat-item purple">
+                <div class="stat-value">v${stats.latestVersionNumber || '-'}</div>
+                <div class="stat-label">最新版本</div>
+              </div>
+            `;
+          }
+        } catch (error) {
+          console.error('加载版本统计失败:', error);
+        }
+      }
+      
+      async function loadVersions() {
+        versionContainer.innerHTML = '<div class="loading">⏳ 加载中...</div>';
+        
+        try {
+          const result = await apiRequest('/api/bookmark-versions', { method: 'GET' });
+          
+          if (result.data && result.data.success) {
+            const versionList = result.data.data.versions;
+            const total = result.data.data.total;
+            
+            if (versionList.length === 0) {
+              versionContainer.innerHTML = `
+                <div class="empty-state">
+                  <div class="empty-state-icon">📭</div>
+                  <div class="empty-state-text">暂无版本记录</div>
+                  <div class="empty-state-hint">完成首次同步后，将自动创建第一个版本快照</div>
+                </div>
+              `;
+              return;
+            }
+            
+            versionContainer.innerHTML = `
+              <div class="version-list">
+                ${versionList.map((item, index) => renderVersionItem(item, index === 0)).join('')}
+              </div>
+            `;
+            
+            document.querySelectorAll('.version-summary').forEach(el => {
+              el.addEventListener('click', function(e) {
+                if (e.target.closest('.action-btn')) return;
+                
+                const item = this.closest('.version-item');
+                const id = item.dataset.id;
+                
+                if (expandedIds.has(id)) {
+                  item.classList.remove('expanded');
+                  expandedIds.delete(id);
+                } else {
+                  item.classList.add('expanded');
+                  expandedIds.add(id);
+                  loadVersionDetail(id, item);
+                }
+              });
+            });
+            
+            document.querySelectorAll('.restore-btn').forEach(el => {
+              el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const versionId = this.dataset.id;
+                const versionNumber = this.dataset.version;
+                showConfirmModal(versionId, versionNumber);
+              });
+            });
+            
+            document.querySelectorAll('.export-btn').forEach(el => {
+              el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const versionId = this.dataset.id;
+                window.location.href = `/api/bookmark-versions/${versionId}/export`;
+                showToast('开始导出版本...', 'info');
+              });
+            });
+          } else {
+            throw new Error(result.data?.message || '加载失败');
+          }
+        } catch (error) {
+          versionContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">⚠️</div>
+              <div class="empty-state-text">加载失败</div>
+              <div class="empty-state-hint" style="margin-bottom: 16px;">${escapeHtml(error.message || '请稍后重试')}</div>
+              <div style="display: flex; gap: 12px; justify-content: center;">
+                <button class="btn btn-primary" onclick="loadVersions(); loadStats();" style="padding: 10px 24px;">
+                  🔄 刷新重试
+                </button>
+                <a href="/bookmarks.html" class="btn btn-secondary" style="text-decoration: none; padding: 10px 24px;">
+                  🏠 返回主页
+                </a>
+              </div>
+            </div>
+          `;
+        }
+      }
+      
+      function showConfirmModal(versionId, versionNumber) {
+        pendingRestoreVersion = { id: versionId, number: versionNumber };
+        
+        document.getElementById('modalTitle').textContent = `确认恢复到 v${versionNumber}`;
+        document.getElementById('modalMessage').textContent = `确定要将当前书签恢复到版本 v${versionNumber} 吗？`;
+        
+        confirmModal.classList.remove('hidden');
+      }
+      
+      function hideConfirmModal() {
+        confirmModal.classList.add('hidden');
+        pendingRestoreVersion = null;
+      }
+      
+      async function confirmRestore() {
+        if (!pendingRestoreVersion) return;
+        
+        hideConfirmModal();
+        
+        try {
+          const result = await apiRequest(`/api/bookmark-versions/${pendingRestoreVersion.id}/restore`, {
+            method: 'POST'
+          });
+          
+          if (result.data && result.data.success) {
+            showToast(result.data.message || '恢复任务已启动', 'info');
+          } else {
+            showToast(result.data?.message || '启动恢复失败', 'error');
+          }
+        } catch (error) {
+          showToast('启动恢复失败: ' + error.message, 'error');
+        }
+      }
+      
+      async function loadVersionDetail(id, itemEl) {
+        const detailEl = itemEl.querySelector('.version-detail');
+        
+        if (detailEl.querySelector('.detail-section')) {
+          return;
+        }
+        
+        try {
+          const [infoResult, bookmarksResult] = await Promise.all([
+            apiRequest(`/api/bookmark-versions/${id}`, { method: 'GET' }),
+            apiRequest(`/api/bookmark-versions/${id}/bookmarks`, { method: 'GET' })
+          ]);
+          
+          if (infoResult.data && infoResult.data.success && bookmarksResult.data && bookmarksResult.data.success) {
+            const version = infoResult.data.data;
+            const bookmarksData = bookmarksResult.data.data;
+            const diffStats = version.diff_statistics || {};
+            
+            detailEl.innerHTML = `
+              <div class="detail-section">
+                <div class="detail-title">📋 版本详情</div>
+                <div class="summary-grid">
+                  <div class="summary-item">
+                    <span class="summary-label">版本号</span>
+                    <span class="summary-value">v${version.version_number}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">创建时间</span>
+                    <span class="summary-value">${formatDate(version.created_at)}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">浏览器来源</span>
+                    <span class="summary-value">${getBrowserName(version.browser_source)}</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">书签总数</span>
+                    <span class="summary-value">${version.total_bookmarks || 0} 个</span>
+                  </div>
+                  <div class="summary-item">
+                    <span class="summary-label">文件夹数</span>
+                    <span class="summary-value">${version.total_folders || 0} 个</span>
+                  </div>
+                </div>
+              </div>
+              
+              ${version.change_summary ? `
+              <div class="detail-section">
+                <div class="detail-title">📝 变更摘要</div>
+                <div class="change-summary">${escapeHtml(version.change_summary)}</div>
+              </div>
+              ` : ''}
+              
+              ${diffStats.bookmarks && (diffStats.bookmarks.added > 0 || diffStats.bookmarks.removed > 0) ? `
+              <div class="detail-section">
+                <div class="detail-title">📊 变更统计</div>
+                <div class="diff-stats">
+                  ${diffStats.bookmarks.added > 0 ? `<span class="diff-stat added">➕ 新增 ${diffStats.bookmarks.added} 个书签</span>` : ''}
+                  ${diffStats.bookmarks.removed > 0 ? `<span class="diff-stat removed">➖ 删除 ${diffStats.bookmarks.removed} 个书签</span>` : ''}
+                  ${diffStats.bookmarks.added === 0 && diffStats.bookmarks.removed === 0 ? `<span class="diff-stat unchanged">📌 无变更</span>` : ''}
+                </div>
+              </div>
+              ` : ''}
+              
+              <div class="detail-section">
+                <div class="detail-title">🔖 书签预览</div>
+                <div class="bookmarks-preview">
+                  <div class="bookmark-tree">
+                    ${renderBookmarkTree(bookmarksData.bookmarks)}
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+        } catch (error) {
+          console.error('加载版本详情失败:', error);
+          detailEl.innerHTML = `
+            <div style="text-align: center; padding: 24px;">
+              <div style="font-size: 32px; margin-bottom: 12px;">⚠️</div>
+              <div style="color: #dc2626; font-weight: 500; margin-bottom: 8px;">加载详情失败</div>
+              <div style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">${escapeHtml(error.message)}</div>
+              <button class="btn btn-secondary" onclick="loadVersionDetail('${id}', this.closest('.version-item'));">
+                🔄 重新加载
+              </button>
+            </div>
+          `;
+        }
+      }
+      
+      function renderBookmarkTree(bookmarks, level = 0) {
+        if (!bookmarks || bookmarks.length === 0) {
+          return '<div style="padding: 12px; color: #6b7280; text-align: center;">该版本没有书签</div>';
+        }
+        
+        return bookmarks.map(item => {
+          if (item.type === 'folder') {
+            return `
+              <div class="bookmark-folder" style="margin-left: ${level * 16}px;">
+                <div class="folder-header">
+                  <span>📁</span>
+                  <span>${escapeHtml(item.name || '未命名文件夹')}</span>
+                </div>
+                ${item.children && item.children.length > 0 ? renderBookmarkTree(item.children, level + 1) : ''}
+              </div>
+            `;
+          } else {
+            return `
+              <div class="bookmark-item" style="margin-left: ${level * 16 + 24}px;">
+                <span>🔗</span>
+                <a href="${escapeHtml(item.url || '#')}" target="_blank" title="${escapeHtml(item.title || '')}">
+                  ${escapeHtml(item.title || '未命名书签')}
+                </a>
+              </div>
+            `;
+          }
+        }).join('');
+      }
+      
+      function renderVersionItem(item, isLatest) {
+        const isRestore = item.browser_source && item.browser_source.startsWith('restore_');
+        const isInitial = item.version_number === 1 && !isRestore;
+        const isCurrent = latestVersion && item.id === latestVersion;
+        
+        let badgeClass = '';
+        let vLabel = '版本';
+        
+        if (isInitial) {
+          badgeClass = 'initial';
+          vLabel = '初始';
+        } else if (isRestore) {
+          badgeClass = 'restore';
+          vLabel = '恢复';
+        } else if (isLatest) {
+          badgeClass = 'latest';
+          vLabel = '最新';
+        }
+        
+        const diffStats = item.diff_statistics || {};
+        
+        return `
+          <div class="version-item ${expandedIds.has(item.id) ? 'expanded' : ''} ${isCurrent ? 'current-version' : ''}" data-id="${item.id}">
+            <div class="version-summary">
+              <div class="version-badge ${badgeClass}">
+                <span class="v-number">v${item.version_number}</span>
+                <span class="v-label">${vLabel}</span>
+              </div>
+              <div class="version-info">
+                <div class="version-title">
+                  ${formatDate(item.created_at)}
+                  ${isCurrent ? '<span class="current-badge">⭐ 当前版本</span>' : ''}
+                  ${isInitial ? '<span class="version-tag initial">初始版本</span>' : ''}
+                  ${isRestore ? '<span class="version-tag restore">恢复版本</span>' : ''}
+                </div>
+                <div class="version-meta">
+                  <span>📁 ${getBrowserName(item.browser_source)}</span>
+                  <span>🔖 ${item.total_bookmarks || 0} 个书签</span>
+                  <span>📂 ${item.total_folders || 0} 个文件夹</span>
+                </div>
+                ${item.change_summary ? `<div class="change-summary">${escapeHtml(item.change_summary)}</div>` : ''}
+                ${diffStats.bookmarks && (diffStats.bookmarks.added > 0 || diffStats.bookmarks.removed > 0) ? `
+                <div class="diff-stats">
+                  ${diffStats.bookmarks.added > 0 ? `<span class="diff-stat added">➕ 新增 ${diffStats.bookmarks.added}</span>` : ''}
+                  ${diffStats.bookmarks.removed > 0 ? `<span class="diff-stat removed">➖ 删除 ${diffStats.bookmarks.removed}</span>` : ''}
+                </div>
+                ` : ''}
+              </div>
+              <div class="version-actions">
+                <button class="action-btn small secondary export-btn" data-id="${item.id}">
+                  <span>📥</span>
+                  <span>导出</span>
+                </button>
+                ${!isCurrent ? `
+                <button class="action-btn small restore restore-btn" data-id="${item.id}" data-version="${item.version_number}">
+                  <span>↩️</span>
+                  <span>恢复</span>
+                </button>
+                ` : ''}
+              </div>
+              <span class="expand-icon">▼</span>
+            </div>
+            <div class="version-detail">
+              <div style="text-align: center; padding: 20px; color: #6b7280;">⏳ 加载详情中...</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      function getBrowserName(source) {
+        if (!source) return '未知';
+        if (source.startsWith('restore_from_v')) {
+          const match = source.match(/restore_from_v(\d+)/);
+          return match ? `从 v${match[1]} 恢复` : '恢复版本';
+        }
+        if (source.startsWith('restore_v')) {
+          return '恢复版本';
+        }
+        const names = {
+          'chrome': 'Google Chrome',
+          'edge': 'Microsoft Edge',
+          'firefox': 'Mozilla Firefox',
+          'safari': 'Safari',
+          'manual_upload': '手动上传'
+        };
+        return names[source] || source;
+      }
+      
+      function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+      
+      function formatDate(dateStr) {
+        if (!dateStr) return '未知时间';
+        const date = new Date(dateStr);
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      }
+      
+      refreshBtn.addEventListener('click', function() {
+        loadStats();
+        loadVersions();
+        showToast('已刷新', 'success');
+      });
+      
+      cancelRestoreBtn.addEventListener('click', hideConfirmModal);
+      confirmRestoreBtn.addEventListener('click', confirmRestore);
+      
+      confirmModal.addEventListener('click', function(e) {
+        if (e.target === confirmModal) {
+          hideConfirmModal();
+        }
+      });
+      
+      connectWebSocket();
+      loadStats();
+      loadVersions();
+    });
+  </script>
+</body>
+</html>
