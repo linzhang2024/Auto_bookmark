@@ -3551,7 +3551,10 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
     
+    console.log(`[书签恢复] 收到恢复请求，版本 ID: ${id}`);
+    
     if (isNaN(id) || id <= 0) {
+      console.log(`[书签恢复] 无效的版本 ID: ${id}`);
       return res.status(400).json({
         success: false,
         message: '无效的版本 ID'
@@ -3559,6 +3562,7 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
     }
     
     if (isSyncing) {
+      console.log(`[书签恢复] 同步任务正在进行中，拒绝恢复请求`);
       return res.status(400).json({
         success: false,
         message: '同步任务正在进行中，请稍后再试'
@@ -3568,20 +3572,33 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
     const version = await BookmarkSnapshot.findById(id);
     
     if (!version) {
+      console.log(`[书签恢复] 版本不存在，ID: ${id}`);
       return res.status(404).json({
         success: false,
         message: '版本不存在'
       });
     }
     
+    console.log(`[书签恢复] 找到版本: v${version.version_number}, ID: ${version.id}`);
+    console.log(`[书签恢复] 版本包含: ${version.total_bookmarks} 个书签, ${version.total_folders} 个文件夹`);
+    
     const bookmarks = version.getBookmarks();
     
     if (!bookmarks || bookmarks.length === 0) {
+      console.log(`[书签恢复] 版本没有书签数据`);
       return res.status(400).json({
         success: false,
         message: '该版本没有书签数据'
       });
     }
+    
+    console.log(`[书签恢复] 成功获取书签数据，根节点数量: ${bookmarks.length}`);
+    
+    const flatBookmarks = BookmarkSnapshot.flattenBookmarks(bookmarks);
+    console.log(`[书签恢复] 扁平化后书签总数: ${flatBookmarks.length}`);
+    
+    console.log(`[书签恢复] 同步目录: ${currentSyncDir}`);
+    console.log(`[书签恢复] 默认同步目录: ${DEFAULT_SYNC_DIR}`);
     
     isSyncing = true;
     
@@ -3603,8 +3620,10 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
     
     (async () => {
       try {
-        const totalBookmarks = version.total_bookmarks;
+        const totalBookmarks = version.total_bookmarks || flatBookmarks.length;
         const totalFolders = version.total_folders;
+        
+        console.log(`[书签恢复] 开始执行恢复，总书签数: ${totalBookmarks}`);
         
         broadcast({
           type: 'sync_progress',
@@ -3616,8 +3635,12 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
           }
         });
         
-        let completedCount = 0;
         let lastProgressTime = Date.now();
+        
+        console.log(`[书签恢复] 准备调用 syncToLocalMirror`);
+        console.log(`[书签恢复] - 书签数据类型: ${Array.isArray(bookmarks) ? '数组' : typeof bookmarks}`);
+        console.log(`[书签恢复] - 书签数据长度: ${bookmarks.length}`);
+        console.log(`[书签恢复] - 目标目录: ${currentSyncDir}`);
         
         const result = await syncToLocalMirror(bookmarks, currentSyncDir, {
           maxConcurrent: config.maxConcurrency,
@@ -3641,6 +3664,9 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
           }
         });
         
+        console.log(`[书签恢复] syncToLocalMirror 完成`);
+        console.log(`[书签恢复] 结果: ${JSON.stringify(result, null, 2)}`);
+        
         let backupFilePath = null;
         try {
           backupFilePath = await createBackupFromBookmarks(bookmarks, DEFAULT_BACKUP_DIR, {
@@ -3662,19 +3688,20 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
         
         try {
           await SyncHistory.updateSyncResult(taskInfo.taskId, resultWithSyncDir, `restore_v${version.version_number}`, backupFilePath);
+          console.log(`[书签恢复] 已保存同步历史记录`);
         } catch (historyError) {
           console.error('保存恢复同步历史失败:', historyError.message);
         }
         
         try {
-          await BookmarkSnapshot.create({
+          const newSnapshot = await BookmarkSnapshot.create({
             sync_id: taskInfo.taskId,
             browser_source: `restore_from_v${version.version_number}`,
             bookmarks: bookmarks,
             total_bookmarks: totalBookmarks,
             total_folders: totalFolders
           });
-          console.log(`✓ 已创建恢复后的新快照，sync_id: ${taskInfo.taskId}`);
+          console.log(`✓ 已创建恢复后的新快照，sync_id: ${taskInfo.taskId}, 新版本号: v${newSnapshot.version_number}`);
         } catch (snapshotError) {
           console.error('创建恢复快照失败:', snapshotError.message);
         }
@@ -3698,6 +3725,7 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
         
       } catch (error) {
         console.error('恢复书签版本失败:', error);
+        console.error('错误堆栈:', error.stack);
         
         try {
           await SyncHistory.create({
@@ -3723,6 +3751,7 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
       } finally {
         isSyncing = false;
         currentSyncTask = null;
+        console.log(`[书签恢复] 恢复任务结束，isSyncing 已重置为 false`);
       }
     })();
     
@@ -3740,6 +3769,7 @@ app.post('/api/bookmark-versions/:id/restore', async (req, res) => {
   } catch (error) {
     isSyncing = false;
     console.error('[书签版本] 启动恢复任务失败:', error.message);
+    console.error('[书签版本] 错误堆栈:', error.stack);
     res.status(500).json({
       success: false,
       message: error.message || '启动恢复任务失败'
