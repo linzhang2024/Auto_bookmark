@@ -3,6 +3,7 @@
  */
 
 module.exports = {
+  rootDir: '..',
   testEnvironment: 'node',
   testMatch: [
     '**/*.test.js',
@@ -18,6 +19,6 @@ module.exports = {
   testTimeout: 30000,
   maxWorkers: 1,
   setupFiles: [
-    '<rootDir>/jest.setup.js'
+    '<rootDir>/tests/jest.setup.js'
   ]
 };

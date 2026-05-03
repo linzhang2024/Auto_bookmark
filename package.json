@@ -2,11 +2,11 @@
   "name": "auto-bookmark",
   "version": "1.0.0",
   "description": "Chrome 书签转换工具 - 将 HTML 书签转换为 Markdown",
-  "main": "index.js",
+  "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
-    "test": "jest",
-    "start": "node index.js",
+    "test": "jest --config tests/jest.config.js",
+    "start": "node src/index.js",
     "web": "node src/services/webServer.js",
     "server": "node src/services/webServer.js"
   },
