@@ -1118,9 +1118,19 @@
         }
       });
       
-      connectWebSocket();
-      loadStats();
-      loadVersions();
+      async function initPage() {
+        try {
+          connectWebSocket();
+          await loadStats();
+          await loadVersions();
+          console.log('版本管理页面初始化完成');
+        } catch (error) {
+          console.error('页面初始化失败:', error);
+          showToast('页面初始化失败，请刷新重试', 'error');
+        }
+      }
+      
+      initPage();
     });
   </script>
 </body>
