@@ -1,10 +1,10 @@
 const fs = require('fs');
 const path = require('path');
-const Document = require('./documentModel');
-const User = require('./userModel');
-const Role = require('./roleModel');
-const { AuthMiddleware } = require('./authMiddleware');
-const { initDatabase, closeDatabase, run, DocumentStatus } = require('./database');
+const Document = require('../src/models/documentModel');
+const User = require('../src/models/userModel');
+const Role = require('../src/models/roleModel');
+const { AuthMiddleware } = require('../src/services/authMiddleware');
+const { initDatabase, closeDatabase, run, DocumentStatus } = require('../src/services/database');
 
 const TEST_UPLOAD_DIR = path.join(__dirname, 'test_uploads_atomic');
 

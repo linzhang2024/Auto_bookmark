@@ -171,16 +171,50 @@ function renderNav() {
   const nav = document.createElement('nav');
   nav.className = 'sidebar';
   nav.innerHTML = `
-    <div class="logo">
-      <h2>书签管理</h2>
+    <div class="sidebar-header">
+      <div class="logo">
+        <h2>书签管理</h2>
+      </div>
+      <button class="toggle-btn" id="toggleSidebar" title="折叠/展开侧边栏">
+        <span class="toggle-icon">◀</span>
+      </button>
     </div>
-    <ul class="nav-menu">
-      <li><a href="/bookmarks.html" class="nav-item"><span>🔖</span> 书签管理</a></li>
-      <li><a href="/sync-history.html" class="nav-item"><span>📊</span> 同步历史</a></li>
-      <li><a href="/version-history.html" class="nav-item"><span>📚</span> 版本管理</a></li>
-      <li><a href="/documents.html" class="nav-item"><span>📁</span> 文档管理</a></li>
-      ${AppState.isAdmin() ? '<li><a href="/admin/users.html" class="nav-item"><span>👥</span> 用户管理</a></li>' : ''}
-    </ul>
+    <div class="sidebar-content">
+      <div class="nav-group">
+        <div class="nav-group-header" data-group="core">
+          <span class="nav-group-icon">⚡</span>
+          <span class="nav-group-title">核心功能</span>
+          <span class="nav-group-toggle">▼</span>
+        </div>
+        <ul class="nav-group-items" data-group="core">
+          <li><a href="/bookmarks.html" class="nav-item"><span>🔖</span><span class="nav-item-text">书签管理</span></a></li>
+          <li><a href="/documents.html" class="nav-item"><span>📁</span><span class="nav-item-text">文档管理</span></a></li>
+        </ul>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-header" data-group="trace">
+          <span class="nav-group-icon">📈</span>
+          <span class="nav-group-title">数据追溯</span>
+          <span class="nav-group-toggle">▼</span>
+        </div>
+        <ul class="nav-group-items" data-group="trace">
+          <li><a href="/sync-history.html" class="nav-item"><span>📊</span><span class="nav-item-text">同步历史</span></a></li>
+          <li><a href="/version-history.html" class="nav-item"><span>📚</span><span class="nav-item-text">版本管理</span></a></li>
+        </ul>
+      </div>
+      ${AppState.isAdmin() ? `
+      <div class="nav-group">
+        <div class="nav-group-header" data-group="system">
+          <span class="nav-group-icon">⚙️</span>
+          <span class="nav-group-title">系统管理</span>
+          <span class="nav-group-toggle">▼</span>
+        </div>
+        <ul class="nav-group-items" data-group="system">
+          <li><a href="/admin/users.html" class="nav-item"><span>👥</span><span class="nav-item-text">用户管理</span></a></li>
+        </ul>
+      </div>
+      ` : ''}
+    </div>
     <div class="user-info">
       <div class="user-avatar" id="userAvatar">
         ${AppState.user ? AppState.user.username.charAt(0).toUpperCase() : '?'}
@@ -208,6 +242,73 @@ function renderNav() {
   document.querySelectorAll('.nav-item').forEach(item => {
     if (item.getAttribute('href') === currentPath) {
       item.classList.add('active');
+      const groupItems = item.closest('.nav-group-items');
+      if (groupItems) {
+        groupItems.classList.add('expanded');
+        const groupHeader = document.querySelector(`.nav-group-header[data-group="${groupItems.dataset.group}"]`);
+        if (groupHeader) {
+          groupHeader.classList.add('expanded');
+        }
+      }
+    }
+  });
+  
+  const toggleSidebarBtn = document.getElementById('toggleSidebar');
+  if (toggleSidebarBtn) {
+    toggleSidebarBtn.addEventListener('click', () => {
+      nav.classList.toggle('collapsed');
+      const isCollapsed = nav.classList.contains('collapsed');
+      document.body.classList.toggle('sidebar-collapsed', isCollapsed);
+      localStorage.setItem('sidebarCollapsed', isCollapsed);
+    });
+  }
+  
+  const savedCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+  if (savedCollapsed) {
+    nav.classList.add('collapsed');
+    document.body.classList.add('sidebar-collapsed');
+  }
+  
+  document.querySelectorAll('.nav-group-header').forEach(header => {
+    header.addEventListener('click', (e) => {
+      if (nav.classList.contains('collapsed')) return;
+      
+      const group = header.dataset.group;
+      const items = document.querySelector(`.nav-group-items[data-group="${group}"]`);
+      const toggleIcon = header.querySelector('.nav-group-toggle');
+      
+      if (items) {
+        const isExpanded = items.classList.contains('expanded');
+        
+        if (isExpanded) {
+          items.classList.remove('expanded');
+          header.classList.remove('expanded');
+          toggleIcon.textContent = '▼';
+        } else {
+          items.classList.add('expanded');
+          header.classList.add('expanded');
+          toggleIcon.textContent = '▲';
+        }
+        
+        localStorage.setItem(`group_${group}_expanded`, !isExpanded);
+      }
+    });
+  });
+  
+  document.querySelectorAll('.nav-group-items').forEach(items => {
+    const group = items.dataset.group;
+    const header = document.querySelector(`.nav-group-header[data-group="${group}"]`);
+    const toggleIcon = header?.querySelector('.nav-group-toggle');
+    
+    const savedExpanded = localStorage.getItem(`group_${group}_expanded`);
+    if (savedExpanded === 'true') {
+      items.classList.add('expanded');
+      if (header) header.classList.add('expanded');
+      if (toggleIcon) toggleIcon.textContent = '▲';
+    } else if (savedExpanded === null) {
+      items.classList.add('expanded');
+      if (header) header.classList.add('expanded');
+      if (toggleIcon) toggleIcon.textContent = '▲';
     }
   });
 }

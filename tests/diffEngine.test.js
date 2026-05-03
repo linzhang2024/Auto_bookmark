@@ -15,7 +15,7 @@ const {
   computeDiffStatistics,
   mergeAdjacentDiffs,
   escapeHtml
-} = require('./diffEngine');
+} = require('../src/services/diffEngine');
 
 describe('DiffType 和 ChangeType 枚举', () => {
   test('DiffType 应该包含正确的常量值', () => {

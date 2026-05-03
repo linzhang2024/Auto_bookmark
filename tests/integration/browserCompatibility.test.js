@@ -15,7 +15,7 @@ const {
   extractBookmarkMeta,
   countBookmarks,
   countFolders
-} = require('../../bookmarkConverter');
+} = require('../../src/services/bookmarkConverter');
 
 const TEST_FIXTURES_DIR = path.join(__dirname, '../../test_fixtures');
 

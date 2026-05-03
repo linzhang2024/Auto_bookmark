@@ -1,4 +1,4 @@
-const db = require('./database');
+const db = require('../services/database');
 
 class Role {
   constructor(id, name, description, permissions, created_at, updated_at) {

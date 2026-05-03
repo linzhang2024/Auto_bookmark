@@ -11,18 +11,18 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const config = require('./config');
+const config = require('./src/services/config');
 const {
   parseChromeBookmarks,
   parseBookmarks,
   convertToMarkdown,
   countBookmarks,
   countFolders
-} = require('./bookmarkConverter');
+} = require('./src/services/bookmarkConverter');
 const {
   syncToLocalMirror,
   checkSyncStatus
-} = require('./localMirrorSync');
+} = require('./src/services/localMirrorSync');
 
 /**
  * 显示帮助信息

@@ -14,7 +14,7 @@ const {
   ensureValidPath,
   safePathJoin,
   safeExistsSync
-} = require('./localMirrorSync');
+} = require('../src/services/localMirrorSync');
 
 describe('localMirrorSync.js - 辅助函数健壮性测试', () => {
   test('isValidString 应该正确验证字符串', () => {

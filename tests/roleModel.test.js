@@ -1,5 +1,5 @@
-const Role = require('./roleModel');
-const { initDatabase, closeDatabase, getDb, run } = require('./database');
+const Role = require('../src/models/roleModel');
+const { initDatabase, closeDatabase, getDb, run } = require('../src/services/database');
 
 describe('Role Model - 输入验证测试', () => {
   describe('角色名称验证', () => {
@@ -302,7 +302,7 @@ describe('Role Model - CRUD 操作测试', () => {
     });
 
     test('无法删除已有用户关联的角色', async () => {
-      const User = require('./userModel');
+      const User = require('../src/models/userModel');
       
       const roleData = {
         name: 'has_users_role',

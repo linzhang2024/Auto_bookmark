@@ -1,5 +1,5 @@
 const nock = require('nock');
-const config = require('./config');
+const config = require('../src/services/config');
 const {
   parseChromeBookmarks,
   convertToMarkdown,
@@ -13,7 +13,7 @@ const {
   fetchPageTitle,
   checkUrlsConcurrently,
   ConcurrencyLimiter
-} = require('./bookmarkConverter');
+} = require('../src/services/bookmarkConverter');
 
 describe('config.js - 过滤规则测试', () => {
   test('shouldFilter 应该过滤包含 localhost 的 URL', () => {

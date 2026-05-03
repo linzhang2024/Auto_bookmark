@@ -1,9 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const db = require('./database');
+const db = require('../services/database');
 const Document = require('./documentModel');
 const User = require('./userModel');
-const diffEngine = require('./diffEngine');
+const diffEngine = require('../services/diffEngine');
 
 const VersionStatus = {
   ACTIVE: 'active',

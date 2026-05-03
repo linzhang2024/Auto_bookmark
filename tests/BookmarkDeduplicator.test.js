@@ -1,4 +1,4 @@
-const { BookmarkDeduplicator, DEFAULT_OPTIONS } = require('./BookmarkDeduplicator');
+const { BookmarkDeduplicator, DEFAULT_OPTIONS } = require('../src/services/BookmarkDeduplicator');
 
 describe('BookmarkDeduplicator - URL 规范化测试', () => {
   let deduplicator;

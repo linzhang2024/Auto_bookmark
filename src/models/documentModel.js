@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const db = require('./database');
+const db = require('../services/database');
 const User = require('./userModel');
-const { DocumentStatus } = require('./database');
+const { DocumentStatus } = require('../services/database');
 
 const VALID_STATUSES = new Set([
   DocumentStatus.PENDING,

@@ -1,5 +1,5 @@
-const db = require('./database');
-const diffEngine = require('./diffEngine');
+const db = require('../services/database');
+const diffEngine = require('../services/diffEngine');
 
 class BookmarkSnapshot {
   constructor(
