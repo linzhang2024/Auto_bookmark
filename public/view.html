@@ -189,6 +189,99 @@
     .code-line:hover {
       background-color: rgba(102, 126, 234, 0.05);
     }
+
+    .highlight-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: #fef3c7;
+      border-bottom: 1px solid #fcd34d;
+      color: #92400e;
+      font-size: 13px;
+    }
+
+    .highlight-search-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: white;
+      border-radius: 6px;
+      padding: 2px 4px;
+      border: 1px solid #d1d5db;
+    }
+
+    .highlight-search-group input {
+      border: none;
+      outline: none;
+      padding: 4px 8px;
+      font-size: 13px;
+      min-width: 120px;
+    }
+
+    .highlight-btn {
+      padding: 4px 8px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .highlight-btn:hover {
+      background: #e5e7eb;
+    }
+
+    .highlight-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .highlight-count {
+      background: #f97316;
+      color: white;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    mark {
+      background: #fef3c7;
+      padding: 0 2px;
+      border-radius: 2px;
+      color: #92400e;
+    }
+
+    mark.active {
+      background: #f97316;
+      color: white;
+      box-shadow: 0 0 0 2px #ea580c;
+    }
+
+    .search-highlight-info {
+      padding: 8px 16px;
+      background: #dbeafe;
+      border-bottom: 1px solid #93c5fd;
+      color: #1e40af;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .search-highlight-info button {
+      background: transparent;
+      border: none;
+      color: #1e40af;
+      cursor: pointer;
+      font-size: 12px;
+      text-decoration: underline;
+    }
+
+    .search-highlight-info button:hover {
+      color: #1d4ed8;
+    }
   </style>
 </head>
 <body>
@@ -252,6 +345,7 @@
       
       const urlParams = new URLSearchParams(window.location.search);
       const docId = urlParams.get('id');
+      const highlightKeyword = urlParams.get('highlight');
       
       if (!docId) {
         showError('缺少文档 ID', '请从文档列表中选择要预览的文档');
@@ -261,6 +355,8 @@
       let currentDocument = null;
       let currentBuffer = null;
       let currentEncoding = 'UTF-8';
+      let highlightMatches = [];
+      let currentHighlightIndex = -1;
       
       const viewerHeader = document.getElementById('viewerHeader');
       const viewerIcon = document.getElementById('viewerIcon');
@@ -383,7 +479,224 @@
         }
       }
       
-      function renderTextContent() {
+      function escapeRegex(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+      
+      function createHighlightToolbar(initialKeyword = '') {
+        const toolbar = document.createElement('div');
+        toolbar.className = 'highlight-toolbar';
+        toolbar.innerHTML = `
+          <span>🔍 关键词:</span>
+          <div class="highlight-search-group">
+            <input type="text" id="highlightSearchInput" value="${escapeHtml(initialKeyword)}" placeholder="输入关键词">
+            <button class="highlight-btn" id="highlightPrevBtn" title="上一个" disabled>◀</button>
+            <button class="highlight-btn" id="highlightNextBtn" title="下一个" disabled>▶</button>
+          </div>
+          <span class="highlight-count" id="highlightCount">0 匹配</span>
+          <button class="highlight-btn" id="highlightClearBtn" title="清除高亮">✕ 清除</button>
+        `;
+        
+        return toolbar;
+      }
+      
+      function initHighlightEvents() {
+        const searchInput = document.getElementById('highlightSearchInput');
+        const prevBtn = document.getElementById('highlightPrevBtn');
+        const nextBtn = document.getElementById('highlightNextBtn');
+        const clearBtn = document.getElementById('highlightClearBtn');
+        const countSpan = document.getElementById('highlightCount');
+        
+        if (!searchInput) return;
+        
+        searchInput.addEventListener('input', function() {
+          performHighlight(this.value);
+        });
+        
+        searchInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            if (highlightMatches.length > 0) {
+              if (currentHighlightIndex < highlightMatches.length - 1) {
+                goToHighlight(currentHighlightIndex + 1);
+              } else {
+                goToHighlight(0);
+              }
+            }
+          }
+        });
+        
+        if (prevBtn) {
+          prevBtn.addEventListener('click', function() {
+            if (highlightMatches.length === 0) return;
+            const prevIndex = currentHighlightIndex > 0 ? currentHighlightIndex - 1 : highlightMatches.length - 1;
+            goToHighlight(prevIndex);
+          });
+        }
+        
+        if (nextBtn) {
+          nextBtn.addEventListener('click', function() {
+            if (highlightMatches.length === 0) return;
+            const nextIndex = currentHighlightIndex < highlightMatches.length - 1 ? currentHighlightIndex + 1 : 0;
+            goToHighlight(nextIndex);
+          });
+        }
+        
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function() {
+            clearHighlight();
+          });
+        }
+      }
+      
+      function performHighlight(keyword) {
+        if (!keyword || keyword.trim() === '') {
+          clearHighlight();
+          return;
+        }
+        
+        const keywordTrim = keyword.trim();
+        const regex = new RegExp(escapeRegex(keywordTrim), 'gi');
+        
+        const textViewer = viewerContent.querySelector('.text-viewer');
+        if (!textViewer) return;
+        
+        if (!currentBuffer) return;
+        
+        try {
+          const decoder = new TextDecoder(currentEncoding, { fatal: false });
+          const text = decoder.decode(new Uint8Array(currentBuffer));
+          
+          let matchCount = 0;
+          const matches = [];
+          
+          let match;
+          while ((match = regex.exec(text)) !== null) {
+            matches.push({
+              index: match.index,
+              text: match[0],
+              length: match[0].length
+            });
+            matchCount++;
+          }
+          
+          highlightMatches = matches;
+          currentHighlightIndex = matches.length > 0 ? 0 : -1;
+          
+          const lines = text.split('\n');
+          const lineCount = lines.length;
+          const maxLineNumWidth = String(lineCount).length;
+          
+          let currentPos = 0;
+          let matchIndex = 0;
+          
+          const html = lines.map((line, lineIndex) => {
+            const lineNum = String(lineIndex + 1).padStart(maxLineNumWidth, ' ');
+            const lineStart = currentPos;
+            const lineEnd = currentPos + line.length;
+            
+            let lineWithHighlights = escapeHtml(line);
+            
+            while (matchIndex < matches.length && 
+                   matches[matchIndex].index < lineEnd) {
+              const m = matches[matchIndex];
+              
+              if (m.index >= lineStart && m.index < lineEnd) {
+                const relativeStart = m.index - lineStart;
+                const relativeEnd = relativeStart + m.length;
+                
+                const escapedMatch = escapeHtml(m.text);
+                const markHtml = `<mark data-match-index="${matchIndex}">${escapedMatch}</mark>`;
+                
+                const escapedLine = escapeHtml(line);
+                lineWithHighlights = 
+                  escapedLine.substring(0, relativeStart) + 
+                  markHtml + 
+                  escapedLine.substring(relativeEnd);
+              }
+              
+              matchIndex++;
+            }
+            
+            currentPos = lineEnd + 1;
+            
+            return `<span class="code-line"><span class="line-numbers">${lineNum}</span>${lineWithHighlights}</span>`;
+          }).join('');
+          
+          loadingState.style.display = 'none';
+          errorState.style.display = 'none';
+          
+          viewerContent.innerHTML = `<pre class="text-viewer">${html}</pre>`;
+          
+          updateHighlightUI();
+          
+          if (matches.length > 0) {
+            setTimeout(() => goToHighlight(0), 100);
+          }
+          
+        } catch (error) {
+          console.error('高亮失败:', error);
+        }
+      }
+      
+      function updateHighlightUI() {
+        const countSpan = document.getElementById('highlightCount');
+        const prevBtn = document.getElementById('highlightPrevBtn');
+        const nextBtn = document.getElementById('highlightNextBtn');
+        
+        if (countSpan) {
+          if (highlightMatches.length === 0) {
+            countSpan.textContent = '0 匹配';
+            countSpan.style.background = '#9ca3af';
+          } else {
+            countSpan.textContent = `${currentHighlightIndex + 1}/${highlightMatches.length}`;
+            countSpan.style.background = '#f97316';
+          }
+        }
+        
+        if (prevBtn) {
+          prevBtn.disabled = highlightMatches.length === 0;
+        }
+        
+        if (nextBtn) {
+          nextBtn.disabled = highlightMatches.length === 0;
+        }
+      }
+      
+      function goToHighlight(index) {
+        if (index < 0 || index >= highlightMatches.length) return;
+        
+        currentHighlightIndex = index;
+        
+        const allMarks = viewerContent.querySelectorAll('mark');
+        allMarks.forEach((mark, i) => {
+          if (parseInt(mark.dataset.matchIndex, 10) === index) {
+            mark.classList.add('active');
+            mark.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+          } else {
+            mark.classList.remove('active');
+          }
+        });
+        
+        updateHighlightUI();
+      }
+      
+      function clearHighlight() {
+        highlightMatches = [];
+        currentHighlightIndex = -1;
+        
+        const searchInput = document.getElementById('highlightSearchInput');
+        if (searchInput) {
+          searchInput.value = '';
+        }
+        
+        if (currentBuffer) {
+          renderTextContent(false);
+        }
+        
+        updateHighlightUI();
+      }
+      
+      function renderTextContent(shouldAutoHighlight = true) {
         if (!currentBuffer) return;
         
         try {
@@ -403,7 +716,38 @@
           loadingState.style.display = 'none';
           errorState.style.display = 'none';
           
+          const isText = currentDocument.mime_type && currentDocument.mime_type.startsWith('text/');
+          
+          if (isText) {
+            const existingToolbar = document.querySelector('.highlight-toolbar');
+            if (!existingToolbar) {
+              const toolbar = createHighlightToolbar(highlightKeyword || '');
+              
+              const viewerContainer = document.getElementById('viewerContainer');
+              const toolbarParent = viewerContainer.querySelector('.viewer-header') || viewerContainer;
+              
+              if (toolbarParent.nextSibling) {
+                viewerContainer.insertBefore(toolbar, toolbarParent.nextSibling);
+              } else {
+                viewerContainer.appendChild(toolbar);
+              }
+              
+              initHighlightEvents();
+            } else {
+              const searchInput = document.getElementById('highlightSearchInput');
+              if (searchInput && highlightKeyword) {
+                searchInput.value = highlightKeyword;
+              }
+            }
+          }
+          
           viewerContent.innerHTML = `<pre class="text-viewer">${html}</pre>`;
+          
+          if (shouldAutoHighlight && highlightKeyword && highlightKeyword.trim()) {
+            setTimeout(() => {
+              performHighlight(highlightKeyword);
+            }, 100);
+          }
           
         } catch (error) {
           showError('解码失败', `无法使用 ${currentEncoding} 解码文件: ${error.message}`);

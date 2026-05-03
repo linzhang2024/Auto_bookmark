@@ -798,6 +798,151 @@ class Document {
     });
   }
 
+  static async search({
+    keyword = '',
+    status = null,
+    uploader_id = null,
+    owner_id = null,
+    date_from = null,
+    date_to = null,
+    limit = null,
+    offset = null
+  } = {}) {
+    const conditions = [];
+    const params = [];
+
+    if (keyword && typeof keyword === 'string' && keyword.trim()) {
+      const searchTerm = `%${keyword.trim()}%`;
+      conditions.push(`(d.filename LIKE ? OR d.metadata LIKE ?)`);
+      params.push(searchTerm, searchTerm);
+    }
+
+    if (status) {
+      const statusValidation = Document.validateStatus(status);
+      if (!statusValidation.valid) {
+        throw new Error(statusValidation.message);
+      }
+      conditions.push(`d.status = ?`);
+      params.push(status);
+    }
+
+    if (uploader_id) {
+      conditions.push(`d.uploader_id = ?`);
+      params.push(parseInt(uploader_id, 10));
+    }
+
+    if (owner_id) {
+      conditions.push(`d.owner_id = ?`);
+      params.push(parseInt(owner_id, 10));
+    }
+
+    if (date_from) {
+      conditions.push(`date(d.created_at) >= date(?)`);
+      params.push(date_from);
+    }
+
+    if (date_to) {
+      conditions.push(`date(d.created_at) <= date(?)`);
+      params.push(date_to);
+    }
+
+    const whereClause = conditions.length > 0 
+      ? `WHERE ${conditions.join(' AND ')}` 
+      : '';
+
+    let sql = `
+      SELECT 
+        d.id, d.filename, d.storage_path, d.file_size, d.mime_type, d.status,
+        d.uploader_id, d.owner_id, d.metadata, d.created_at, d.updated_at,
+        u.username as uploader_username, u.email as uploader_email, u.role_id as uploader_role_id
+      FROM documents d
+      LEFT JOIN users u ON d.uploader_id = u.id
+      ${whereClause}
+      ORDER BY d.created_at DESC
+    `;
+
+    if (limit !== null) {
+      sql += ` LIMIT ?`;
+      params.push(parseInt(limit, 10));
+      if (offset !== null) {
+        sql += ` OFFSET ?`;
+        params.push(parseInt(offset, 10));
+      }
+    }
+
+    const rows = await db.all(sql, params);
+    return rows.map(row => {
+      const document = Document.fromRow(row);
+      if (row.uploader_id) {
+        document._uploader = {
+          id: row.uploader_id,
+          username: row.uploader_username,
+          email: row.uploader_email,
+          role_id: row.uploader_role_id
+        };
+      }
+      return document;
+    });
+  }
+
+  static async countSearch({
+    keyword = '',
+    status = null,
+    uploader_id = null,
+    owner_id = null,
+    date_from = null,
+    date_to = null
+  } = {}) {
+    const conditions = [];
+    const params = [];
+
+    if (keyword && typeof keyword === 'string' && keyword.trim()) {
+      const searchTerm = `%${keyword.trim()}%`;
+      conditions.push(`(filename LIKE ? OR metadata LIKE ?)`);
+      params.push(searchTerm, searchTerm);
+    }
+
+    if (status) {
+      const statusValidation = Document.validateStatus(status);
+      if (!statusValidation.valid) {
+        throw new Error(statusValidation.message);
+      }
+      conditions.push(`status = ?`);
+      params.push(status);
+    }
+
+    if (uploader_id) {
+      conditions.push(`uploader_id = ?`);
+      params.push(parseInt(uploader_id, 10));
+    }
+
+    if (owner_id) {
+      conditions.push(`owner_id = ?`);
+      params.push(parseInt(owner_id, 10));
+    }
+
+    if (date_from) {
+      conditions.push(`date(created_at) >= date(?)`);
+      params.push(date_from);
+    }
+
+    if (date_to) {
+      conditions.push(`date(created_at) <= date(?)`);
+      params.push(date_to);
+    }
+
+    const whereClause = conditions.length > 0 
+      ? `WHERE ${conditions.join(' AND ')}` 
+      : '';
+
+    const row = await db.get(
+      `SELECT COUNT(*) as total FROM documents ${whereClause}`,
+      params
+    );
+
+    return row ? row.total : 0;
+  }
+
   async getUploader() {
     if (this._uploader) {
       return this._uploader;

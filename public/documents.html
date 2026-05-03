@@ -48,18 +48,35 @@
     </div>
     
     <div class="card">
-      <div class="filter-bar">
-        <select class="form-select" id="statusFilter">
+      <div class="filter-bar" style="flex-wrap: wrap; gap: 12px;">
+        <select class="form-select" id="statusFilter" style="width: 140px;">
           <option value="">全部状态</option>
           <option value="ready">已就绪</option>
           <option value="pending">处理中</option>
           <option value="failed">失败</option>
         </select>
-        <input type="text" class="form-input" id="searchInput" placeholder="搜索文件名...">
-        <button class="btn btn-secondary" id="refreshBtn">
+        <input type="date" class="form-input" id="dateFrom" placeholder="开始日期" title="开始日期" style="width: 160px;">
+        <span style="color: #9ca3af;">至</span>
+        <input type="date" class="form-input" id="dateTo" placeholder="结束日期" title="结束日期" style="width: 160px;">
+        <div style="display: flex; flex: 1; min-width: 200px; gap: 8px;">
+          <input type="text" class="form-input" id="searchInput" placeholder="搜索文件名、内容..." style="flex: 1;">
+          <button class="btn btn-primary" id="searchBtn" style="white-space: nowrap;">
+            <span>🔍</span>
+            <span>搜索</span>
+          </button>
+        </div>
+        <button class="btn btn-secondary" id="clearFilterBtn" title="清除筛选条件">
+          <span>✕</span>
+          <span>清除</span>
+        </button>
+        <button class="btn btn-secondary" id="refreshBtn" title="刷新">
           <span>🔄</span>
           <span>刷新</span>
         </button>
+      </div>
+      
+      <div id="searchInfo" style="padding: 8px 16px; background: #f0f9ff; border-bottom: 1px solid #e0e7ff; color: #1d4ed8; font-size: 13px; display: none;">
+        <span id="searchInfoText"></span>
       </div>
       
       <div class="table-container">
@@ -173,7 +190,13 @@
       const uploadError = document.getElementById('uploadError');
       const statusFilter = document.getElementById('statusFilter');
       const searchInput = document.getElementById('searchInput');
+      const searchBtn = document.getElementById('searchBtn');
+      const clearFilterBtn = document.getElementById('clearFilterBtn');
       const refreshBtn = document.getElementById('refreshBtn');
+      const dateFrom = document.getElementById('dateFrom');
+      const dateTo = document.getElementById('dateTo');
+      const searchInfo = document.getElementById('searchInfo');
+      const searchInfoText = document.getElementById('searchInfoText');
       
       const deleteModal = document.getElementById('deleteModal');
       const closeDeleteModal = document.getElementById('closeDeleteModal');
@@ -401,6 +424,8 @@
         });
       }
       
+      let currentSearchKeyword = '';
+      
       async function loadDocuments() {
         const documentsBody = document.getElementById('documentsBody');
         documentsBody.innerHTML = `
@@ -418,7 +443,7 @@
           
           if (result.data && result.data.success) {
             documents = result.data.documents || [];
-            renderDocuments();
+            renderDocuments(documents);
             updateStats();
           } else {
             documentsBody.innerHTML = `
@@ -440,24 +465,93 @@
         }
       }
       
-      function renderDocuments() {
+      async function searchDocuments() {
         const documentsBody = document.getElementById('documentsBody');
-        const statusFilterValue = statusFilter.value;
-        const searchValue = searchInput.value.toLowerCase();
+        const keyword = searchInput.value.trim();
+        const status = statusFilter.value;
+        const dateFromValue = dateFrom.value;
+        const dateToValue = dateTo.value;
         
-        let filteredDocs = documents;
+        const hasFilters = keyword || status || dateFromValue || dateToValue;
         
-        if (statusFilterValue) {
-          filteredDocs = filteredDocs.filter(doc => doc.status === statusFilterValue);
+        if (!hasFilters) {
+          searchInfo.style.display = 'none';
+          currentSearchKeyword = '';
+          loadDocuments();
+          return;
         }
         
-        if (searchValue) {
-          filteredDocs = filteredDocs.filter(doc => 
-            doc.filename.toLowerCase().includes(searchValue)
-          );
-        }
+        documentsBody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+              搜索中...
+            </td>
+          </tr>
+        `;
         
-        if (filteredDocs.length === 0) {
+        const params = new URLSearchParams();
+        if (keyword) {
+          params.append('keyword', keyword);
+          params.append('highlight_keyword', 'true');
+        }
+        if (status) params.append('status', status);
+        if (dateFromValue) params.append('date_from', dateFromValue);
+        if (dateToValue) params.append('date_to', dateToValue);
+        
+        currentSearchKeyword = keyword;
+        
+        try {
+          const result = await apiRequest(`/api/documents/search?${params.toString()}`, {
+            method: 'GET'
+          });
+          
+          if (result.data && result.data.success) {
+            documents = result.data.documents || [];
+            renderDocuments(documents);
+            
+            let infoParts = [];
+            if (keyword) infoParts.push(`"${escapeHtml(keyword)}"`);
+            if (status) infoParts.push(`状态: ${getStatusText(status)}`);
+            if (dateFromValue) infoParts.push(`从 ${dateFromValue}`);
+            if (dateToValue) infoParts.push(`至 ${dateToValue}`);
+            
+            searchInfoText.innerHTML = `搜索结果: 找到 ${documents.length} 个文档 (${infoParts.join(', ')})`;
+            searchInfo.style.display = 'block';
+          } else {
+            documentsBody.innerHTML = `
+              <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+                  搜索失败: ${result.data?.message || '未知错误'}
+                </td>
+              </tr>
+            `;
+          }
+        } catch (error) {
+          documentsBody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 40px; color: #9ca3af;">
+                网络错误，请稍后重试
+              </td>
+            </tr>
+          `;
+        }
+      }
+      
+      function clearFilters() {
+        searchInput.value = '';
+        statusFilter.value = '';
+        dateFrom.value = '';
+        dateTo.value = '';
+        searchInfo.style.display = 'none';
+        currentSearchKeyword = '';
+        loadDocuments();
+      }
+      
+      function renderDocuments(docsList) {
+        const documentsBody = document.getElementById('documentsBody');
+        const docs = docsList || documents;
+        
+        if (docs.length === 0) {
           documentsBody.innerHTML = `
             <tr>
               <td colspan="6">
@@ -472,12 +566,29 @@
           return;
         }
         
-        documentsBody.innerHTML = filteredDocs.map(doc => `
+        documentsBody.innerHTML = docs.map(doc => {
+          let displayName = escapeHtml(doc.filename);
+          let highlightInfo = '';
+          
+          if (doc.highlights) {
+            if (doc.highlights.filename) {
+              displayName = doc.highlights.filename;
+            }
+            if (doc.highlights.matchingFields && doc.highlights.matchingFields.length > 0) {
+              const matchCount = doc.highlights.matchingFields.length;
+              highlightInfo = `<span style="color: #f59e0b; font-size: 12px;" title="匹配字段: ${doc.highlights.matchingFields.map(f => f.field).join(', ')}">+${matchCount} 内容匹配</span>`;
+            }
+          }
+          
+          return `
           <tr>
             <td>
               <div style="display: flex; align-items: center; gap: 10px;">
                 <span style="font-size: 20px;">${getFileIcon(doc.filename)}</span>
-                <span>${escapeHtml(doc.filename)}</span>
+                <div style="display: flex; flex-direction: column; gap: 2px;">
+                  <span>${displayName}</span>
+                  ${highlightInfo ? highlightInfo : ''}
+                </div>
               </div>
             </td>
             <td>${formatFileSize(doc.file_size)}</td>
@@ -490,7 +601,7 @@
             <td>${formatDate(doc.created_at)}</td>
             <td>
               <div class="actions-cell" style="display: flex; gap: 8px;">
-                <button class="btn btn-secondary btn-sm view-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}" data-mime="${doc.mime_type || ''}">
+                <button class="btn btn-secondary btn-sm view-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}" data-mime="${doc.mime_type || ''}" data-keyword="${escapeHtml(currentSearchKeyword)}">
                   查看
                 </button>
                 <button class="btn btn-primary btn-sm download-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}">
@@ -502,13 +613,14 @@
               </div>
             </td>
           </tr>
-        `).join('');
+        `}).join('');
         
         documentsBody.querySelectorAll('.view-btn').forEach(btn => {
           btn.addEventListener('click', function() {
             const id = parseInt(this.dataset.id, 10);
             const name = this.dataset.name;
             const mime = this.dataset.mime;
+            const keyword = this.dataset.keyword || '';
             
             const viewableTypes = ['application/pdf', 'image/', 'text/'];
             const isViewable = viewableTypes.some(type => mime.startsWith(type));
@@ -518,7 +630,10 @@
               return;
             }
             
-            const viewUrl = `/view.html?id=${id}`;
+            let viewUrl = `/view.html?id=${id}`;
+            if (keyword) {
+              viewUrl += `&highlight=${encodeURIComponent(keyword)}`;
+            }
             window.open(viewUrl, '_blank');
           });
         });
@@ -616,9 +731,19 @@
         }
       });
       
-      statusFilter.addEventListener('change', renderDocuments);
-      searchInput.addEventListener('input', renderDocuments);
+      statusFilter.addEventListener('change', searchDocuments);
+      searchBtn.addEventListener('click', searchDocuments);
+      clearFilterBtn.addEventListener('click', clearFilters);
       refreshBtn.addEventListener('click', loadDocuments);
+      
+      searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          searchDocuments();
+        }
+      });
+      
+      dateFrom.addEventListener('change', searchDocuments);
+      dateTo.addEventListener('change', searchDocuments);
       
       loadDocuments();
     });

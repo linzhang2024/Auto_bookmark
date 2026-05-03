@@ -9,7 +9,8 @@ const config = require('./config');
 const { 
   syncToLocalMirror, 
   checkSyncStatus, 
-  SyncStatus 
+  SyncStatus,
+  searchBookmarks
 } = require('./localMirrorSync');
 const { 
   parseChromeBookmarks,
@@ -328,6 +329,40 @@ function broadcast(message) {
   });
 }
 
+async function getUnifiedStats() {
+  const currentStatus = checkSyncStatus(currentSyncDir);
+  const historyStats = await SyncHistory.getStats();
+  const errorDistribution = await SyncFailureDetail.getErrorDistribution();
+  
+  const currentTotal = currentStatus.totalBookmarks;
+  const currentCompleted = currentStatus.completedBookmarks;
+  const currentSuccessRate = currentTotal > 0 ? Math.round((currentCompleted / currentTotal) * 100) : 0;
+  
+  return {
+    current: {
+      totalFolders: currentStatus.totalFolders,
+      totalBookmarks: currentTotal,
+      completedBookmarks: currentCompleted,
+      pendingBookmarks: currentStatus.pendingBookmarks,
+      failedBookmarks: currentStatus.failedBookmarks,
+      successRate: currentSuccessRate,
+      folders: currentStatus.folders
+    },
+    history: {
+      totalSyncs: historyStats.totalSyncs,
+      totalBookmarks: historyStats.totalBookmarks,
+      totalSuccesses: historyStats.totalSuccesses,
+      totalFailures: historyStats.totalFailures,
+      avgDurationMs: historyStats.avgDurationMs,
+      successRate: historyStats.successRate,
+      errorDistribution: errorDistribution
+    },
+    lastUpdated: new Date().toISOString(),
+    isSyncing,
+    syncDir: currentSyncDir
+  };
+}
+
 function formatSyncStatusForClient(status) {
   const total = status.totalBookmarks;
   const completed = status.completedBookmarks;
@@ -348,6 +383,18 @@ function formatSyncStatusForClient(status) {
       syncDir: currentSyncDir
     }
   };
+}
+
+async function broadcastUnifiedStats() {
+  try {
+    const stats = await getUnifiedStats();
+    broadcast({
+      type: 'unified_stats',
+      data: stats
+    });
+  } catch (error) {
+    console.error('广播统一统计数据失败:', error.message);
+  }
 }
 
 function getRecentIcons(dir, limit = 10) {
@@ -419,6 +466,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/status', (req, res) => {
   const status = checkSyncStatus(currentSyncDir);
   res.json(formatSyncStatusForClient(status).data);
+});
+
+app.get('/api/stats', async (req, res) => {
+  try {
+    const stats = await getUnifiedStats();
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('获取统一统计数据失败:', error.message);
+    res.status(500).json({
+      success: false,
+      message: error.message || '获取统计数据失败'
+    });
+  }
 });
 
 app.get('/api/config', (req, res) => {
@@ -661,8 +724,7 @@ app.post('/api/sync', async (req, res) => {
       }
     });
 
-    const status = checkSyncStatus(targetSyncDir);
-    broadcast(formatSyncStatusForClient(status));
+    await broadcastUnifiedStats();
 
   } catch (error) {
     console.error('同步任务失败:', error);
@@ -1077,8 +1139,7 @@ app.post('/api/browser-sync', async (req, res) => {
         }
       });
 
-      const status = checkSyncStatus(targetSyncDir);
-      broadcast(formatSyncStatusForClient(status));
+      await broadcastUnifiedStats();
 
     } catch (error) {
       console.error('浏览器同步任务失败:', error);
@@ -1553,6 +1614,129 @@ app.post('/api/documents/upload', async (req, res) => {
     });
   }
 });
+
+app.get('/api/documents/search', async (req, res) => {
+  try {
+    const { 
+      keyword, 
+      status, 
+      uploader_id, 
+      owner_id, 
+      date_from, 
+      date_to,
+      limit,
+      offset,
+      highlight_keyword
+    } = req.query;
+
+    const searchParams = {};
+    if (keyword) searchParams.keyword = keyword;
+    if (status) searchParams.status = status;
+    if (uploader_id) searchParams.uploader_id = uploader_id;
+    if (owner_id) searchParams.owner_id = owner_id;
+    if (date_from) searchParams.date_from = date_from;
+    if (date_to) searchParams.date_to = date_to;
+    if (limit !== undefined) searchParams.limit = parseInt(limit, 10);
+    if (offset !== undefined) searchParams.offset = parseInt(offset, 10);
+
+    const [documents, total] = await Promise.all([
+      Document.search(searchParams),
+      Document.countSearch(searchParams)
+    ]);
+
+    const documentResults = documents.map(doc => {
+      const docJson = doc.toJSON();
+      
+      if (highlight_keyword && keyword && keyword.trim()) {
+        const searchTerm = keyword.trim().toLowerCase();
+        docJson.highlights = {};
+        
+        if (docJson.filename && docJson.filename.toLowerCase().includes(searchTerm)) {
+          docJson.highlights.filename = highlightText(docJson.filename, searchTerm);
+        }
+        
+        if (docJson.metadata && typeof docJson.metadata === 'object') {
+          const metadataStr = JSON.stringify(docJson.metadata).toLowerCase();
+          if (metadataStr.includes(searchTerm)) {
+            docJson.highlights.metadata = extractMatchingFields(docJson.metadata, searchTerm);
+          }
+        }
+      }
+      
+      return docJson;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        documents: documentResults,
+        total,
+        searchParams: {
+          keyword,
+          status,
+          date_from,
+          date_to
+        }
+      }
+    });
+  } catch (error) {
+    console.error('文档搜索失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+function highlightText(text, searchTerm) {
+  if (!text || !searchTerm) return text;
+  const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+  return text.replace(regex, '<mark>$1</mark>');
+}
+
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractMatchingFields(obj, searchTerm, prefix = '') {
+  const matches = [];
+  const lowerTerm = searchTerm.toLowerCase();
+  
+  function traverse(currentObj, currentPath) {
+    if (!currentObj) return;
+    
+    if (typeof currentObj === 'string') {
+      if (currentObj.toLowerCase().includes(lowerTerm)) {
+        matches.push({
+          path: currentPath || 'value',
+          value: currentObj,
+          highlighted: highlightText(currentObj, searchTerm)
+        });
+      }
+    } else if (typeof currentObj === 'number' || typeof currentObj === 'boolean') {
+      const strValue = String(currentObj);
+      if (strValue.toLowerCase().includes(lowerTerm)) {
+        matches.push({
+          path: currentPath || 'value',
+          value: currentObj,
+          highlighted: highlightText(strValue, searchTerm)
+        });
+      }
+    } else if (Array.isArray(currentObj)) {
+      currentObj.forEach((item, index) => {
+        traverse(item, currentPath ? `${currentPath}[${index}]` : `[${index}]`);
+      });
+    } else if (typeof currentObj === 'object' && currentObj !== null) {
+      Object.keys(currentObj).forEach(key => {
+        const newPath = currentPath ? `${currentPath}.${key}` : key;
+        traverse(currentObj[key], newPath);
+      });
+    }
+  }
+  
+  traverse(obj, prefix);
+  return matches;
+}
 
 app.get('/api/documents', async (req, res) => {
   try {
@@ -2301,8 +2485,7 @@ app.post('/api/sync-history/retry-batch', authMiddleware, async (req, res) => {
           }
         });
         
-        const status = checkSyncStatus(currentSyncDir);
-        broadcast(formatSyncStatusForClient(status));
+        await broadcastUnifiedStats();
         
       } catch (error) {
         console.error('[重试同步] 任务失败:', error);
@@ -2428,6 +2611,76 @@ app.get('/api/backups/config', async (req, res) => {
     });
   }
 });
+
+app.get('/api/bookmarks/search', async (req, res) => {
+  try {
+    const { 
+      keyword, 
+      sync_status, 
+      limit, 
+      offset,
+      highlight_keyword
+    } = req.query;
+
+    const mirrorPath = currentSyncDir || DEFAULT_SYNC_DIR;
+    
+    if (!fs.existsSync(mirrorPath)) {
+      return res.status(404).json({
+        success: false,
+        message: '本地镜像目录不存在，请先同步书签'
+      });
+    }
+
+    const searchParams = {};
+    if (keyword) searchParams.keyword = keyword;
+    if (sync_status) searchParams.syncStatus = sync_status;
+    if (limit !== undefined) searchParams.limit = parseInt(limit, 10);
+    if (offset !== undefined) searchParams.offset = parseInt(offset, 10);
+
+    const result = searchBookmarks(mirrorPath, searchParams);
+
+    let bookmarkResults = result.bookmarks;
+    
+    if (highlight_keyword && keyword && keyword.trim()) {
+      const searchTerm = keyword.trim().toLowerCase();
+      bookmarkResults = result.bookmarks.map(bm => {
+        const bmJson = { ...bm };
+        bmJson.highlights = {};
+        
+        if (bm.title && bm.title.toLowerCase().includes(searchTerm)) {
+          bmJson.highlights.title = highlightBookmarkText(bm.title, searchTerm);
+        }
+        
+        if (bm.url && bm.url.toLowerCase().includes(searchTerm)) {
+          bmJson.highlights.url = highlightBookmarkText(bm.url, searchTerm);
+        }
+        
+        return bmJson;
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        bookmarks: bookmarkResults,
+        total: result.total,
+        searchParams: result.searchParams
+      }
+    });
+  } catch (error) {
+    console.error('[书签搜索] 失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || '搜索书签失败'
+    });
+  }
+});
+
+function highlightBookmarkText(text, searchTerm) {
+  if (!text || !searchTerm) return text;
+  const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+  return text.replace(regex, '<mark>$1</mark>');
+}
 
 app.get('/api/bookmarks/export', async (req, res) => {
   try {

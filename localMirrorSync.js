@@ -1046,6 +1046,157 @@ function checkSyncStatus(outputDir) {
   return result;
 }
 
+function searchBookmarks(outputDir, options = {}) {
+  const safeOutputDir = ensureValidPath(outputDir, process.cwd());
+  const { 
+    keyword = '', 
+    syncStatus = null, 
+    limit = null, 
+    offset = null 
+  } = options;
+
+  const results = [];
+  const searchTerm = keyword && typeof keyword === 'string' ? keyword.trim().toLowerCase() : '';
+  const filterStatus = syncStatus && typeof syncStatus === 'string' ? syncStatus.toLowerCase() : null;
+
+  function scanDirectory(dir) {
+    if (!isValidString(dir)) {
+      return;
+    }
+
+    try {
+      let entries = [];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+
+      const metaPath = safePathJoin(dir, '.meta.json');
+      const meta = readExistingMeta(metaPath);
+
+      if (meta && Array.isArray(meta.bookmarks)) {
+        const folderName = meta.folderName || (isValidString(dir) ? path.basename(dir) : 'unknown');
+        const relativePath = safeExistsSync(safeOutputDir) ? path.relative(safeOutputDir, dir) : dir;
+
+        for (const bookmark of meta.bookmarks) {
+          if (!bookmark || typeof bookmark !== 'object') {
+            continue;
+          }
+
+          if (filterStatus) {
+            const bookmarkStatus = (bookmark.syncStatus || '').toLowerCase();
+            if (bookmarkStatus !== filterStatus) {
+              continue;
+            }
+          }
+
+          if (searchTerm) {
+            const title = (bookmark.title || '').toLowerCase();
+            const url = (bookmark.url || '').toLowerCase();
+            if (!title.includes(searchTerm) && !url.includes(searchTerm)) {
+              continue;
+            }
+          }
+
+          results.push({
+            ...bookmark,
+            folderPath: dir,
+            folderName: folderName,
+            relativeFolderPath: relativePath
+          });
+        }
+      }
+
+      for (const entry of entries) {
+        if (entry && entry.isDirectory && entry.isDirectory()) {
+          const subDir = safePathJoin(dir, entry.name);
+          if (subDir) {
+            scanDirectory(subDir);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`扫描目录时发生错误 ${dir}: ${error.message}`);
+    }
+  }
+
+  if (safeExistsSync(safeOutputDir)) {
+    scanDirectory(safeOutputDir);
+  }
+
+  const total = results.length;
+
+  let paginatedResults = results;
+  if (limit !== null && offset !== null) {
+    const limitNum = parseInt(limit, 10);
+    const offsetNum = parseInt(offset, 10);
+    if (!isNaN(limitNum) && !isNaN(offsetNum)) {
+      paginatedResults = results.slice(offsetNum, offsetNum + limitNum);
+    }
+  } else if (limit !== null) {
+    const limitNum = parseInt(limit, 10);
+    if (!isNaN(limitNum)) {
+      paginatedResults = results.slice(0, limitNum);
+    }
+  }
+
+  return {
+    total,
+    bookmarks: paginatedResults,
+    searchParams: {
+      keyword,
+      syncStatus,
+      limit,
+      offset
+    }
+  };
+}
+
+function countBookmarks(outputDir) {
+  const safeOutputDir = ensureValidPath(outputDir, process.cwd());
+  let total = 0;
+
+  function scanDirectory(dir) {
+    if (!isValidString(dir)) {
+      return;
+    }
+
+    try {
+      let entries = [];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+
+      const metaPath = safePathJoin(dir, '.meta.json');
+      const meta = readExistingMeta(metaPath);
+
+      if (meta && Array.isArray(meta.bookmarks)) {
+        total += meta.bookmarks.length;
+      }
+
+      for (const entry of entries) {
+        if (entry && entry.isDirectory && entry.isDirectory()) {
+          const subDir = safePathJoin(dir, entry.name);
+          if (subDir) {
+            scanDirectory(subDir);
+          }
+        }
+      }
+    } catch (error) {
+      console.warn(`扫描目录时发生错误 ${dir}: ${error.message}`);
+    }
+  }
+
+  if (safeExistsSync(safeOutputDir)) {
+    scanDirectory(safeOutputDir);
+  }
+
+  return total;
+}
+
 module.exports = {
   SyncStatus,
   syncToLocalMirror,
@@ -1062,5 +1213,7 @@ module.exports = {
   isValidString,
   ensureValidPath,
   safePathJoin,
-  safeExistsSync
+  safeExistsSync,
+  searchBookmarks,
+  countBookmarks
 };
