@@ -165,6 +165,94 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="versionModal">
+    <div class="modal" style="max-width: 900px; width: 90%;">
+      <div class="modal-header">
+        <div>
+          <h3 id="versionModalTitle">版本历史</h3>
+          <div id="versionModalSubtitle" style="font-size: 13px; color: #64748b; margin-top: 4px;"></div>
+        </div>
+        <button class="modal-close" id="closeVersionModal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 0; max-height: 70vh;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #e2e8f0; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-sm" id="createVersionBtn">
+            <span>📝</span>
+            <span>创建新版本</span>
+          </button>
+          <button class="btn btn-info btn-sm" id="compareVersionsBtn" disabled>
+            <span>🔍</span>
+            <span>比对选中版本</span>
+          </button>
+          <div style="flex: 1;"></div>
+          <button class="btn btn-secondary btn-sm" id="refreshVersionsBtn">
+            <span>🔄</span>
+            <span>刷新</span>
+          </button>
+        </div>
+        
+        <div id="versionList" style="overflow-y: auto; max-height: calc(70vh - 140px);">
+          <div style="text-align: center; padding: 40px; color: #9ca3af;">
+            加载中...
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="closeVersionModalBtn">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="createVersionModal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>创建新版本</h3>
+        <button class="modal-close" id="closeCreateVersionModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">版本标签 (可选)</label>
+          <input type="text" class="form-input" id="versionLabel" placeholder="例如: v1.0.0、初始版本">
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">变更摘要 (可选)</label>
+          <textarea class="form-input" id="changeSummary" rows="3" placeholder="描述本次版本的主要变更..."></textarea>
+        </div>
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">上传新版本文件 (可选)</label>
+          <div class="upload-area" id="newVersionUploadArea" style="padding: 20px; min-height: auto; margin-top: 8px;">
+            <input type="file" id="newVersionFileInput" style="display: none;">
+            <div class="upload-icon" style="font-size: 24px;">📁</div>
+            <div class="upload-text" style="font-size: 13px;">点击选择文件或拖拽文件到此处</div>
+            <div class="upload-hint" style="font-size: 12px;">留空则使用当前文档内容创建版本</div>
+          </div>
+          <div id="newVersionFileInfo" style="display: none; margin-top: 12px; padding: 12px; background: #f0fdf4; border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">✅</span>
+              <div>
+                <div id="newVersionFileName" style="font-weight: 500; color: #166534;"></div>
+                <div id="newVersionFileSize" style="font-size: 12px; color: #15803d;"></div>
+              </div>
+              <button class="btn btn-danger btn-sm" id="clearNewVersionFile" style="margin-left: auto; padding: 4px 8px; font-size: 12px;">
+                移除
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="alert alert-info" style="font-size: 12px;">
+          💡 提示：如果不上传新文件，系统将使用当前文档的内容创建版本快照。
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelCreateVersion">取消</button>
+        <button class="btn btn-primary" id="confirmCreateVersion">
+          <span>✅</span>
+          <span>创建版本</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/common.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -663,6 +751,9 @@
                 <button class="btn btn-secondary btn-sm view-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}" data-mime="${doc.mime_type || ''}" data-keyword="${escapeHtml(currentSearchKeyword)}">
                   查看
                 </button>
+                <button class="btn btn-info btn-sm version-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}">
+                  版本历史
+                </button>
                 <button class="btn btn-primary btn-sm download-btn" data-id="${doc.id}" data-name="${escapeHtml(doc.filename)}">
                   下载
                 </button>
@@ -713,6 +804,14 @@
             const id = parseInt(this.dataset.id, 10);
             const name = this.dataset.name;
             openDeleteModal(id, name);
+          });
+        });
+        
+        documentsBody.querySelectorAll('.version-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            const id = parseInt(this.dataset.id, 10);
+            const name = this.dataset.name;
+            openVersionModal(id, name);
           });
         });
       }
@@ -803,6 +902,385 @@
       
       dateFrom.addEventListener('change', searchDocuments);
       dateTo.addEventListener('change', searchDocuments);
+      
+      let currentDocumentId = null;
+      let currentDocumentName = '';
+      let versions = [];
+      let selectedVersionIds = new Set();
+      let newVersionFile = null;
+      
+      const versionModal = document.getElementById('versionModal');
+      const closeVersionModal = document.getElementById('closeVersionModal');
+      const closeVersionModalBtn = document.getElementById('closeVersionModalBtn');
+      const versionModalTitle = document.getElementById('versionModalTitle');
+      const versionModalSubtitle = document.getElementById('versionModalSubtitle');
+      const versionList = document.getElementById('versionList');
+      const createVersionBtn = document.getElementById('createVersionBtn');
+      const compareVersionsBtn = document.getElementById('compareVersionsBtn');
+      const refreshVersionsBtn = document.getElementById('refreshVersionsBtn');
+      
+      const createVersionModal = document.getElementById('createVersionModal');
+      const closeCreateVersionModal = document.getElementById('closeCreateVersionModal');
+      const versionLabel = document.getElementById('versionLabel');
+      const changeSummary = document.getElementById('changeSummary');
+      const newVersionUploadArea = document.getElementById('newVersionUploadArea');
+      const newVersionFileInput = document.getElementById('newVersionFileInput');
+      const newVersionFileInfo = document.getElementById('newVersionFileInfo');
+      const newVersionFileName = document.getElementById('newVersionFileName');
+      const newVersionFileSize = document.getElementById('newVersionFileSize');
+      const clearNewVersionFile = document.getElementById('clearNewVersionFile');
+      const cancelCreateVersion = document.getElementById('cancelCreateVersion');
+      const confirmCreateVersion = document.getElementById('confirmCreateVersion');
+      
+      function openVersionModal(id, name) {
+        currentDocumentId = id;
+        currentDocumentName = name;
+        versionModalTitle.textContent = `版本历史 - ${name}`;
+        versionModalSubtitle.textContent = `文档 ID: ${id}`;
+        selectedVersionIds.clear();
+        compareVersionsBtn.disabled = true;
+        loadVersions();
+        versionModal.classList.add('active');
+      }
+      
+      function closeVersionModalFunc() {
+        versionModal.classList.remove('active');
+        currentDocumentId = null;
+        currentDocumentName = '';
+        versions = [];
+        selectedVersionIds.clear();
+      }
+      
+      async function loadVersions() {
+        if (!currentDocumentId) return;
+        
+        versionList.innerHTML = `
+          <div style="text-align: center; padding: 40px; color: #9ca3af;">
+            加载中...
+          </div>
+        `;
+        
+        try {
+          const result = await apiRequest(`/api/documents/${currentDocumentId}/versions`);
+          
+          if (result.data && result.data.success) {
+            versions = result.data.versions || [];
+            renderVersionList();
+          } else {
+            versionList.innerHTML = `
+              <div style="text-align: center; padding: 40px; color: #9ca3af;">
+                加载失败: ${result.data?.message || '未知错误'}
+              </div>
+            `;
+          }
+        } catch (error) {
+          versionList.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: #9ca3af;">
+              网络错误，请稍后重试
+            </div>
+          `;
+        }
+      }
+      
+      function renderVersionList() {
+        if (versions.length === 0) {
+          versionList.innerHTML = `
+            <div class="empty-state" style="padding: 60px 20px;">
+              <div class="empty-state-icon" style="font-size: 48px; margin-bottom: 16px;">📋</div>
+              <div class="empty-state-text" style="font-size: 16px; margin-bottom: 8px;">暂无版本历史</div>
+              <div class="empty-state-hint" style="font-size: 14px; color: #9ca3af;">点击上方"创建新版本"按钮创建第一个版本</div>
+            </div>
+          `;
+          return;
+        }
+        
+        versionList.innerHTML = versions.map((version, index) => {
+          const isSelected = selectedVersionIds.has(version.id);
+          const diffStats = version.diff_statistics && typeof version.diff_statistics === 'object' 
+            ? version.diff_statistics 
+            : (version.diff_statistics ? JSON.parse(version.diff_statistics) : {});
+          
+          return `
+            <div class="version-item ${isSelected ? 'selected' : ''}" data-id="${version.id}" style="
+              padding: 16px 20px;
+              border-bottom: 1px solid #e2e8f0;
+              display: flex;
+              gap: 12px;
+              align-items: flex-start;
+              cursor: pointer;
+              transition: background-color 0.2s;
+            " onmouseover="this.style.backgroundColor='#f8fafc'" onmouseout="this.style.backgroundColor='transparent'">
+              <input type="checkbox" class="version-checkbox" data-id="${version.id}" ${isSelected ? 'checked' : ''} style="
+                width: 18px;
+                height: 18px;
+                margin-top: 4px;
+                cursor: pointer;
+              ">
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap;">
+                  <span style="
+                    font-weight: 600;
+                    color: #1e293b;
+                    font-size: 14px;
+                  ">v${version.version_number}${version.version_label ? ` - ${escapeHtml(version.version_label)}` : ''}</span>
+                  <span style="
+                    font-size: 12px;
+                    color: #64748b;
+                  ">${version.uploader?.username || '未知用户'}</span>
+                  <span style="
+                    font-size: 12px;
+                    color: #9ca3af;
+                  ">${formatDate(version.created_at)}</span>
+                  <span style="
+                    font-size: 12px;
+                    color: #9ca3af;
+                  ">${formatFileSize(version.file_size)}</span>
+                </div>
+                ${version.change_summary ? `
+                  <div style="
+                    font-size: 13px;
+                    color: #64748b;
+                    margin-bottom: 8px;
+                    line-height: 1.5;
+                  ">${escapeHtml(version.change_summary)}</div>
+                ` : ''}
+                ${diffStats.lines ? `
+                  <div style="
+                    display: flex;
+                    gap: 16px;
+                    font-size: 12px;
+                  ">
+                    <span style="color: #059669;">+${diffStats.lines.added || 0} 行</span>
+                    <span style="color: #dc2626;">-${diffStats.lines.removed || 0} 行</span>
+                    ${diffStats.changePercentage ? `<span style="color: #64748b;">变化率: ${diffStats.changePercentage.lines || 0}%</span>` : ''}
+                  </div>
+                ` : ''}
+              </div>
+              <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                <button class="btn btn-secondary btn-sm restore-version-btn" data-id="${version.id}" data-version="${version.version_number}" title="恢复此版本">
+                  <span>↩️</span>
+                </button>
+                <button class="btn btn-secondary btn-sm download-version-btn" data-id="${version.id}" data-version="${version.version_number}" title="下载此版本">
+                  <span>⬇️</span>
+                </button>
+                ${versions.length > 1 ? `
+                  <button class="btn btn-danger btn-sm delete-version-btn" data-id="${version.id}" data-version="${version.version_number}" title="删除此版本">
+                    <span>🗑️</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+        
+        versionList.querySelectorAll('.version-checkbox').forEach(checkbox => {
+          checkbox.addEventListener('change', function(e) {
+            e.stopPropagation();
+            const id = parseInt(this.dataset.id, 10);
+            if (this.checked) {
+              selectedVersionIds.add(id);
+            } else {
+              selectedVersionIds.delete(id);
+            }
+            compareVersionsBtn.disabled = selectedVersionIds.size !== 2;
+            versionList.querySelectorAll('.version-item').forEach(item => {
+              const itemId = parseInt(item.dataset.id, 10);
+              if (selectedVersionIds.has(itemId)) {
+                item.style.backgroundColor = '#eff6ff';
+              } else {
+                item.style.backgroundColor = 'transparent';
+              }
+            });
+          });
+        });
+        
+        versionList.querySelectorAll('.restore-version-btn').forEach(btn => {
+          btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const id = parseInt(this.dataset.id, 10);
+            const versionNum = this.dataset.version;
+            
+            if (!confirm(`确定要恢复到版本 v${versionNum} 吗？当前文档内容将被替换。`)) {
+              return;
+            }
+            
+            try {
+              const result = await apiRequest(`/api/documents/versions/${id}/restore`, {
+                method: 'POST',
+                body: { user_id: AppState.user.id }
+              });
+              
+              if (result.data && result.data.success) {
+                showToast(`已恢复到版本 v${versionNum}`, 'success');
+                loadVersions();
+                loadDocuments();
+              } else {
+                showToast(result.data?.message || '恢复失败', 'error');
+              }
+            } catch (error) {
+              showToast('网络错误，请稍后重试', 'error');
+            }
+          });
+        });
+        
+        versionList.querySelectorAll('.download-version-btn').forEach(btn => {
+          btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const id = parseInt(this.dataset.id, 10);
+            window.location.href = `/api/documents/versions/${id}/download`;
+            showToast('开始下载版本文件', 'info');
+          });
+        });
+        
+        versionList.querySelectorAll('.delete-version-btn').forEach(btn => {
+          btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const id = parseInt(this.dataset.id, 10);
+            const versionNum = this.dataset.version;
+            
+            if (!confirm(`确定要删除版本 v${versionNum} 吗？此操作不可恢复。`)) {
+              return;
+            }
+            
+            try {
+              const result = await apiRequest(`/api/documents/versions/${id}`, {
+                method: 'DELETE'
+              });
+              
+              if (result.data && result.data.success) {
+                showToast(`已删除版本 v${versionNum}`, 'success');
+                loadVersions();
+              } else {
+                showToast(result.data?.message || '删除失败', 'error');
+              }
+            } catch (error) {
+              showToast('网络错误，请稍后重试', 'error');
+            }
+          });
+        });
+      }
+      
+      function openCreateVersionModal() {
+        versionLabel.value = '';
+        changeSummary.value = '';
+        newVersionFile = null;
+        newVersionFileInfo.style.display = 'none';
+        newVersionFileInput.value = '';
+        createVersionModal.classList.add('active');
+      }
+      
+      function closeCreateVersionModalFunc() {
+        createVersionModal.classList.remove('active');
+        newVersionFile = null;
+      }
+      
+      async function executeCreateVersion() {
+        confirmCreateVersion.disabled = true;
+        cancelCreateVersion.disabled = true;
+        
+        try {
+          const body = {
+            uploader_id: AppState.user.id,
+            version_label: versionLabel.value.trim(),
+            change_summary: changeSummary.value.trim()
+          };
+          
+          if (newVersionFile) {
+            const fileBase64 = await readFileAsBase64(newVersionFile);
+            body.file_base64 = fileBase64.split(',')[1] || fileBase64;
+          }
+          
+          const result = await apiRequest(`/api/documents/${currentDocumentId}/versions`, {
+            method: 'POST',
+            body
+          });
+          
+          if (result.data && result.data.success) {
+            showToast('版本创建成功', 'success');
+            closeCreateVersionModalFunc();
+            loadVersions();
+          } else {
+            showToast(result.data?.message || '创建失败', 'error');
+            confirmCreateVersion.disabled = false;
+            cancelCreateVersion.disabled = false;
+          }
+        } catch (error) {
+          showToast('网络错误，请稍后重试', 'error');
+          confirmCreateVersion.disabled = false;
+          cancelCreateVersion.disabled = false;
+        }
+      }
+      
+      function openCompareView() {
+        if (selectedVersionIds.size !== 2) {
+          showToast('请选择两个版本进行比对', 'warning');
+          return;
+        }
+        
+        const ids = Array.from(selectedVersionIds);
+        const diffUrl = `/diff-view.html?document_id=${currentDocumentId}&version_id1=${ids[0]}&version_id2=${ids[1]}`;
+        window.open(diffUrl, '_blank');
+      }
+      
+      closeVersionModal.addEventListener('click', closeVersionModalFunc);
+      closeVersionModalBtn.addEventListener('click', closeVersionModalFunc);
+      
+      versionModal.addEventListener('click', (e) => {
+        if (e.target === versionModal) {
+          closeVersionModalFunc();
+        }
+      });
+      
+      createVersionBtn.addEventListener('click', openCreateVersionModal);
+      compareVersionsBtn.addEventListener('click', openCompareView);
+      refreshVersionsBtn.addEventListener('click', loadVersions);
+      
+      closeCreateVersionModal.addEventListener('click', closeCreateVersionModalFunc);
+      cancelCreateVersion.addEventListener('click', closeCreateVersionModalFunc);
+      confirmCreateVersion.addEventListener('click', executeCreateVersion);
+      
+      createVersionModal.addEventListener('click', (e) => {
+        if (e.target === createVersionModal) {
+          closeCreateVersionModalFunc();
+        }
+      });
+      
+      newVersionUploadArea.addEventListener('click', () => newVersionFileInput.click());
+      
+      newVersionFileInput.addEventListener('change', (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+          newVersionFile = e.target.files[0];
+          newVersionFileName.textContent = newVersionFile.name;
+          newVersionFileSize.textContent = formatFileSize(newVersionFile.size);
+          newVersionFileInfo.style.display = 'block';
+        }
+      });
+      
+      clearNewVersionFile.addEventListener('click', () => {
+        newVersionFile = null;
+        newVersionFileInput.value = '';
+        newVersionFileInfo.style.display = 'none';
+      });
+      
+      newVersionUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        newVersionUploadArea.classList.add('dragover');
+      });
+      
+      newVersionUploadArea.addEventListener('dragleave', () => {
+        newVersionUploadArea.classList.remove('dragover');
+      });
+      
+      newVersionUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        newVersionUploadArea.classList.remove('dragover');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          newVersionFile = e.dataTransfer.files[0];
+          newVersionFileName.textContent = newVersionFile.name;
+          newVersionFileSize.textContent = formatFileSize(newVersionFile.size);
+          newVersionFileInfo.style.display = 'block';
+        }
+      });
       
       loadDocuments();
     });

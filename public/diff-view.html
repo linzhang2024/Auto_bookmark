@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>版本差异比对 - 书签管理系统</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .diff-container {
+      display: flex;
+      gap: 20px;
+      min-height: 500px;
+    }
+    
+    .diff-panel {
+      flex: 1;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+    
+    .diff-panel-header {
+      padding: 16px 20px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .diff-panel-title {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 14px;
+    }
+    
+    .diff-panel-meta {
+      font-size: 12px;
+      color: #64748b;
+    }
+    
+    .diff-content {
+      height: 600px;
+      overflow: auto;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .diff-line {
+      display: flex;
+      padding: 2px 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .diff-line:hover {
+      background-color: #f8fafc;
+    }
+    
+    .diff-line-added {
+      background-color: #dcfce7;
+    }
+    
+    .diff-line-removed {
+      background-color: #fee2e2;
+    }
+    
+    .diff-line-num {
+      width: 50px;
+      min-width: 50px;
+      text-align: right;
+      padding-right: 12px;
+      color: #9ca3af;
+      user-select: none;
+      border-right: 1px solid #e2e8f0;
+      margin-right: 8px;
+    }
+    
+    .diff-line-content {
+      flex: 1;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .diff-char-added {
+      background-color: #86efac;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+    
+    .diff-char-removed {
+      background-color: #fca5a5;
+      text-decoration: line-through;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+    
+    .diff-unified {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      overflow: hidden;
+    }
+    
+    .diff-unified-header {
+      padding: 12px 20px;
+      background: #f1f5f9;
+      border-bottom: 1px solid #e2e8f0;
+      font-family: 'Consolas', monospace;
+      font-size: 12px;
+      color: #475569;
+    }
+    
+    .diff-unified-content {
+      max-height: 600px;
+      overflow: auto;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    
+    .diff-hunk-header {
+      background-color: #e0f2fe;
+      color: #0369a1;
+      padding: 4px 16px;
+      font-weight: 600;
+      border-bottom: 1px solid #bae6fd;
+    }
+    
+    .unified-line {
+      display: flex;
+      padding: 2px 8px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    
+    .unified-line:hover {
+      background-color: #f8fafc;
+    }
+    
+    .unified-line-added {
+      background-color: #dcfce7;
+    }
+    
+    .unified-line-removed {
+      background-color: #fee2e2;
+    }
+    
+    .unified-line-prefix {
+      width: 24px;
+      min-width: 24px;
+      font-weight: bold;
+      user-select: none;
+    }
+    
+    .unified-line-content {
+      flex: 1;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+    
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .toolbar-label {
+      font-size: 13px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    .version-selector {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      padding: 16px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      margin-bottom: 20px;
+    }
+    
+    .version-select {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+    
+    .version-select-label {
+      font-size: 12px;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    .swap-btn {
+      margin-top: 24px;
+      padding: 8px 12px;
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+    }
+    
+    .stats-title {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 12px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 16px;
+    }
+    
+    .stat-item {
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 700;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    
+    .stat-added {
+      color: #86efac;
+    }
+    
+    .stat-removed {
+      color: #fca5a5;
+    }
+    
+    .stat-unchanged {
+      color: #bfdbfe;
+    }
+    
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: #9ca3af;
+    }
+    
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    .empty-text {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .empty-hint {
+      font-size: 14px;
+      color: #9ca3af;
+    }
+    
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      color: #6b7280;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(102, 126, 234, 0.2);
+      border-radius: 50%;
+      border-top-color: #667eea;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .no-diff {
+      text-align: center;
+      padding: 40px;
+      color: #6b7280;
+    }
+    
+    .no-diff-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="main-content">
+    <div class="page-header">
+      <div>
+        <a href="/documents.html" class="btn btn-secondary btn-sm" style="margin-bottom: 8px;">
+          <span>←</span>
+          <span>返回文档列表</span>
+        </a>
+        <h1>📊 版本差异比对</h1>
+      </div>
+    </div>
+    
+    <div class="version-selector" id="versionSelector">
+      <div class="version-select">
+        <label class="version-select-label">版本 1 (旧版本)</label>
+        <select class="form-select" id="version1Select">
+          <option value="">请选择版本</option>
+        </select>
+      </div>
+      
+      <button class="btn btn-secondary btn-sm swap-btn" id="swapBtn" title="交换版本">
+        ⇄
+      </button>
+      
+      <div class="version-select">
+        <label class="version-select-label">版本 2 (新版本)</label>
+        <select class="form-select" id="version2Select">
+          <option value="">请选择版本</option>
+        </select>
+      </div>
+      
+      <button class="btn btn-primary" id="compareBtn" style="margin-top: 24px;">
+        <span>🔍</span>
+        <span>比对</span>
+      </button>
+    </div>
+    
+    <div class="toolbar" id="diffToolbar" style="display: none;">
+      <div class="toolbar-group">
+        <span class="toolbar-label">显示模式:</span>
+        <select class="form-select" id="displayMode" style="width: 140px;">
+          <option value="side-by-side">左右分栏</option>
+          <option value="unified">合并视图</option>
+        </select>
+      </div>
+      
+      <div class="toolbar-group">
+        <span class="toolbar-label">差异粒度:</span>
+        <select class="form-select" id="diffType" style="width: 120px;">
+          <option value="line">行级</option>
+          <option value="word">单词级</option>
+          <option value="char">字符级</option>
+        </select>
+      </div>
+      
+      <div class="toolbar-group">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" id="ignoreWhitespace">
+          <span class="toolbar-label">忽略空白</span>
+        </label>
+      </div>
+      
+      <div class="toolbar-group">
+        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+          <input type="checkbox" id="ignoreCase">
+          <span class="toolbar-label">忽略大小写</span>
+        </label>
+      </div>
+      
+      <div style="flex: 1;"></div>
+      
+      <div class="toolbar-group">
+        <span class="toolbar-label">上下文行数:</span>
+        <select class="form-select" id="contextLines" style="width: 80px;">
+          <option value="0">0</option>
+          <option value="3" selected>3</option>
+          <option value="5">5</option>
+          <option value="10">10</option>
+        </select>
+      </div>
+      
+      <button class="btn btn-secondary" id="refreshBtn">
+        <span>🔄</span>
+        <span>刷新</span>
+      </button>
+    </div>
+    
+    <div class="stats-card" id="statsCard" style="display: none;">
+      <div class="stats-title">📈 比对统计</div>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-value stat-unchanged" id="statUnchanged">0</div>
+          <div class="stat-label">未变化</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value stat-added" id="statAdded">0</div>
+          <div class="stat-label">新增行</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value stat-removed" id="statRemoved">0</div>
+          <div class="stat-label">删除行</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="statChangePercent">0%</div>
+          <div class="stat-label">变化率</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="statSizeDelta">0 B</div>
+          <div class="stat-label">大小变化</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="diffResult">
+      <div class="empty-state">
+        <div class="empty-icon">📊</div>
+        <div class="empty-text">选择两个版本进行比对</div>
+        <div class="empty-hint">从上方下拉菜单选择要比较的版本</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/common.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      checkAuth();
+      renderNav();
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      const documentId = urlParams.get('document_id');
+      const version1Id = urlParams.get('version_id1');
+      const version2Id = urlParams.get('version_id2');
+      
+      let versions = [];
+      let currentDiffData = null;
+      
+      const version1Select = document.getElementById('version1Select');
+      const version2Select = document.getElementById('version2Select');
+      const compareBtn = document.getElementById('compareBtn');
+      const swapBtn = document.getElementById('swapBtn');
+      const diffToolbar = document.getElementById('diffToolbar');
+      const statsCard = document.getElementById('statsCard');
+      const diffResult = document.getElementById('diffResult');
+      const versionSelector = document.getElementById('versionSelector');
+      
+      const displayMode = document.getElementById('displayMode');
+      const diffType = document.getElementById('diffType');
+      const ignoreWhitespace = document.getElementById('ignoreWhitespace');
+      const ignoreCase = document.getElementById('ignoreCase');
+      const contextLines = document.getElementById('contextLines');
+      const refreshBtn = document.getElementById('refreshBtn');
+      
+      async function loadVersions() {
+        if (!documentId) return;
+        
+        try {
+          const result = await apiRequest(`/api/documents/${documentId}/versions`);
+          
+          if (result.data && result.data.success) {
+            versions = result.data.versions || [];
+            populateVersionSelects();
+            
+            if (version1Id && version2Id) {
+              version1Select.value = version1Id;
+              version2Select.value = version2Id;
+              await performCompare();
+            }
+          }
+        } catch (error) {
+          showToast('加载版本列表失败', 'error');
+        }
+      }
+      
+      function populateVersionSelects() {
+        const options = versions.map(v => 
+          `<option value="${v.id}">v${v.version_number} - ${v.uploader?.username || '未知'} (${formatDate(v.created_at)})</option>`
+        ).join('');
+        
+        version1Select.innerHTML = '<option value="">请选择版本</option>' + options;
+        version2Select.innerHTML = '<option value="">请选择版本</option>' + options;
+      }
+      
+      swapBtn.addEventListener('click', () => {
+        const temp = version1Select.value;
+        version1Select.value = version2Select.value;
+        version2Select.value = temp;
+      });
+      
+      compareBtn.addEventListener('click', performCompare);
+      
+      displayMode.addEventListener('change', renderDiff);
+      diffType.addEventListener('change', performCompare);
+      ignoreWhitespace.addEventListener('change', performCompare);
+      ignoreCase.addEventListener('change', performCompare);
+      contextLines.addEventListener('change', performCompare);
+      refreshBtn.addEventListener('click', performCompare);
+      
+      async function performCompare() {
+        const v1Id = parseInt(version1Select.value, 10);
+        const v2Id = parseInt(version2Select.value, 10);
+        
+        if (!version1Select.value || isNaN(v1Id)) {
+          showToast('请选择第一个要比对的版本', 'warning');
+          return;
+        }
+        
+        if (!version2Select.value || isNaN(v2Id)) {
+          showToast('请选择第二个要比对的版本', 'warning');
+          return;
+        }
+        
+        if (v1Id <= 0 || v2Id <= 0) {
+          showToast('版本 ID 必须是有效的正整数', 'warning');
+          return;
+        }
+        
+        if (v1Id === v2Id) {
+          showToast('两个版本 ID 相同，请选择不同的版本进行比对', 'warning');
+          return;
+        }
+        
+        const version1Exists = versions.some(v => v.id === v1Id);
+        const version2Exists = versions.some(v => v.id === v2Id);
+        
+        if (!version1Exists) {
+          showToast('第一个版本不存在或已被删除，请重新选择', 'warning');
+          return;
+        }
+        
+        if (!version2Exists) {
+          showToast('第二个版本不存在或已被删除，请重新选择', 'warning');
+          return;
+        }
+        
+        diffResult.innerHTML = `
+          <div class="loading">
+            <div class="loading-spinner"></div>
+            <div>正在比对版本差异...</div>
+          </div>
+        `;
+        
+        try {
+          const params = new URLSearchParams({
+            version_id1: v1Id,
+            version_id2: v2Id,
+            diff_type: diffType.value,
+            format: displayMode.value === 'unified' ? 'unified' : 'side-by-side',
+            ignore_whitespace: ignoreWhitespace.checked,
+            ignore_case: ignoreCase.checked,
+            context_lines: contextLines.value
+          });
+          
+          const result = await apiRequest(`/api/documents/compare?${params.toString()}`);
+          
+          if (result.data && result.data.success) {
+            currentDiffData = result.data;
+            updateStats(result.data.statistics);
+            renderDiff();
+            diffToolbar.style.display = 'flex';
+            statsCard.style.display = 'block';
+          } else {
+            throw new Error(result.data?.message || '比对失败');
+          }
+        } catch (error) {
+          diffResult.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">❌</div>
+              <div class="empty-text">比对失败</div>
+              <div class="empty-hint">${error.message}</div>
+            </div>
+          `;
+        }
+      }
+      
+      function updateStats(stats) {
+        if (!stats) return;
+        
+        const lines = stats.lines || {};
+        const bytes = stats.bytes || {};
+        const changePercent = stats.changePercentage || {};
+        
+        document.getElementById('statUnchanged').textContent = lines.unchanged || 0;
+        document.getElementById('statAdded').textContent = lines.added || 0;
+        document.getElementById('statRemoved').textContent = lines.removed || 0;
+        document.getElementById('statChangePercent').textContent = `${changePercent.lines || 0}%`;
+        
+        const sizeDelta = bytes.delta || 0;
+        const sizeDeltaText = sizeDelta >= 0 ? `+${formatFileSize(sizeDelta)}` : `-${formatFileSize(Math.abs(sizeDelta))}`;
+        document.getElementById('statSizeDelta').textContent = sizeDeltaText;
+      }
+      
+      function renderDiff() {
+        if (!currentDiffData) return;
+        
+        const { diff, statistics, version1, version2 } = currentDiffData;
+        const mode = displayMode.value;
+        
+        if (mode === 'side-by-side') {
+          renderSideBySideDiff(diff, version1, version2);
+        } else {
+          renderUnifiedDiff(diff, version1, version2);
+        }
+      }
+      
+      function renderSideBySideDiff(diff, version1, version2) {
+        const { left, right } = diff;
+        
+        if (!left || !right || left.length === 0) {
+          diffResult.innerHTML = `
+            <div class="no-diff">
+              <div class="no-diff-icon">✓</div>
+              <div style="font-size: 16px; color: #059669;">两个版本完全相同，没有差异</div>
+            </div>
+          `;
+          return;
+        }
+        
+        diffResult.innerHTML = `
+          <div class="diff-container">
+            <div class="diff-panel">
+              <div class="diff-panel-header">
+                <div class="diff-panel-title">版本 ${version1?.version_number || 1}</div>
+                <div class="diff-panel-meta">${version1?.uploader?.username || '未知'} - ${formatDate(version1?.created_at)}</div>
+              </div>
+              <div class="diff-content">
+                ${left.map((item, index) => `
+                  <div class="diff-line ${item.type === 'removed' ? 'diff-line-removed' : ''}">
+                    <span class="diff-line-num">${item.lineNumber || ''}</span>
+                    <span class="diff-line-content">${escapeHtml(item.content)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+            
+            <div class="diff-panel">
+              <div class="diff-panel-header">
+                <div class="diff-panel-title">版本 ${version2?.version_number || 2}</div>
+                <div class="diff-panel-meta">${version2?.uploader?.username || '未知'} - ${formatDate(version2?.created_at)}</div>
+              </div>
+              <div class="diff-content">
+                ${right.map((item, index) => `
+                  <div class="diff-line ${item.type === 'added' ? 'diff-line-added' : ''}">
+                    <span class="diff-line-num">${item.lineNumber || ''}</span>
+                    <span class="diff-line-content">${escapeHtml(item.content)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      function renderUnifiedDiff(diff, version1, version2) {
+        const { hunks, unifiedText, lineDiffs } = diff;
+        
+        if (!lineDiffs || lineDiffs.length === 0) {
+          diffResult.innerHTML = `
+            <div class="no-diff">
+              <div class="no-diff-icon">✓</div>
+              <div style="font-size: 16px; color: #059669;">两个版本完全相同，没有差异</div>
+            </div>
+          `;
+          return;
+        }
+        
+        diffResult.innerHTML = `
+          <div class="diff-unified">
+            <div class="diff-unified-header">
+              --- v${version1?.version_number || 1} (${version1?.uploader?.username || 'unknown'})
+              <br>
+              +++ v${version2?.version_number || 2} (${version2?.uploader?.username || 'unknown'})
+            </div>
+            <div class="diff-unified-content">
+              ${lineDiffs.map((item, index) => {
+                const prefix = item.type === 'added' ? '+' : item.type === 'removed' ? '-' : ' ';
+                const lineClass = item.type === 'added' ? 'unified-line-added' : item.type === 'removed' ? 'unified-line-removed' : '';
+                return `
+                  <div class="unified-line ${lineClass}">
+                    <span class="unified-line-prefix">${prefix}</span>
+                    <span class="unified-line-content">${escapeHtml(item.content)}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      }
+      
+      function escapeHtml(text) {
+        if (text === undefined || text === null) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+      }
+      
+      loadVersions();
+    });
+  </script>
+</body>
+</html>

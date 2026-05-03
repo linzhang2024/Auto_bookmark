@@ -228,6 +228,47 @@ function initDatabase() {
         `);
         logInfo('sync_failure_details 表已就绪');
 
+        await runAsync(`
+          CREATE TABLE IF NOT EXISTS document_versions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            document_id INTEGER NOT NULL,
+            version_number INTEGER NOT NULL,
+            version_label TEXT DEFAULT '',
+            storage_path TEXT NOT NULL,
+            file_size INTEGER DEFAULT 0,
+            mime_type TEXT DEFAULT '',
+            uploader_id INTEGER,
+            change_summary TEXT DEFAULT '',
+            diff_statistics TEXT DEFAULT '{}',
+            status TEXT DEFAULT 'active',
+            metadata TEXT DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (document_id) REFERENCES documents(id),
+            FOREIGN KEY (uploader_id) REFERENCES users(id),
+            UNIQUE(document_id, version_number)
+          )
+        `);
+        
+        const hasDocumentVersionsIndex = await getAsync(
+          "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_document_versions_document_id'",
+          []
+        );
+        if (!hasDocumentVersionsIndex) {
+          await runAsync('CREATE INDEX idx_document_versions_document_id ON document_versions(document_id)');
+          logInfo('已创建 idx_document_versions_document_id 索引');
+        }
+        
+        const hasDocumentVersionsUploaderIndex = await getAsync(
+          "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_document_versions_uploader_id'",
+          []
+        );
+        if (!hasDocumentVersionsUploaderIndex) {
+          await runAsync('CREATE INDEX idx_document_versions_uploader_id ON document_versions(uploader_id)');
+          logInfo('已创建 idx_document_versions_uploader_id 索引');
+        }
+        
+        logInfo('document_versions 表已就绪');
+
         const hasSyncHistoryIndex = await getAsync(
           "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_sync_history_sync_id'",
           []

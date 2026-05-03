@@ -36,6 +36,8 @@ const {
 } = require('./browserBookmarkFinder');
 const { BookmarkDeduplicator } = require('./BookmarkDeduplicator');
 const { SyncHistory, SyncFailureDetail } = require('./syncHistoryModel');
+const { DocumentVersion, VersionStatus } = require('./documentVersionModel');
+const diffEngine = require('./diffEngine');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'auto-bookmark-jwt-secret-key-2024';
 const JWT_EXPIRES_IN = '24h';
@@ -2196,6 +2198,573 @@ app.post('/api/documents/upload-with-transaction', async (req, res) => {
     });
   }
 });
+
+app.get('/api/documents/:id/versions', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    const { status, limit, offset } = req.query;
+    
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: '文档不存在'
+      });
+    }
+
+    const options = {};
+    if (status) options.status = status;
+    if (limit !== undefined) options.limit = parseInt(limit, 10);
+    if (offset !== undefined) options.offset = parseInt(offset, 10);
+
+    const versions = await DocumentVersion.findByDocumentIdWithUploader(docId, options);
+    const total = await DocumentVersion.countByDocumentId(docId, status);
+
+    res.json({
+      success: true,
+      versions: versions.map(v => v.toJSON()),
+      total
+    });
+  } catch (error) {
+    console.error('获取文档版本列表失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/documents/:id/versions/latest', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: '文档不存在'
+      });
+    }
+
+    const latestVersion = await DocumentVersion.getLatestVersion(docId);
+    
+    if (!latestVersion) {
+      return res.json({
+        success: true,
+        version: null,
+        message: '该文档尚无版本历史'
+      });
+    }
+
+    const versionWithUploader = await DocumentVersion.findByIdWithUploader(latestVersion.id);
+    
+    res.json({
+      success: true,
+      version: versionWithUploader ? versionWithUploader.toJSON() : null
+    });
+  } catch (error) {
+    console.error('获取最新版本失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/documents/:id/versions/:versionNumber', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    const versionNumber = parseInt(req.params.versionNumber, 10);
+    
+    if (isNaN(docId) || isNaN(versionNumber)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的参数'
+      });
+    }
+
+    const version = await DocumentVersion.getVersionByNumber(docId, versionNumber);
+    
+    if (!version) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+
+    const versionWithUploader = await DocumentVersion.findByIdWithUploader(version.id);
+    
+    res.json({
+      success: true,
+      version: versionWithUploader ? versionWithUploader.toJSON() : null
+    });
+  } catch (error) {
+    console.error('获取指定版本失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.post('/api/documents/:id/versions', async (req, res) => {
+  try {
+    const docId = parseInt(req.params.id, 10);
+    const { file_base64, uploader_id, version_label, change_summary, metadata } = req.body;
+    
+    if (isNaN(docId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的文档 ID'
+      });
+    }
+
+    const document = await Document.findById(docId);
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: '文档不存在'
+      });
+    }
+
+    if (!uploader_id) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少上传者 ID'
+      });
+    }
+
+    let fileBuffer;
+    if (file_base64) {
+      try {
+        fileBuffer = Buffer.from(file_base64, 'base64');
+      } catch (decodeError) {
+        return res.status(400).json({
+          success: false,
+          message: 'Base64 解码失败: ' + decodeError.message
+        });
+      }
+    } else if (document.storage_path && fs.existsSync(document.storage_path)) {
+      fileBuffer = fs.readFileSync(document.storage_path);
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: '缺少文件内容（file_base64）'
+      });
+    }
+
+    const version = await DocumentVersion.create(docId, {
+      fileBuffer,
+      uploader_id,
+      version_label: version_label || '',
+      change_summary: change_summary || '',
+      metadata: metadata || {}
+    });
+
+    const versionWithUploader = await DocumentVersion.findByIdWithUploader(version.id);
+
+    res.status(201).json({
+      success: true,
+      message: '版本创建成功',
+      version: versionWithUploader ? versionWithUploader.toJSON() : null
+    });
+
+    broadcast({
+      type: 'document_version_created',
+      data: {
+        document_id: docId,
+        version: versionWithUploader ? versionWithUploader.toJSON() : null
+      }
+    });
+
+  } catch (error) {
+    console.error('创建版本失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.post('/api/documents/versions/:versionId/restore', async (req, res) => {
+  try {
+    const versionId = parseInt(req.params.versionId, 10);
+    const { user_id } = req.body;
+    
+    if (isNaN(versionId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的版本 ID'
+      });
+    }
+
+    const version = await DocumentVersion.findById(versionId);
+    if (!version) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+
+    const canModify = await AuthMiddleware.canModifyDocumentById(user_id, version.document_id);
+    if (!canModify) {
+      return res.status(403).json({
+        success: false,
+        message: '禁止访问：仅文档所有者或管理员可以执行此操作'
+      });
+    }
+
+    const result = await DocumentVersion.restoreVersionToDocument(versionId);
+
+    res.json({
+      success: true,
+      message: '版本恢复成功',
+      document: result.document.toJSON(),
+      restoredFromVersion: result.restoredFromVersion
+    });
+
+    broadcast({
+      type: 'document_restored_from_version',
+      data: {
+        document_id: version.document_id,
+        version_number: result.restoredFromVersion
+      }
+    });
+
+  } catch (error) {
+    console.error('恢复版本失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.delete('/api/documents/versions/:versionId', async (req, res) => {
+  try {
+    const versionId = parseInt(req.params.versionId, 10);
+    
+    if (isNaN(versionId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的版本 ID'
+      });
+    }
+
+    const version = await DocumentVersion.findById(versionId);
+    if (!version) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+
+    await DocumentVersion.delete(versionId);
+
+    res.json({
+      success: true,
+      message: '版本删除成功'
+    });
+
+  } catch (error) {
+    console.error('删除版本失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/documents/versions/:versionId/download', async (req, res) => {
+  try {
+    const versionId = parseInt(req.params.versionId, 10);
+    
+    if (isNaN(versionId)) {
+      return res.status(400).json({
+        success: false,
+        message: '无效的版本 ID'
+      });
+    }
+
+    const version = await DocumentVersion.findById(versionId);
+    if (!version) {
+      return res.status(404).json({
+        success: false,
+        message: '版本不存在'
+      });
+    }
+
+    if (!version.storage_path || !fs.existsSync(version.storage_path)) {
+      return res.status(404).json({
+        success: false,
+        message: '版本文件不存在'
+      });
+    }
+
+    const stat = fs.statSync(version.storage_path);
+    if (!stat.isFile()) {
+      return res.status(404).json({
+        success: false,
+        message: '无效的文件路径'
+      });
+    }
+
+    const document = await Document.findById(version.document_id);
+    const ext = document ? path.extname(document.filename) : path.extname(version.storage_path);
+    const baseName = document ? path.basename(document.filename, ext) : path.basename(version.storage_path, ext);
+    const downloadFilename = `${baseName}_v${version.version_number}${ext}`;
+
+    res.setHeader('Content-Type', version.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(downloadFilename)}`);
+    res.setHeader('Content-Length', stat.size);
+
+    const readStream = fs.createReadStream(version.storage_path);
+    readStream.pipe(res);
+
+    readStream.on('error', (err) => {
+      console.error('文件读取错误:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: '文件读取失败'
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error('下载版本失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.get('/api/documents/compare', async (req, res) => {
+  try {
+    const { version_id1, version_id2, diff_type = 'line', format = 'unified', ignore_whitespace, ignore_case, context_lines = 3 } = req.query;
+    
+    if (!version_id1) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少第一个版本 ID 参数（version_id1）'
+      });
+    }
+    
+    if (!version_id2) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少第二个版本 ID 参数（version_id2）'
+      });
+    }
+
+    const v1 = parseInt(version_id1, 10);
+    const v2 = parseInt(version_id2, 10);
+
+    if (isNaN(v1) || v1 <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: `第一个版本 ID 无效：version_id1 = ${version_id1}，必须是有效的正整数`
+      });
+    }
+    
+    if (isNaN(v2) || v2 <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: `第二个版本 ID 无效：version_id2 = ${version_id2}，必须是有效的正整数`
+      });
+    }
+
+    if (v1 === v2) {
+      return res.status(400).json({
+        success: false,
+        message: `两个版本 ID 相同（version_id1 = version_id2 = ${v1}），请选择不同的版本进行比对`
+      });
+    }
+
+    const version1 = await DocumentVersion.findById(v1);
+    const version2 = await DocumentVersion.findById(v2);
+
+    if (!version1 && !version2) {
+      return res.status(404).json({
+        success: false,
+        message: `两个版本都不存在：version_id1 = ${v1}，version_id2 = ${v2}`
+      });
+    }
+    
+    if (!version1) {
+      return res.status(404).json({
+        success: false,
+        message: `第一个版本不存在：version_id1 = ${v1}，该版本可能已被删除或 ID 无效`
+      });
+    }
+    
+    if (!version2) {
+      return res.status(404).json({
+        success: false,
+        message: `第二个版本不存在：version_id2 = ${v2}，该版本可能已被删除或 ID 无效`
+      });
+    }
+
+    if (version1.status !== VersionStatus.ACTIVE) {
+      return res.status(400).json({
+        success: false,
+        message: `第一个版本状态无效：version_id1 = ${v1}，当前状态为 "${version1.status}"，需要 "active" 状态`
+      });
+    }
+    
+    if (version2.status !== VersionStatus.ACTIVE) {
+      return res.status(400).json({
+        success: false,
+        message: `第二个版本状态无效：version_id2 = ${v2}，当前状态为 "${version2.status}"，需要 "active" 状态`
+      });
+    }
+
+    if (version1.document_id !== version2.document_id) {
+      return res.status(400).json({
+        success: false,
+        message: `两个版本必须属于同一文档：version_id1 属于文档 ${version1.document_id}，version_id2 属于文档 ${version2.document_id}`
+      });
+    }
+
+    const options = {
+      ignoreWhitespace: ignore_whitespace === 'true',
+      ignoreCase: ignore_case === 'true',
+      contextLines: parseInt(context_lines, 10) || 3
+    };
+
+    let diffResult;
+    if (format === 'side-by-side') {
+      diffResult = await DocumentVersion.getDiffBetweenVersions(v1, v2, {
+        diffType: diff_type,
+        format: 'side-by-side',
+        ...options
+      });
+    } else if (format === 'unified') {
+      diffResult = await DocumentVersion.getDiffBetweenVersions(v1, v2, {
+        diffType: diff_type,
+        format: 'unified',
+        ...options
+      });
+    } else {
+      diffResult = await DocumentVersion.getDiffBetweenVersions(v1, v2, {
+        diffType: diff_type,
+        ...options
+      });
+    }
+
+    const statistics = diffEngine.computeDiffStatistics(
+      readTextContent(version1.storage_path),
+      readTextContent(version2.storage_path)
+    );
+
+    res.json({
+      success: true,
+      version1: version1.toJSON(),
+      version2: version2.toJSON(),
+      format,
+      diff_type,
+      diff: diffResult,
+      statistics
+    });
+
+  } catch (error) {
+    console.error('版本比对失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+app.post('/api/documents/compare-text', async (req, res) => {
+  try {
+    const { text1, text2, diff_type = 'line', format = 'unified', ignore_whitespace, ignore_case, context_lines = 3 } = req.body;
+    
+    if (text1 === undefined || text2 === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少文本内容（text1 和 text2 都需要）'
+      });
+    }
+
+    const options = {
+      ignoreWhitespace: ignore_whitespace === true,
+      ignoreCase: ignore_case === true,
+      contextLines: parseInt(context_lines, 10) || 3
+    };
+
+    let diffResult;
+    if (format === 'side-by-side') {
+      diffResult = diffEngine.computeSideBySideDiff(text1, text2, options);
+    } else if (format === 'unified') {
+      diffResult = diffEngine.computeUnifiedDiff(text1, text2, options);
+    } else {
+      switch (diff_type) {
+        case 'char':
+          diffResult = diffEngine.computeCharLevelDiff(text1, text2);
+          break;
+        case 'word':
+          diffResult = diffEngine.computeWordLevelDiff(text1, text2);
+          break;
+        case 'line':
+        default:
+          diffResult = diffEngine.computeLineLevelDiff(text1, text2, options);
+      }
+    }
+
+    const statistics = diffEngine.computeDiffStatistics(text1, text2);
+
+    res.json({
+      success: true,
+      format,
+      diff_type,
+      diff: diffResult,
+      statistics
+    });
+
+  } catch (error) {
+    console.error('文本比对失败:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
+function readTextContent(filePath) {
+  if (!filePath || !fs.existsSync(filePath)) {
+    return '';
+  }
+
+  try {
+    const ext = path.extname(filePath).toLowerCase();
+    const textExtensions = ['.txt', '.html', '.htm', '.css', '.js', '.json', '.xml', '.md', '.csv'];
+    
+    if (textExtensions.includes(ext)) {
+      return fs.readFileSync(filePath, 'utf8');
+    }
+    
+    return '';
+  } catch (err) {
+    console.error('读取文件内容失败:', err.message);
+    return '';
+  }
+}
 
 app.get('/api/sync-history', async (req, res) => {
   try {
